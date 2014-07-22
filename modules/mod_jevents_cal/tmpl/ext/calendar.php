@@ -18,8 +18,8 @@ class ExtModCalView extends DefaultModCalView
 {
 
 	function _displayCalendarMod($time, $startday, $linkString,	&$day_name, $monthMustHaveEvent=false, $basedate=false){
-		$db	=& JFactory::getDBO();
-		$cfg = & JEVConfig::getInstance();
+		$db	= JFactory::getDBO();
+		$cfg = JEVConfig::getInstance();
 		$compname = JEV_COM_COMPONENT;
 
 		$cal_day=date("d",$time);
@@ -68,12 +68,19 @@ class ExtModCalView extends DefaultModCalView
 			$base_next_month_year 	+=1;
 		}
 
-		$reg =& JFactory::getConfig();
+		$reg = JFactory::getConfig();
 		$reg->set("jev.modparams",$this->modparams);
-		$data = $this->datamodel->getCalendarData($cal_year,$cal_month,1,true, $this->modparams->get("noeventcheck",0));
+		if ($this->modparams->get("showtooltips",0)) {
+			$data = $this->datamodel->getCalendarData($cal_year,$cal_month,1,false, false);
+			$this->hasTooltips	 = true;
+		}
+		else {
+			$data = $this->datamodel->getCalendarData($cal_year,$cal_month,1,true, $this->modparams->get("noeventcheck",0));
+		}
 		$reg->set("jev.modparams",false);
                 $width = $this->modparams->get("mod_cal_width","135px");
-                $height = $this->modparams->get("mod_cal_height","");
+                $height = $this->modparams->get("mod_cal_height","auto");
+                $rowheight = $this->modparams->get("mod_cal_rowheight","auto");
 
 		$month_name = JEVHelper::getMonthName($cal_month);
 		$to_day     = date("Y-m-d", $this->timeWithOffset);
@@ -102,13 +109,13 @@ class ExtModCalView extends DefaultModCalView
 		/*
 		$linkprevious = $linkpref."month.calendar&day=$cal_day&month=$cal_prev_month&year=$cal_prev_month_year";
 		$linkprevious = JRoute::_($linkprevious);
-		$linkprevious = $this->htmlLinkCloaking($linkprevious, '<img border="0" title="previous month" alt="previous month" src="'.$viewimages.'/mini_arrowleft.gif"/>' );
+		$linkprevious = $this->htmlLinkCloaking($linkprevious, '<img border="0" title="' . JText::_("JEV_PREVIOUSMONTH") . '" alt="' . JText::_("JEV_PREVIOUSMONTH") . '" src="'.$viewimages.'/mini_arrowleft.gif"/>' );
 		*/
 		$jev_component_name  = JEV_COM_COMPONENT;
 		$this->_navigationJS($this->_modid);
 		if( $this->minical_prevmonth ){
-			$linkprevious = htmlentities("index.php?option=$jev_component_name&task=modcal.ajax&day=1&month=$base_prev_month&year=$base_prev_month_year&modid=$this->_modid&tmpl=component".$this->cat);
-			$linkprevious = '<img border="0" title="previous month" alt="'.JText::_("JEV_LAST_MONTH").'" class="mod_events_link" src="'.$viewimages.'/mini_arrowleft.gif" onmousedown="callNavigation(\''.$linkprevious.'\');" />';
+			$linkprevious = htmlentities(JURI::base() . "index.php?option=$jev_component_name&task=modcal.ajax&day=1&month=$base_prev_month&year=$base_prev_month_year&modid=$this->_modid&tmpl=component".$this->cat);
+			$linkprevious = '<img border="0" title="' . JText::_("JEV_PREVIOUSMONTH") . '" alt="'.JText::_("JEV_LAST_MONTH").'" class="mod_events_link" src="'.$viewimages.'/mini_arrowleft.gif" onmousedown="callNavigation(\''.$linkprevious.'\');" />';
 		}
 		else {
 			$linkprevious =  "";
@@ -128,22 +135,22 @@ class ExtModCalView extends DefaultModCalView
 		/*
 		$linknext = $linkpref."month.calendar&day=$cal_day&month=$cal_next_month&year=$cal_next_month_year";
 		$linknext = JRoute::_($linknext);
-		$linknext = $this->htmlLinkCloaking($linknext, '<img border="0" title="next month" alt="next month" src="'.$viewimages.'/mini_arrowright.gif"/>' );
+		$linknext = $this->htmlLinkCloaking($linknext, '<img border="0" title="' . JText::_("JEV_NEXT_MONTH") . '" alt="' . JText::_("JEV_NEXT_MONTH") . '" src="'.$viewimages.'/mini_arrowright.gif"/>' );
 		*/
 		$this->_navigationJS($this->_modid);
 		if( $this->minical_nextmonth ){
-			$linknext = htmlentities("index.php?option=$jev_component_name&task=modcal.ajax&day=1&month=$base_next_month&year=$base_next_month_year&modid=$this->_modid&tmpl=component".$this->cat);
-			$linknext = '<img border="0" title="next month" alt="'.JText::_("JEV_NEXT_MONTH").'" class="mod_events_link" src="'.$viewimages.'/mini_arrowright.gif" onmousedown="callNavigation(\''.$linknext.'\');" />';
+			$linknext = htmlentities(JURI::base() . "index.php?option=$jev_component_name&task=modcal.ajax&day=1&month=$base_next_month&year=$base_next_month_year&modid=$this->_modid&tmpl=component".$this->cat);
+			$linknext = '<img border="0" title="' . JText::_("JEV_NEXT_MONTH") . '" alt="'.JText::_("JEV_NEXT_MONTH").'" class="mod_events_link" src="'.$viewimages.'/mini_arrowright.gif" onmousedown="callNavigation(\''.$linknext.'\');" />';
 		}
 		else {
 			$linknext ="";
 		}
-
+                
 		$content = <<<START
 <div id="extcal_minical">
-	<table cellspacing="1" cellpadding="0" border="0" align="center" style="border: 1px solid rgb(190, 194, 195); background-color: rgb(255, 255, 255);">
+	<table cellspacing="1" cellpadding="0" style="width:$width; text-align:center;border: 1px solid rgb(190, 194, 195); background-color: rgb(255, 255, 255);">
 		<tr>
-			<td>
+			<td style="vertical-align: top;">
 START;
 		if( $this->minical_showlink ){
 		$content .= <<<START
@@ -156,7 +163,7 @@ START;
 		                <td width="98%" valign="middle" nowrap="nowrap" height="18" align="center" class="extcal_month_label">
 							$linkcurrent
 		                </td>
-						<td valign="middle" height="18" align="center">
+						<td valign="middle" height="18" align="center" style="margin: 0 auto; min-width: 4px;">
 		                    $linknext
                 		</td>
 					</tr>
@@ -164,7 +171,7 @@ START;
 START;
 }
 		$content .= <<<START
-				<table style="width:$width;height:$height" class="extcal_weekdays">
+				<table style="width:$width;height:$height; " class="extcal_weekdays">
 START;
 		$lf="\n";
 
@@ -179,7 +186,7 @@ START;
 		$datacount = count($data["dates"]);
 		$dn=0;
 		for ($w=0;$w<6 && $dn<$datacount;$w++){
-			$content .="<tr>\n";
+			$content .="<tr style='height:$rowheight;'>\n";
 			// the week column
 			list($week,$link) = each($data['weeks']);
 			$content .= '<td class="extcal_weekcell">';
@@ -208,7 +215,13 @@ START;
 							$linkclass = "extcal_busylink";
 						}
 						$content .= "<td class='".$class."'>\n";
-						$content .= $this->htmlLinkCloaking($currentDay["link"], $currentDay['d'], array("class"=>$linkclass,"title"=>JText::_('JEV_CLICK_TOSWITCH_DAY')));
+						$tooltip = $this->getTooltip($currentDay, array('class'=>$linkclass));
+						if ($tooltip) {
+							$content .= $tooltip;
+						}
+						else {
+							$content .= $this->htmlLinkCloaking($currentDay["link"], $currentDay['d'], array('class'=>$linkclass,'title'=> JText::_('JEV_CLICK_TOSWITCH_DAY')));
+						}
 
 						$content .="</td>\n";
 						break;

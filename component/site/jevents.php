@@ -15,11 +15,11 @@ jimport('joomla.filesystem.path');
 
 // For development performance testing only
 /*
-  $db	=& JFactory::getDBO();
+  $db	= JFactory::getDBO();
   $db->setQuery("SET SESSION query_cache_type = OFF");
   $db->query();
 
-  $cfg = & JEVConfig::getInstance();
+  $cfg = JEVConfig::getInstance();
   $cfg->set('jev_debug', 1);
  */
 
@@ -29,8 +29,37 @@ $isMobile = false;
 jimport("joomla.environment.browser");
 $browser = JBrowser::getInstance();
 
-$registry = & JRegistry::getInstance("jevents");
+$registry = JRegistry::getInstance("jevents");
 // In Joomla 1.6 JComponentHelper::getParams(JEV_COM_COMPONENT) is a clone so the menu params do not propagate so we force this here!
+
+if (JevJoomlaVersion::isCompatible("3.0")){
+	JHtml::_('jquery.framework');
+	JHtml::_('behavior.framework', true);
+	JHtml::_('bootstrap.framework');
+	if ( JComponentHelper::getParams(JEV_COM_COMPONENT)->get("fixjquery",1)){
+		JHTML::script("components/com_jevents/assets/js/jQnc.js");
+		// this script should come after all the URL based scripts in Joomla so should be a safe place to know that noConflict has been set
+		JFactory::getDocument()->addScriptDeclaration( "checkJQ();");
+	}
+}
+else if ( JComponentHelper::getParams(JEV_COM_COMPONENT)->get("fixjquery",1)){
+	// Make loading this conditional on config option
+	JFactory::getDocument()->addScript("//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js");
+        //JFactory::getDocument()->addScript("//www.google.com/jsapi");
+	JHTML::script("components/com_jevents/assets/js/jQnc.js");
+	//JHTML::script("components/com_jevents/assets/js/bootstrap.min.js");
+	//JHTML::stylesheet("components/com_jevents/assets/css/bootstrap.css");
+        // this script should come after all the URL based scripts in Joomla so should be a safe place to know that noConflict has been set
+        JFactory::getDocument()->addScriptDeclaration( "checkJQ();");
+}
+ /*
+ * include_once JPATH_ROOT . '/media/akeeba_strapper/strapper.php';
+$jevversion = JEventsVersion::getInstance();
+AkeebaStrapper::$tag = $jevversion->getShortVersion();
+AkeebaStrapper::bootstrap();
+AkeebaStrapper::jQueryUI();
+ * 
+ */
 
 $newparams = JFactory::getApplication('site')->getParams();
 // Because the application sets a default page title,
@@ -59,7 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST')
 	$newparams->set('com_cache', 0);
 }
 
-$component = & JComponentHelper::getComponent(JEV_COM_COMPONENT);
+$component =  JComponentHelper::getComponent(JEV_COM_COMPONENT);
 $component->params = & $newparams;
 
 $isMobile = $browser->isMobile();
@@ -76,7 +105,7 @@ if (!$isMobile && isset($_SERVER['HTTP_USER_AGENT']))
 	}
 }
 
-$params = & JComponentHelper::getParams(JEV_COM_COMPONENT);
+$params = JComponentHelper::getParams(JEV_COM_COMPONENT);
 
 if ($isMobile || strpos(JFactory::getApplication()->getTemplate(), 'mobile_') === 0 || (class_exists("T3Common") && class_exists("T3Parameter") && T3Common::mobile_device_detect()) || JRequest::getVar("jEV", "") == "smartphone")
 {
@@ -103,7 +132,7 @@ if ($tz != "" && is_callable("date_default_timezone_set"))
 }
 
 // Must also load backend language files
-$lang = & JFactory::getLanguage();
+$lang = JFactory::getLanguage();
 $lang->load(JEV_COM_COMPONENT, JPATH_ADMINISTRATOR);
 
 // Load Site specific language overrides
@@ -143,7 +172,8 @@ if (strpos($cmd, '.') != false)
 	}
 	else
 	{
-		JFactory::getApplication()->enqueueMessage('Invalid Controller - ' . $controllerName);
+		return JError::raiseError(404, 'Invalid Controller - ' . $controllerName);
+		//JFactory::getApplication()->enqueueMessage('Invalid Controller - ' . $controllerName);
 		$cmd = "month.calendar";
 		list($controllerName, $task) = explode('.', $cmd);
 		$controllerPath = JPATH_COMPONENT . '/' . 'controllers' . '/' . $controllerName . '.php';
@@ -211,34 +241,13 @@ else
 }
 
 // create live bookmark if requested
-$cfg = & JEVConfig::getInstance();
-if ($cfg->get('com_rss_live_bookmarks'))
-{
-	$Itemid = JRequest::getInt('Itemid', 0);
-	$rssmodid = $cfg->get('com_rss_modid', 0);
-	// do not use JRoute since this creates .rss link which normal sef can't deal with
-	$rssLink = 'index.php?option=' . JEV_COM_COMPONENT . '&amp;task=modlatest.rss&amp;format=feed&amp;type=rss&amp;Itemid=' . $Itemid . '&amp;modid=' . $rssmodid;
-	$rssLink = JUri::root() . $rssLink;
+JEVHelper::processLiveBookmmarks();
 
-	if (method_exists(JFactory::getDocument(), "addHeadLink"))
-	{
-		$attribs = array('type' => 'application/rss+xml', 'title' => 'RSS 2.0');
-		JFactory::getDocument()->addHeadLink($rssLink, 'alternate', 'rel', $attribs);
-	}
-
-	$rssLink = 'index.php?option=' . JEV_COM_COMPONENT . '&amp;task=modlatest.rss&amp;format=feed&amp;type=atom&amp;Itemid=' . $Itemid . '&amp;modid=' . $rssmodid;
-	$rssLink = JUri::root() . $rssLink;
-	//$rssLink = JRoute::_($rssLink);
-	if (method_exists(JFactory::getDocument(), "addHeadLink"))
-	{
-		$attribs = array('type' => 'application/atom+xml', 'title' => 'Atom 1.0');
-		JFactory::getDocument()->addHeadLink($rssLink, 'alternate', 'rel', $attribs);
-	}
-}
+$cfg = JEVConfig::getInstance();
 
 // Add reference for constructor in registry - unfortunately there is no add by reference method
 // we rely on php efficiency to not create a copy
-$registry = & JRegistry::getInstance("jevents");
+$registry = JRegistry::getInstance("jevents");
 $registry->set("jevents.controller", $controller);
 // record what is running - used by the filters
 $registry->set("jevents.activeprocess", "component");
@@ -247,6 +256,7 @@ $registry->set("jevents.activeprocess", "component");
 if ($cfg->get('blockall', 0) && ( JRequest::getInt("limit", -1) == 0 || JRequest::getInt("limit", -1) > 100 ))
 {
 	JRequest::setVar("limit", 100);
+	JFactory::getApplication()->setUserState("limit", 100);
 }
 
 // Must reset the timezone back!!
@@ -255,87 +265,10 @@ if ($tz && is_callable("date_default_timezone_set"))
 	date_default_timezone_set($timezone);
 }
 
+JEVHelper::getFilterValues();
 
 // If Joomla caching is enabled then we have to manage progressive caching and ensure that session data is taken into account.
-$conf = JFactory::getConfig();
-if ($conf->get('caching', 1))
-{
-	// Joomla  3.0 safe cache parameters
-	$safeurlparams = array('catids' => 'STRING', 'Itemid' => 'STRING', 'task' => 'STRING', 'jevtask' => 'STRING', 'jevcmd' => 'STRING', 'view' => 'STRING', 'layout' => 'STRING', 'evid' => 'INT', 'modid' => 'INT', 'year' => 'INT', 'month' => 'INT', 'day' => 'INT', 'limit' => 'UINT', 'limitstart' => 'UINT');
-	$app = JFactory::getApplication();
-
-	$filtervars = JRequest::get();
-	if (is_array($filtervars))
-	{
-		foreach ($filtervars as $fvk => $fvv)
-		{
-			if (strpos($fvk, "_fv") > 0)
-			{
-				if (is_array($fvv))
-				{
-					$safeurlparams[$fvk] = "ARRAY";
-				}
-				else
-				{
-					$safeurlparams[$fvk] = "STRING";
-					//echo $fvk."= ".$fvv."<br/>";;
-				}
-			}
-		}
-	}
-
-	$session = JFactory::getSession();
-	$sessionregistry = $session->get('registry');
-	$sessionArray = isset($sessionregistry) ? $sessionregistry->toArray(): false;
-	$sessionArrayData = array();
-	if (is_array($sessionArray))
-	{
-		$specialcount = 0;
-		foreach ($sessionArray as $sak => $sav)
-		{
-			if (strpos($sak, "_fv_ses") > 0)
-			{
-				$sessionArrayData[$sak] = $sav;
-				$specialcount += (($sak == "published_fv_ses" || $sak == "justmine_fv_ses") &&  $sav==0) ? 1 : 0;
-			}
-		}
-		// special case when published and justmine the only filters and these are the default values
-		if (count($sessionArrayData) == 2 && $specialcount == 2)
-		{
-			$sessionArrayData = array();
-		}
-	}
-	if ($sessionArrayData > 0)
-	{
-		$safeurlparams["sessionArray"] = "STRING";
-		//var_dump($sessionArrayData);	
-		JRequest::setVar("sessionArray", md5(serialize($sessionArrayData)));
-
-		// if we have session data then stock progressive caching
-		if ($conf->get('caching', 1) == 2)
-		{
-			$conf->set('caching', 1);
-		}
-	}
-
-	if (!empty($app->registeredurlparams))
-	{
-		$registeredurlparams = $app->registeredurlparams;
-	}
-	else
-	{
-		$registeredurlparams = new stdClass;
-	}
-
-	foreach ($safeurlparams as $key => $value)
-	{
-		// Add your safe url parameters with variable type as value {@see JFilterInput::clean()}.
-		$registeredurlparams->$key = $value;
-	}
-
-	$app->registeredurlparams = $registeredurlparams;
-	
-}
+JEVHelper::parameteriseJoomlaCache();
 
 //list ($usec, $sec) = explode(" ", microtime());
 //$time_end = (float) $usec + (float) $sec;
@@ -360,7 +293,9 @@ elseif ($app->getCfg('sitename_pagetitles', 0) == 1) {
 elseif ($app->getCfg('sitename_pagetitles', 0) == 2) {
 	$title = JText::sprintf('JPAGETITLE', $title, $app->getCfg('sitename'));
 }
-JFactory::getDocument()->SetTitle($title);
+if (JRequest::getCmd("format")!="feed"){
+	JFactory::getDocument()->SetTitle($title);
+}
 
 // Redirect if set by the controller
 $controller->redirect();

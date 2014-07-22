@@ -18,7 +18,7 @@ defined('_JEXEC') or die();
  * @static
  */
 
-class ICalsViewICals extends JEventsAbstractView 
+class ICalsViewIcals extends JEventsAbstractView 
 {
 	
 	function export($tpl = null)
@@ -31,6 +31,9 @@ class ICalsViewICals extends JEventsAbstractView
 	{
 		// TODO - run this through plugins first ?
 
+		// See http://www.jevents.net/forum/viewtopic.php?f=23&t=21939&p=115231#wrap
+		// can we use 	X-ALT-DESC;FMTTYPE=text/html: as well as DESCRIPTION
+		
 		$icalformatted = JRequest::getInt("icf", 0);
 		if (!$icalformatted)
 			$description = $this->replacetags($desc);
@@ -38,7 +41,7 @@ class ICalsViewICals extends JEventsAbstractView
 			$description = $desc;
 
 		// wraplines	from vCard class
-		$cfg = & JEVConfig::getInstance();
+		$cfg = JEVConfig::getInstance();
 		if ($cfg->get("outlook2003icalexport", 0))
 		{
 			return "DESCRIPTION:" . $this->wraplines($description, 76, false);
@@ -47,7 +50,7 @@ class ICalsViewICals extends JEventsAbstractView
 		{
 			return "DESCRIPTION;ENCODING=QUOTED-PRINTABLE:" . $this->wraplines($description);
 
-	}
+		}
 	}
 
 	protected function replacetags($description)

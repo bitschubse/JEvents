@@ -9,13 +9,14 @@
  * @link        http://www.jevents.net
  */
 defined('_JEXEC') or die('Restricted access');
+JLoader::register('JevJoomlaVersion',JPATH_ADMINISTRATOR."/components/com_jevents/libraries/version.php");
 
 // TODO replace with JevDate
 
 class JEventsHTML
 {
 
-	function buildRadioOption($arr, $tag_name, $tag_attribs, $key, $text, $selected)
+	public static function buildRadioOption($arr, $tag_name, $tag_attribs, $key, $text, $selected)
 	{
 		$html = ''; //"\n<div name=\"$tag_name\" $tag_attribs>";
 
@@ -59,7 +60,7 @@ class JEventsHTML
 
 	}
 
-	function buildReccurDaySelect($reccurday, $tag_name, $args)
+	public static function buildReccurDaySelect($reccurday, $tag_name, $args)
 	{
 
 		// get array
@@ -80,7 +81,7 @@ class JEventsHTML
 
 	}
 
-	function buildMonthSelect($month, $args)
+	public static function buildMonthSelect($month, $args)
 	{
 		for ($a = 1; $a < 13; $a++)
 		{
@@ -98,7 +99,7 @@ class JEventsHTML
 
 	}
 
-	function buildDaySelect($year, $month, $day, $args)
+	public static function buildDaySelect($year, $month, $day, $args)
 	{
 		$nbdays = date('d', JevDate::mktime(0, 0, 0, ( $month + 1), 0, $year));
 
@@ -117,13 +118,13 @@ class JEventsHTML
 
 	}
 
-	function buildYearSelect($year, $args)
+	public static function buildYearSelect($year, $args)
 	{
 		$y = date('Y');
 
-		$cfg = & JEVConfig::getInstance();
-		$earliestyear = $cfg->get('com_earliestyear');
-		$latestyear = $cfg->get('com_latestyear');
+		$cfg = JEVConfig::getInstance();
+		$earliestyear = JEVHelper::getMinYear();
+		$latestyear = JEVHelper::getMaxYear();
 
 		if ($year < $y - 2 && $year >= $earliestyear && $year <= $latestyear)
 		{
@@ -148,10 +149,10 @@ class JEventsHTML
 
 	}
 
-	function buildViewSelect($viewtype, $args)
+	public static  function buildViewSelect($viewtype, $args)
 	{
 
-		$cfg = & JEVConfig::getInstance();
+		$cfg = JEVConfig::getInstance();
 
 		$iconstoshow = $cfg->get('iconstoshow', array('byyear', 'bymonth', 'byweek', 'byday', 'search'));
 		$viewlist = array();
@@ -174,10 +175,10 @@ class JEventsHTML
 
 	}
 
-	function buildHourSelect($start, $end, $inc, $tag_name, $tag_attribs, $selected, $format = '')
+	public static  function buildHourSelect($start, $end, $inc, $tag_name, $tag_attribs, $selected, $format = '')
 	{
 
-		$cfg = & JEVConfig::getInstance();
+		$cfg = JEVConfig::getInstance();
 
 		$start = intval($start);
 		$end = intval($end);
@@ -221,10 +222,10 @@ class JEventsHTML
 	 * @param boolean $require_sel		First entry: true = Choose one category, false = All categories
 	 * @param int $catidtop				Top level category ancestor
 	 */
-	function buildCategorySelect($catid, $args, $catidList = null, $with_unpublished = false, $require_sel = false, $catidtop = 0, $fieldname = "catid", $sectionname = JEV_COM_COMPONENT, $excludeid = false, $order = "ordering", $eventediting = false)
+	public static  function buildCategorySelect($catid, $args, $catidList = null, $with_unpublished = false, $require_sel = false, $catidtop = 0, $fieldname = "catid", $sectionname = JEV_COM_COMPONENT, $excludeid = false, $order = "ordering", $eventediting = false)
 	{
 		// need to declare this because of bug in Joomla JHtml::_('select.options', on content pages - it loade the WRONG CLASS!
-		if (JVersion::isCompatible("3.0"))
+		if (JevJoomlaVersion::isCompatible("3.0"))
 		{
 			include_once(JPATH_SITE . "/libraries/cms/html/category.php");
 		}
@@ -324,7 +325,7 @@ class JEventsHTML
 				}
 			}
 
-			$dispatcher = & JDispatcher::getInstance();
+			$dispatcher = JDispatcher::getInstance();
 			$dispatcher->trigger('onGetAccessibleCategoriesForEditing', array(& $cats));
 
 			// allow anon-user event creation through
@@ -358,7 +359,7 @@ class JEventsHTML
 		{
 			$size = count($options) > 6 ? 6 : count($options) + 1;
 			?>
-			<select name="<?php echo $fieldname; ?>[]" <?php echo $args; ?> multiple="multiple" size="<?php echo $size; ?>">
+			<select name="<?php echo $fieldname; ?>[]" <?php echo $args; ?> multiple="multiple" size="<?php echo $size; ?>" style="width:300px;">
 				<?php
 			}
 			else
@@ -376,7 +377,7 @@ class JEventsHTML
 
 		}
 
-		function buildWeekDaysCheck($reccurweekdays, $args, $name = "reccurweekdays")
+		public static function buildWeekDaysCheck($reccurweekdays, $args, $name = "reccurweekdays")
 		{
 
 			// get array
@@ -407,7 +408,7 @@ class JEventsHTML
 						$checked = ' checked="checked"';
 					}
 				}
-				if (JVersion::isCompatible("3.0")){
+				if (JevJoomlaVersion::isCompatible("3.0")){
 					// bootstrap version
 					$tosend .= '' 
 							. '<input type="checkbox" id="cb_wd' . $a . '" name="' . $name . '[]" value="'
@@ -426,7 +427,7 @@ class JEventsHTML
 					;
 				}
 			}
-			if (JVersion::isCompatible("3.0")){
+			if (JevJoomlaVersion::isCompatible("3.0")){
 				echo $tosend;
 			}
 			else {
@@ -435,7 +436,7 @@ class JEventsHTML
 
 		}
 
-		function buildWeeksCheck($reccurweeks, $args, $name = "reccurweeks")
+		public static function buildWeeksCheck($reccurweeks, $args, $name = "reccurweeks")
 		{
 			$week_name = array('',
 				JText::_('JEV_REP_WEEK') . ' 1 ',
@@ -474,7 +475,7 @@ class JEventsHTML
 					}
 				}
 
-				if (JVersion::isCompatible("3.0")){
+				if (JevJoomlaVersion::isCompatible("3.0")){
 					// bootstrap version
 					$tosend .= '' 
 							. '<input type="checkbox" id="cb_wn' . $a . '" name="' . $name . '[]" value="'
@@ -492,7 +493,7 @@ class JEventsHTML
 					;
 				}
 			}
-			if (JVersion::isCompatible("3.0")){
+			if (JevJoomlaVersion::isCompatible("3.0")){
 				echo $tosend;
 			}
 			else {
@@ -501,15 +502,15 @@ class JEventsHTML
 
 		}
 
-		function getUserMailtoLink($evid, $userid, $admin = false, $event)
+		public static function getUserMailtoLink($evid, $userid, $admin = false, $event)
 		{
 
-			$db = & JFactory::getDBO();
+			$db = JFactory::getDBO();
 
 			static $arr_userids;
 			static $arr_evids;
 
-			$cfg = & JEVConfig::getInstance();
+			$cfg = JEVConfig::getInstance();
 
 			if (!$arr_userids)
 			{
@@ -537,7 +538,7 @@ class JEventsHTML
 						if (isset($userdet->slug) && $userdet->slug && $agenda_viewmail == '1')
 						{
 							$contactlink = JRoute::_('index.php?option=com_contact&view=contact&id=' . $userdet->slug . '&catid=' . $userdet->catslug);
-							$contactlink = '<a href="' . $contactlink . '" title="' . JText::_('JEV_EMAIL_TO_AUTHOR') . ' target="_blank" >' . $userdet->contactname . '</a>';
+							$contactlink = '<a href="' . $contactlink . '" title="' . JText::_('JEV_EMAIL_TO_AUTHOR') . '" target="_blank" >' . $userdet->contactname . '</a>';
 						}
 						else if ($userdet->email && $agenda_viewmail == '1')
 						{
@@ -606,7 +607,7 @@ class JEventsHTML
 		 * @param	daynb		int		# of day
 		 * @param	colored		bool	color sunday	[ new mic, because inside tooltips a color forces an error! ]
 		 * */
-		function getDayName($daynb, $colored = false)
+		public static function getDayName($daynb, $colored = false)
 		{
 
 			$i = $daynb % 7; // modulo 7
@@ -626,11 +627,11 @@ class JEventsHTML
 
 		}
 
-		function getColorBar($event_id = null, $newcolor)
+		public static function getColorBar($event_id = null, $newcolor)
 		{
-			$db = & JFactory::getDBO();
+			$db = JFactory::getDBO();
 
-			$cfg = & JEVConfig::getInstance();
+			$cfg = JEVConfig::getInstance();
 
 			if ($event_id != null)
 			{
@@ -723,7 +724,7 @@ class JEventsHTML
 		 *            // Us style : 07/2003
 		 * ****************************************** */
 
-		function getDateFormat($year, $month, $day, $type)
+		public static function getDateFormat($year, $month, $day, $type)
 		{
 			// Transform to translation strings
 			if (empty($year))
@@ -744,7 +745,7 @@ class JEventsHTML
 			static $format_type;
 			if (!isset($format_type))
 			{
-				$cfg = & JEVConfig::getInstance();
+				$cfg = JEVConfig::getInstance();
 				$format_type = $cfg->get('com_dateformat');
 			}
 			$datestp = ( JevDate::mktime(0, 0, 0, $month, $day, $year));
@@ -919,7 +920,7 @@ class JEventsHTML
 		 * @param $html	string	html text
 		 * @return		string	html string
 		 */
-		function special($html = '')
+		public static function special($html = '')
 		{
 
 			return htmlspecialchars($html, ENT_QUOTES, 'UTF-8');
@@ -933,7 +934,7 @@ class JEventsHTML
 		 * @param string $type 'start' or 'end' tag
 		 * @return string html sequence
 		 */
-		function buildScriptTag($type = 'start')
+		public static function buildScriptTag($type = 'start')
 		{
 
 			$html = "";
@@ -955,11 +956,11 @@ class JEventsHTML
 
 		}
 
-		function buildAccessSelect($access, $attribs = 'class="inputbox" onchange="this.form.submit()"', $text = "", $fieldname = "access")
+		public static function buildAccessSelect($access, $attribs = 'class="inputbox" onchange="this.form.submit()"', $text = "", $fieldname = "access")
 		{
 			ob_start();
 			?>
-			<select name="<?php echo $fieldname; ?>" <?php echo $attribs; ?> >
+			<select name="<?php echo $fieldname; ?>" <?php echo $attribs; ?> id="<?php echo $fieldname; ?>" >
 				<?php
 				if ($text != "")
 				{

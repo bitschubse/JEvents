@@ -1,12 +1,12 @@
 <?php
 defined('_JEXEC') or die('Restricted access');
 
-$cfg = & JEVConfig::getInstance();
+$cfg = JEVConfig::getInstance();
 
 $this->data = $data = $this->datamodel->getDayData($this->year, $this->month, $this->day);
 $this->Redirectdetail();
 
-$cfg = & JEVConfig::getInstance();
+$cfg = JEVConfig::getInstance();
 $Itemid = JEVHelper::getItemid();
 $hasevents = false;
 
@@ -73,8 +73,8 @@ $hasevents = false;
 	}
 	if (!$hasevents)
 	{
-		echo '<tr><td class="ev_td_right" colspan="3"><ul class="ev_ul" style="list-style: none;">' . "\n";
-		echo "<li class='ev_td_li' style='border:0px;'>\n";
+		echo '<tr><td class="ev_td_right" colspan="3"><ul class="ev_ul" >' . "\n";
+		echo "<li class='ev_td_li ev_td_li_noevents' >\n";
 		echo JText::_('JEV_NO_EVENTS');
 		echo "</li>\n";
 		echo "</ul></td></tr>\n";

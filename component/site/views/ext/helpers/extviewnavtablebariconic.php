@@ -11,8 +11,11 @@ class ExtViewNavTableBarIconic {
 		
 		if (JRequest::getInt( 'pop', 0 )) return;
 				
-		$cfg = & JEVConfig::getInstance();
+		$cfg = JEVConfig::getInstance();
 		$compname = JEV_COM_COMPONENT;
+                //Lets check if we should show the nav on event details 
+                if ($task == "icalrepeat.detail" && $cfg->get('shownavbar_detail', 1) == 0) { return;}
+		
 		$this->iconstoshow = $cfg->get('iconstoshow', array('byyear', 'bymonth', 'byweek', 'byday', 'search'));
 
 		$viewimages = JURI::root() . "components/".JEV_COM_COMPONENT."/views/".$view->getViewName()."/assets/images";

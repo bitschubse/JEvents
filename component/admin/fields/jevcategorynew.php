@@ -12,12 +12,22 @@
 // Check to ensure this file is included in Joomla!
 defined('_JEXEC') or die();
 
-jimport('joomla.form.formfield');
+jimport('joomla.form.helper');
+JFormHelper::loadFieldClass('list');
 
 class JFormFieldJevcategorynew extends JFormFieldList
 {
 
 	protected $type = 'Jevcategorynew';
+
+	protected
+			function getInput()
+	{
+		JLoader::register('JEVHelper', JPATH_SITE . "/components/com_jevents/libraries/helper.php");
+		JEVHelper::ConditionalFields($this->element, $this->form->getName());
+		return parent::getInput();
+
+	}
 
 	/**
 	 * Method to get the field options.

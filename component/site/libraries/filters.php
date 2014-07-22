@@ -25,14 +25,14 @@ class jevFilterProcessing
 	static public $visiblefilters;
 	static public $indexedvisiblefilters;
 
-	function & getInstance($item, $filterpath="", $unsetfilter=false, $uid = ""){
+	public static function & getInstance($item, $filterpath="", $unsetfilter=false, $uid = ""){
 
 		if ($uid == 0){
 			$uid ="";
 		}
 		if ($uid==""){
 			// find what is running - used by the filters
-			$registry	=& JRegistry::getInstance("jevents");
+			$registry	= JRegistry::getInstance("jevents");
 			$activeprocess = $registry->get("jevents.activeprocess","");
 			$moduleid = $registry->get("jevents.moduleid","");
 			$moduleparams = $registry->get("jevents.moduleparams", false);
@@ -123,7 +123,7 @@ class jevFilterProcessing
 
 			// Make sure the visible filters are preloaded before they appear in the modules - I need to know their filtertype values!!
 			self::$indexedvisiblefilters = array();
-			$registry	=& JRegistry::getInstance("jevents");
+			$registry	= JRegistry::getInstance("jevents");
 			$registry->set("indexedvisiblefilters",false);			
                         
 			foreach (self::$visiblefilters as $filtername) {
@@ -152,13 +152,13 @@ class jevFilterProcessing
 
 			}
 
-			$registry	=& JRegistry::getInstance("jevents");
+			$registry	= JRegistry::getInstance("jevents");
 			$registry->set("indexedvisiblefilters",self::$indexedvisiblefilters);
 		}
 
 		// get filter details
 		if (is_object($item)){
-			$filters = & $item->getFilters();
+			$filters = $item->getFilters();
 		}
 		else if (is_array($item)){
 			$filters = $item;
@@ -216,17 +216,30 @@ class jevFilterProcessing
 		return 	$this->needsgroupby;
 	}
 
-	function getFilterHTML(){
-		if (!isset($this->filterHTML)){
-			$this->filterHTML = array();
-			foreach ($this->filters as $filter) {
+	function getFilterHTML($allowAutoSubmit = true){
+		if (isset($this->filterHTML)){
+			return $this->filterHTML;
+		}
+
+		$this->filterHTML = array();
+		foreach ($this->filters as $filter) {
+			if (method_exists($filter,"createfilterHTML")){
+				$filterHTML = $filter->createfilterHTML($allowAutoSubmit);
+			}
+			else {
 				$filterHTML = $filter->_createfilterHTML();
-				if (array_key_exists("merge",$filterHTML)){
-					$this->filterHTML = array_merge($this->filterHTML,$filterHTML["merge"]);
+			}
+			if (!is_array($filterHTML)){
+				continue;
+			}
+			if (array_key_exists("merge",$filterHTML)){
+				$this->filterHTML = array_merge($this->filterHTML,$filterHTML["merge"]);
+			}
+			else {
+				if (!isset($filterHTML["title"]) || !isset($filterHTML["html"]) || ($filterHTML["title"]=="" && $filterHTML["html"]=="")){
+					continue;
 				}
-				else {
-					$this->filterHTML[] = $filterHTML;
-				}
+				$this->filterHTML[] = $filterHTML;
 			}
 		}
 		return $this->filterHTML;
@@ -270,7 +283,7 @@ class jevFilter
 	function jevFilter($tablename, $filterfield, $isString=false){
 		
 
-		$registry	=& JRegistry::getInstance("jevents");
+		$registry	= JRegistry::getInstance("jevents");
 		$indexedvisiblefilters = $registry->get("indexedvisiblefilters",array());
 		if (!is_array($indexedvisiblefilters)) $indexedvisiblefilters = array();
 
@@ -278,7 +291,7 @@ class jevFilter
 		$this->isVisible(in_array($this->filterType,$indexedvisiblefilters));
 
 		// If using caching should disable session filtering if not logged in
-		$cfg	 = & JEVConfig::getInstance();
+		$cfg	 = JEVConfig::getInstance();
 		$joomlaconf = JFactory::getConfig();
 		$useCache = intval($cfg->get('com_cache', 0)) && $joomlaconf->get('caching', 1);
 		
@@ -293,9 +306,7 @@ class jevFilter
 			if ($modparams->get("resetfilters")=="nonjevents" && $option!="com_jevents" && $option!="com_jevlocations" && $option!="com_jevpeople" && $option!="com_rsvppro"  && $option!="com_jevtags") {
 				JRequest::setVar('filter_reset',1);
 			}
-			else if ($modparams->get("resetfilters")=="nonjevents" &&  ($option=="com_jevents" || $option=="com_jevlocations" || $option=="com_jevpeople" || $option=="com_rsvppro"  || $option=="com_jevtags")) {
-				$menu	= JSite::getMenu();
-				$active = $menu->getActive();
+			else if ($modparams->get("resetfilters")=="newmenu") {
 				// Must use JRequest::getInt("Itemid") since missing event finder resets active menu item!
 				if (JRequest::getInt("Itemid",0) && JRequest::getInt("Itemid", 0) != JFactory::getApplication()->getUserState("jevents.filtermenuitem",0)){
 					JRequest::setVar('filter_reset',1);

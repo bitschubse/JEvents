@@ -22,7 +22,7 @@ class AdminIcalrepeatViewIcalrepeat extends JEventsAbstractView
 	function overview($tpl = null)
 	{
 
-		$document = & JFactory::getDocument();
+		$document = JFactory::getDocument();
 		$document->setTitle(JText::_('ICAL_EVENT_REPEATS'));
 
 		// Set toolbar items for the page
@@ -37,16 +37,20 @@ class AdminIcalrepeatViewIcalrepeat extends JEventsAbstractView
 
 		JHTML::_('behavior.tooltip');
 
+		if (JevJoomlaVersion::isCompatible("3.0")){
+			$this->sidebar = JHtmlSidebar::render();					
+		}
 	}
 
 	function edit($tpl = null)
 	{
-		$document = & JFactory::getDocument();
+		$document = JFactory::getDocument();
 		include(JEV_ADMINLIBS . "editStrings.php");
 		$document->addScriptDeclaration($editStrings);
 
 		JEVHelper::script('editical.js', 'components/' . JEV_COM_COMPONENT . '/assets/js/');
 		JEVHelper::script('view_detail.js', 'components/' . JEV_COM_COMPONENT . '/assets/js/');
+                  JEVHelper::script('JevStdRequiredFields.js', 'components/' . JEV_COM_COMPONENT . '/assets/js/');
 
 		$document->setTitle(JText::_('EDIT_ICAL_REPEAT'));
 
@@ -65,19 +69,21 @@ class AdminIcalrepeatViewIcalrepeat extends JEventsAbstractView
 
 		JHTML::_('behavior.tooltip');
 		
-                if (JVersion::isCompatible("3.0")){
+                if (JevJoomlaVersion::isCompatible("3.0")){
                     $this->setLayout("edit");
                 }
                 else {
                     $this->setLayout("edit16");
                 }		
 
+		$this->setupEditForm();
+
 	}
 
 	function addSaveToolBarButton()
 	{
 
-		$toolbar = & JToolBar::getInstance('toolbar');
+		$toolbar =  JToolBar::getInstance('toolbar');
 
 		// Add a standard button
 		//$bar->appendButton( 'Standard', $icon, $alt, $task, $listSelect, $x );
@@ -126,7 +132,7 @@ class AdminIcalrepeatViewIcalrepeat extends JEventsAbstractView
 	function addCancelToolBarButton()
 	{
 
-		$toolbar = & JToolBar::getInstance('toolbar');
+		$toolbar =  JToolBar::getInstance('toolbar');
 		$submitbutton = "Joomla.submitbutton";
 		$html = '<a class="toolbar" onclick="javascript: '.$submitbutton.'(\'icalrepeat.detail\');return false;" href="#"><span class="icon-32-cancel" title="Cancel"> </span>' . JText::_('CANCEL') . '</a>';
 		$toolbar->appendButton('Custom', $html, "customcancel");

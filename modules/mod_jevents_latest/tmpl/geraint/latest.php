@@ -18,10 +18,10 @@ class GeraintModLatestView extends DefaultModLatestView
 	
 	function displayLatestEvents(){
 
-		$cfg = & JEVConfig::getInstance();
+		$cfg = JEVConfig::getInstance();
 		$compname = JEV_COM_COMPONENT;
 	
-		$dispatcher	=& JDispatcher::getInstance();
+		$dispatcher	= JDispatcher::getInstance();
 		$datenow	= JEVHelper::getNow();
 
 		$this->getLatestEventsData();
@@ -94,7 +94,8 @@ class GeraintModLatestView extends DefaultModLatestView
 				} // end of foreach
 			} // end of foreach
 			$content .="</table>\n";
-		} else {
+		}
+		else if ($this->modparams->get("modlatest_NoEvents", 1)){
 			$content .= '<table class="mod_events_latest_table" width="100%" border="0" cellspacing="0" cellpadding="0" align="center">';
 			$content .= '<tr><td class="mod_events_latest_noevents">'. JText::_('JEV_NO_EVENTS') . '</td></tr>' . "\n";
 			$content .="</table>\n";
@@ -117,6 +118,16 @@ class GeraintModLatestView extends DefaultModLatestView
 			. '</div>';
 			$content .= $callink_HTML;
 		}
+
+		if ($this->modparams->get("contentplugins", 0)){
+			$dispatcher = JDispatcher::getInstance();
+			$eventdata = new stdClass();
+			//$eventdata->text = str_replace("{/toggle","{/toggle}",$content);
+			$eventdata->text = $content;
+			$dispatcher->trigger('onContentPrepare', array('com_jevents', &$eventdata, &$this->modparams, 0));
+			 $content = $eventdata->text;
+		}
+
 		return $content;
 	} // end of function
 } // end of class

@@ -42,7 +42,7 @@ class AdminUserController extends JControllerLegacy   {
 
 		// Populate common data used by view
 		// get the view
-		$this->view = & $this->getView("user","html");
+		$this->view = $this->getView("user","html");
 
 		// Assign data for view
 		$this->view->assignRef('task', $this->task);
@@ -51,7 +51,7 @@ class AdminUserController extends JControllerLegacy   {
 	function showUsers() {
 		//JLoader::import( 'models.user',JPATH_COMPONENT_ADMINISTRATOR);
 
-		$model	=& $this->getModel( 'user' );	
+		$model	= $this->getModel( 'user' );	
 		$this->view->setModel($model,true);
 
 		// Set the layout
@@ -71,7 +71,7 @@ class AdminUserController extends JControllerLegacy   {
 			return;
 		}
 
-		$model	=& $this->getModel( 'user' );	
+		$model	= $this->getModel( 'user' );	
 		$this->view->setModel($model,true);
 		
 		// Set the layout

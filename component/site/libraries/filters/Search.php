@@ -22,7 +22,7 @@ class jevSearchFilter extends jevFilter
 		$this->filterNullValue="";
 		parent::__construct($tablename,$filterfield, true);
 		// Should these be ignored?
-		$reg =& JFactory::getConfig();
+		$reg = JFactory::getConfig();
 		$modparams = $reg->get("jev.modparams",false);
 		if ($modparams && $modparams->get("ignorefiltermodule",false)){
 			$this->filter_value = $this->filterNullValue;
@@ -56,7 +56,7 @@ class jevSearchFilter extends jevFilter
 		$filterList["title"]="<label class='evsearch_label' for='".$this->filterType."_fv'>".$this->filterLabel."</label>";
 		$filterList["html"] = "<input type='text' name='".$this->filterType."_fv' id='".$this->filterType."_fv'  class='evsearch'  value='".$this->filter_value."' />";
 
-		$script = "JeventsFilters.filters.push({id:'".$this->filterType."_fv',value:''});";
+		$script = "try {JeventsFilters.filters.push({id:'".$this->filterType."_fv',value:''});} catch (e) {}";
 		$document = JFactory::getDocument();
 		$document->addScriptDeclaration($script);
 		

@@ -17,14 +17,14 @@ defined('_JEXEC') or die();
  *
  * @static
  */
-class ExtViewICalEvent extends JEventsExtView 
+class ExtViewICalevent extends JEventsExtView 
 {
 	
 	function detail($tpl = null)
 	{
 		JEVHelper::componentStylesheet($this);
 
-		$document =& JFactory::getDocument();
+		$document = JFactory::getDocument();
 		// TODO do this properly
 		//$document->setTitle(JText::_( 'BROWSER_TITLE' ));
 						
@@ -32,6 +32,17 @@ class ExtViewICalEvent extends JEventsExtView
 		//$this->assign("introduction", $params->get("intro",""));
 
 		$this->data = $this->datamodel->getEventData( $this->evid, $this->jevtype, $this->year, $this->month, $this->day );
+		// Dynamic pathway
+		if (isset($this->data['row'])){
+			$pathway = JFactory::getApplication()->getPathway();
+
+			$pathway->addItem($this->data['row']->title() ,"");
+
+			// Set date in view for use in navigation icons
+			$this->year = $this->data['row']->yup();
+			$this->month = $this->data['row']->mup();
+			$this->day = $this->data['row']->dup();
+		}
 		
 	}	
 }

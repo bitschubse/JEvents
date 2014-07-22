@@ -10,6 +10,7 @@
  */
 
 defined('_VALID_MOS') or defined('_JEXEC') or die( 'No Direct Access' );
+JLoader::register('JevJoomlaVersion',JPATH_ADMINISTRATOR."/components/com_jevents/libraries/version.php");
 
 // Event repeat startdate fitler
 class jevStartdateFilter extends jevFilter
@@ -32,6 +33,14 @@ class jevStartdateFilter extends jevFilter
 		$this->filterLabel="";
 		$this->dmap = "rpt";
 		parent::__construct($tablename,$filterfield, true);
+		
+		// This filter is special and always remembers for logged in users
+		if (JFactory::getUser()->id>0){
+			$this->filter_value = JFactory::getApplication()->getUserStateFromRequest( $this->filterType.'_fv_ses', $this->filterType.'_fv', $this->filterNullValue );
+			for ($v=0;$v<$this->valueNum;$v++){
+				$this->filter_values[$v] = JFactory::getApplication()->getUserStateFromRequest( $this->filterType.'_fvs_ses'.$v, $this->filterType.'_fvs'.$v,$this->filterNullValues[$v] );
+			}
+		}
 
 		$this->_date = $this->filter_values[1];
 		$this->_onorbefore = $this->filter_values[0];
@@ -88,6 +97,15 @@ class jevStartdateFilter extends jevFilter
 
 		if (!$this->filterField) return "";
 
+		// only works on admin list events pages
+		if (JRequest::getCmd("task")!="admin.listevents"){
+			$filterList=array();
+			$filterList["title"]="";
+
+			$filterList["html"] = "";
+			return $filterList;
+		}
+		
 		$filterList=array();
 		$filterList["title"]=JText::_( 'WITH_INSTANCES' );
 
@@ -101,12 +119,12 @@ class jevStartdateFilter extends jevFilter
 
 		//$filterList["html"] .=  JHTML::calendar($this->filter_values[1],$this->filterType.'_fvs1', $this->filterType.'_fvs1', '%Y-%m-%d',array('size'=>'12','maxlength'=>'10','onchange'=>'form.submit()'));
 		
-			$params =& JComponentHelper::getParams( JEV_COM_COMPONENT );
-			$minyear = $params->get("com_earliestyear",1970);
-			$maxyear = $params->get("com_latestyear",2150);
-			$document =& JFactory::getDocument();
+			$params = JComponentHelper::getParams( JEV_COM_COMPONENT );
+			$minyear = JEVHelper::getMinYear();
+			$maxyear = JEVHelper::getMaxYear();
+			$document = JFactory::getDocument();
 			
-			$calendar = (JVersion::isCompatible("3.0")) ? 'calendar14.js' : 'calendar12.js'; 
+			$calendar = (JevJoomlaVersion::isCompatible("3.0")) ? 'calendar14.js' : 'calendar12.js'; 
 		
 			JEVHelper::script($calendar, "components/".JEV_COM_COMPONENT."/assets/js/",true); 
 			JEVHelper::stylesheet("dashboard.css",  "components/".JEV_COM_COMPONENT."/assets/css/",true);  

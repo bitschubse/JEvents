@@ -31,7 +31,7 @@ class AdminCpanelController extends JControllerAdmin
 	function cpanel()
 	{
 		
-		$db = & JFactory::getDBO();
+		$db = JFactory::getDBO();
 		// Add one category by default if none exist already
 		$sql = "SELECT id from #__categories where extension='com_jevents'";
 		$db->setQuery($sql);
@@ -91,7 +91,7 @@ class AdminCpanelController extends JControllerAdmin
 		$this->mergeMenus();
 				
 		// get the view
-		$this->view = & $this->getView("cpanel", "html");
+		$this->view = $this->getView("cpanel", "html");
 		$sql = 'SHOW TABLES LIKE "' . $db->getPrefix() . 'events"';
 		$db->setQuery($sql);
 		$tables = $db->loadObjectList();
@@ -111,7 +111,12 @@ class AdminCpanelController extends JControllerAdmin
 		$nativeCals = $this->dataModel->queryModel->getNativeIcalendars();
 		if (is_null($nativeCals) || count($nativeCals) == 0)
 		{
-			$this->view->assign("warning", JText::_('CALENDARS_NOT_SETUP_PROPERLY'));
+			JError::raiseWarning("100", JText::_('CALENDARS_NOT_SETUP_PROPERLY'));
+		}
+
+		if (JEVHelper::isAdminUser())
+		{
+			$this->checkLanguagePackages();
 		}
 
 		// Set the layout
@@ -125,10 +130,22 @@ class AdminCpanelController extends JControllerAdmin
 	function support()
 	{
 		//Get the view
-		$this->view = & $this->getView("cpanel", "html");
+		$this->view = $this->getView("cpanel", "html");
 		
 		// Set the layout
 		$this->view->setLayout('support');
+		$this->view->assign('title', JText::_('CONTROL_PANEL'));
+
+		$this->view->display();
+	}
+	
+	function custom_css()
+	{
+		//Get the view
+		$this->view = $this->getView("cpanel", "html");
+		
+		// Set the layout
+		$this->view->setLayout('custom_css');
 		$this->view->assign('title', JText::_('CONTROL_PANEL'));
 
 		$this->view->display();
@@ -376,7 +393,70 @@ class AdminCpanelController extends JControllerAdmin
 			$db->setQuery("UPDATE #__assets SET rules='".'{"core.create":[],"core.delete":[],"core.edit":[],"core.edit.state":[],"core.edit.own":[]}'."' WHERE name like 'com_jevents.category.%' AND rules=''");
 			$db->query();
 		}
-		
+
+		// Fix assets with no parents set!
+		$db->setQuery("SELECT * FROM #__assets WHERE name like 'com_jevents.category.%' AND parent_id=0");
+		$blankparentassets = $db->loadObjectList('id');
+		foreach ($blankparentassets as $blankparentasset){
+			$catid = str_replace('com_jevents.category.', "", $blankparentasset->name);
+			$cat = JTable::getInstance("category");
+			$cat->load($catid);
+			$cat->store();
+		}
+
+		// Fix assets with no parents set!
+		$db->setQuery("SELECT * FROM #__assets WHERE name like 'com_jevpeople.category.%' AND parent_id=0");
+		$blankparentassets = $db->loadObjectList('id');
+		foreach ($blankparentassets as $blankparentasset){
+			$catid = str_replace('com_jevpeople.category.', "", $blankparentasset->name);
+			$cat = JTable::getInstance("category");
+			$cat->load($catid);
+			$cat->store();
+		}
+
+	}
+
+	private function checkLanguagePackages()
+	{
+		$languages = JLanguage::getKnownLanguages();
+
+		foreach($languages as $language)
+		{
+			$oldPackage = false;
+			if(!in_array($language['tag'], array("en-GB")))
+			{
+				if(is_file(JPATH_SITE . "/language/".$language['tag']."/".$language['tag'].".com_jevents.ini") || is_file(JPATH_ADMINISTRATOR. "/language/".$language['tag']."/".$language['tag'].".com_jevents.ini"))
+				{
+					$oldPackage = true;
+
+					$db = JFactory::getDBO();
+					// Add one category by default if none exist already
+					$sql = "SELECT element from #__extensions WHERE type = 'file'";
+					$db->setQuery($sql);
+					$elements = $db->loadObjectList();
+					foreach($elements as $element)
+					{
+						if($element->element === $language['tag']."_JEvents")
+						{
+							$oldPackage = false;
+						}
+					}
+				}
+				
+				if($oldPackage)
+				{
+					if (JText::_("JEV_UPDATE_LANGUAGE_PACKAGE")=="JEV_UPDATE_LANGUAGE_PACKAGE")
+					{
+						$updateLanguagePackMessage = JText::sprintf('Your JEvents language package for %s is not the latest official release from JEvents. Please go to <a href="http://www.jevents.net/translations">JEvents site</a> and get the latest version to enable live update system for JEvents languages.',$language['name']);
+					}
+					else
+					{
+						$updateLanguagePackMessage = JText::sprintf('JEV_UPDATE_LANGUAGE_PACKAGE',$language['name']);
+					}
+					JError::raiseNotice("100", $updateLanguagePackMessage);
+				}
+			}			
+		}
 	}
 
 	private function insertAsset($object)
@@ -470,7 +550,7 @@ class AdminCpanelController extends JControllerAdmin
 		$db->setQuery($sql);			
 		$parent = $db->loadResult();
 
-		$tochange = 'title="Attend JEvents" OR LOWER(title)="com_jevlocations"  OR LOWER(title)="com_jeventstags"  OR LOWER(title)="com_jevpeople"  OR LOWER(title)="com_rsvppro" ';
+		$tochange = 'title="Attend JEvents" OR LOWER(title)="com_jevlocations"  OR LOWER(title)="com_jeventstags"  OR LOWER(alias)="jevents-tags"  OR LOWER(title)="com_jevpeople"  OR LOWER(title)="com_rsvppro" ';
 		$toexist = ' link="index.php?option=com_jevlocations"  OR link="index.php?option=com_jeventstags"  OR link="index.php?option=com_jevpeople"  OR link="index.php?option=com_rsvppro" ';
 			
 		// is this an upgrade of JEvents in which case we may have lost the submenu items and may need to recreate them
@@ -538,7 +618,24 @@ class AdminCpanelController extends JControllerAdmin
 			$table->setLocation(1, "last-child");
 			$table->store();
 			}					
-		
+
+		// Fix Tags menu item title if needed
+		$sql = 'UPDATE  #__menu
+		set title = "COM_JEVENTSTAGS"
+		where client_id=1 AND alias="jevents-tags"';
+
+		$db->setQuery($sql);
+		$db->query();
+		echo $db->getErrorMsg();
+
+		// Fix Managed People menu item if needed
+		$sql = 'UPDATE  #__menu
+		set menutype = "main" where client_id=1 AND menutype="" AND alias="com-jevpeople"';
+
+		$db->setQuery($sql);
+		$db->query();
+		echo $db->getErrorMsg();
+
 		$updatemenus = false;			
 		if ($params->get("mergemenus", 1)){
 											
@@ -615,5 +712,57 @@ class AdminCpanelController extends JControllerAdmin
 				$menu = JTable::getInstance('Menu');
 				$menu->rebuild();
 			}		
+	}
+
+	public function fixcollations(){
+
+		if (!JEVHelper::isAdminUser())
+		{
+			JFactory::getApplication()->redirect("index.php?option=" . JEV_COM_COMPONENT . "&task=cpanel.cpanel", "Not Authorised - must be admin");
+			return;
+		}
+
+		$db = JFactory::getDbo();
+		$db->setQuery("SHOW TABLES LIKE '" . $db->getPrefix() . "jev_%'");
+		$alltables = $db->loadResultArray();
+
+		// find collation for com_content
+		$db->setQuery("SHOW FULL COLUMNS FROM #__content");
+		$contentdata = $db->loadObjectList('Field');
+		$collation = $contentdata['title']->Collation;
+
+		$db->setQuery("SHOW TABLE STATUS LIKE '" . $db->getPrefix() . "jev_%'");
+		$tables = $db->loadObjectList('Name');
+
+		if (JRequest::getInt("ft",0)){
+			foreach ($tables as $tablename=>$table){
+				if ($table->Collation != $collation){
+					$db->setQuery("ALTER TABLE $tablename convert to character set utf8 collate $collation");
+					$db->query();
+				}
+			}
+		}
+
+		$db->setQuery("SHOW TABLE STATUS LIKE '" . $db->getPrefix() . "jev_%'");
+		$tables = $db->loadObjectList('Name');
+
+		$fixtables = false;
+		foreach ($tables as $tablename=>$table){
+			if ($table->Collation != $collation){
+				echo "Table $tablename has collation ".$table->Collation." it should probably be ".$collation."<Br/>";
+				$fixtables = true;
+			}
+			$db->setQuery("SHOW FULL COLUMNS FROM $tablename");
+			$columndata = $db->loadObjectList('Field');
+			foreach ($columndata  as $columnname => $columndata){
+				if ($columndata->Collation && $columndata->Collation!=$collation){
+					echo "Column $columnname in Table $tablename has collation ".$columndata->Collation." it should probably be ".$collation."<Br/>";
+				}
+			}
+		}
+		if ($fixtables){
+			echo  "<hr/><br/><strong><a href='".JURI::root()."/administrator/index.php?option=com_jevents&task=cpanel.fixcollations&ft=1"."'>Click here to fix these tables</a></strong>
+				<h2>MAKE SURE YOU DATABASE IS BACKED UP BEFORE YOU DO THIS</h2>";
+		}
 	}
 }

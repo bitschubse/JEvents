@@ -27,7 +27,7 @@ class AdminUserViewUser extends JEventsAbstractView
 	function overview($tpl = null)
 	{
 
-		$document = & JFactory::getDocument();
+		$document = JFactory::getDocument();
 		// this already includes administrator
 		$livesite = JURI::base();
 
@@ -51,8 +51,8 @@ class AdminUserViewUser extends JEventsAbstractView
 
 		$option = JRequest::getCmd('option', JEV_COM_COMPONENT);
 
-		$pagination = & $this->get('Pagination');
-		$users = &$this->get('users');
+		$pagination =  $this->get('Pagination');
+		$users = $this->get('users');
 
 		$this->assignRef('pagination', $pagination);
 		$this->assignRef('users', $users);
@@ -60,12 +60,15 @@ class AdminUserViewUser extends JEventsAbstractView
 
 		JHTML::_('behavior.tooltip');
 
+		if (JevJoomlaVersion::isCompatible("3.0")){
+			$this->sidebar = JHtmlSidebar::render();					
+		}		
 	}
 
 	function edit($tpl = null)
 	{
 
-		$document = & JFactory::getDocument();
+		$document = JFactory::getDocument();
 		// this already includes administrator
 		$document->setTitle(JText::_('JEVENTS') . ' :: ' . JText::_('JEVENTS'));
 
@@ -79,9 +82,9 @@ class AdminUserViewUser extends JEventsAbstractView
 
 		$option = JRequest::getCmd('option', JEV_COM_COMPONENT);
 
-		$db = & JFactory::getDBO();
+		$db = JFactory::getDBO();
 
-		$params = & JComponentHelper::getParams(JEV_COM_COMPONENT);
+		$params = JComponentHelper::getParams(JEV_COM_COMPONENT);
 		$rules = JAccess::getAssetRules("com_jevents", true);
 		$data = $rules->getData();
 		$creatorgroups = $data["core.create"]->getData();
@@ -111,7 +114,7 @@ class AdminUserViewUser extends JEventsAbstractView
 		{
 			$userOptions[] = JHTML::_('select.option', $user->id, $user->name . " ($user->username)");
 		}
-		$jevuser = &$this->get('user');
+		$jevuser = $this->get('user');
 		$userlist = JHTML::_('select.genericlist', $userOptions, 'user_id', 'class="inputbox" size="1" ', 'value', 'text', $jevuser->user_id);
 
 		JLoader::register('JEventsCategory', JEV_ADMINPATH . "/libraries/categoryClass.php");

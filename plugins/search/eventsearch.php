@@ -42,8 +42,8 @@ if (!(version_compare(JVERSION, '1.6.0', ">=")))
 function plgSearchEventsSearchAreas()
 {
 	$lang = JFactory::getLanguage();
-	$lang ->load("plg_search_eventsearch", JPATH_ADMINISTRATOR);
-	
+	$lang->load("plg_search_eventsearch", JPATH_ADMINISTRATOR);
+
 	if (version_compare(JVERSION, '1.6.0', ">="))
 	{
 		return array(
@@ -76,11 +76,11 @@ class plgSearchEventsearch extends JPlugin
 	function __construct(&$subject, $config = array()) // RSH 10/4/10 added config array to args, needed for plugin parameter registration!
 	{
 		parent::__construct($subject, $config);  // RSH 10/4/10 added config array to args, needed for plugin parameter registration!
-		JPlugin::loadLanguage();
+		JFactory::getLanguage()->load();
 		// load plugin parameters
 		if (!(version_compare(JVERSION, '1.6.0', ">=")))
 		{
-			$this->_plugin = & JPluginHelper::getPlugin('search', 'eventsearch');
+			$this->_plugin =  JPluginHelper::getPlugin('search', 'eventsearch');
 			$this->_params = new JRegistry($this->_plugin->params);
 		}
 
@@ -91,22 +91,12 @@ class plgSearchEventsearch extends JPlugin
 	 */
 	function onContentSearchAreas()
 	{
-		if (version_compare(JVERSION, '1.6.0', ">="))
-		{
-			return array(
-				'eventsearch' => JText::_('JEV_EVENTS_SEARCH')
-			);
-		}
-		else
-		{
-			return array(
-				'events' => JText::_('JEV_EVENTS_SEARCH')
-			);
-		}
-
+		return array(
+			'eventsearch' => JText::_('JEV_EVENTS_SEARCH')
+		);
 	}
 
-	function onContentSearch($text, $phrase='', $ordering='', $areas=null)
+	function onContentSearch($text, $phrase = '', $ordering = '', $areas = null)
 	{
 		return $this->onSearch($text, $phrase, $ordering, $areas);
 
@@ -121,15 +111,16 @@ class plgSearchEventsearch extends JPlugin
 	 * @param string matching option, exact|any|all
 	 * @param string ordering option, newest|oldest|popular|alpha|category
 	 */
-	function onSearch($text, $phrase='', $ordering='', $areas=null)
+	function onSearch($text, $phrase = '', $ordering = '', $areas = null)
 	{
 
-		$db = & JFactory::getDBO();
-		$user = & JFactory::getUser();
+		$db = JFactory::getDBO();
+		$user =  JFactory::getUser();
 		$groups = (version_compare(JVERSION, '1.6.0', '>=')) ? implode(',', $user->getAuthorisedViewLevels()) : false;
 
 		$limit = (version_compare(JVERSION, '1.6.0', '>=')) ? $this->params->get('search_limit', 50) : $this->_params->def('search_limit', 50);
 		$dateformat = (version_compare(JVERSION, '1.6.0', ">=")) ? $this->params->get('date_format', "%d %B %Y") : $this->_params->def('date_format', "%d %B %Y");
+		$allLanguages = $this->params->get('all_language_search', true);
 
 		$limit = "\n LIMIT $limit";
 
@@ -168,8 +159,12 @@ class plgSearchEventsearch extends JPlugin
 		$needsgroup = false;
 
 		$filterarray = array("published");
+
+		$dataModel = new JEventsDataModel();
+		$catwhere = "\n AND ev.catid IN(" . $dataModel->accessibleCategoryList(null,null,null,$allLanguages) . ")";
+
 		// If there are extra filters from the module then apply them now
-		$reg = & JFactory::getConfig();
+		$reg =  JFactory::getConfig();
 		$modparams = $reg->get("jev.modparams", false);
 		if ($modparams && $modparams->get("extrafilters", false))
 		{
@@ -181,7 +176,7 @@ class plgSearchEventsearch extends JPlugin
 		$needsgroup = $filters->needsGroupBy();
 
 		JPluginHelper::importPlugin('jevents');
-		$dispatcher = & JDispatcher::getInstance();
+		$dispatcher = JDispatcher::getInstance();
 		$dispatcher->trigger('onListIcalEvents', array(& $extrafields, & $extratables, & $extrawhere, & $extrajoin, & $needsgroup));
 		$extrajoin = ( count($extrajoin) ? " \n LEFT JOIN " . implode(" \n LEFT JOIN ", $extrajoin) : '' );
 		$extrawhere = ( count($extrawhere) ? ' AND ' . implode(' AND ', $extrawhere) : '' );
@@ -206,12 +201,13 @@ class plgSearchEventsearch extends JPlugin
 			case 'any':
 			default:
 				$words = explode(' ', $text);
+				$text = $db->Quote('%' . $db->escape($text, true) . '%', false);
 
 				// ical
 				$wheres = array();
 				foreach ($words as $word)
 				{
-					$word = $db->Quote('%' . $db->escape($word, true) . '%', false);
+					$word = $db->Quote('%' . $db->escape($word) . '%', false);
 					$wheres2 = array();
 					foreach ($search_ical_attributes as $search_item)
 					{
@@ -229,14 +225,15 @@ class plgSearchEventsearch extends JPlugin
 			$extraor = implode(" OR ", $extrasearchfields);
 			$extraor = " OR " . $extraor;
 			// replace the ### placeholder with the keyword
+			// $text is already exscaped above
 			$extraor = str_replace("###", $text, $extraor);
 
 			$where_ical .= $extraor;
 		}
 		// some of the where statements may already be escaped 
-		$where_ical = str_replace("%'%'","%'",$where_ical );
-		$where_ical = str_replace("''","'",$where_ical );
-		$where_ical = str_replace("'%'%","'%",$where_ical );
+		$where_ical = str_replace("%'%'", "%'", $where_ical);
+		$where_ical = str_replace("''", "'", $where_ical);
+		$where_ical = str_replace("'%'%", "'%", $where_ical);
 
 		$morder = '';
 		$morder_ical = '';
@@ -299,6 +296,7 @@ class plgSearchEventsearch extends JPlugin
 				. "\n AND b.access " . ((version_compare(JVERSION, '1.6.0', '>=')) ? ' IN (' . $groups . ')' : ' <=  ' . $user->gid)
 				. "\n AND b.published = '1'"
 				. $extrawhere
+				. $catwhere
 				. "\n GROUP BY det.evdet_id"
 				. "\n ORDER BY " . ($morder_ical ? $morder_ical : $order_ical)
 				. $limit
@@ -314,7 +312,7 @@ class plgSearchEventsearch extends JPlugin
 			{
 
 				$user = JFactory::getUser();
-				$query = "SELECT ev.*, ev.state as published, rpt.*, rr.*, det.*, ev.created as created "
+				$query = "SELECT ev.*, ev.state as published, rpt.*, rr.*, det.*, ev.created as created, ex_id, exception_type "
 						. "\n , YEAR(rpt.startrepeat) as yup, MONTH(rpt.startrepeat ) as mup, DAYOFMONTH(rpt.startrepeat ) as dup"
 						. "\n , YEAR(rpt.endrepeat  ) as ydn, MONTH(rpt.endrepeat   ) as mdn, DAYOFMONTH(rpt.endrepeat   ) as ddn"
 						. "\n , HOUR(rpt.startrepeat) as hup, MINUTE(rpt.startrepeat ) as minup, SECOND(rpt.startrepeat ) as sup"
@@ -323,6 +321,7 @@ class plgSearchEventsearch extends JPlugin
 						. "\n LEFT JOIN #__jevents_repetition as rpt ON rpt.eventid = ev.ev_id"
 						. "\n LEFT JOIN #__jevents_vevdetail as det ON det.evdet_id = rpt.eventdetail_id"
 						. "\n LEFT JOIN #__jevents_rrule as rr ON rr.eventid = ev.ev_id"
+						. "\n LEFT JOIN #__jevents_exception as ex ON det.evdet_id = ex.eventdetail_id"
 						. "\n WHERE ev.access " . ((version_compare(JVERSION, '1.6.0', '>=')) ? ' IN (' . $groups . ')' : ' <=  ' . $user->gid)
 						. "\n AND det.evdet_id = $id"
 						. "\n ORDER BY rpt.startrepeat ASC limit 1";
@@ -333,22 +332,29 @@ class plgSearchEventsearch extends JPlugin
 					continue;
 
 				$event = new jIcalEventRepeat($row);
-				$event = $event->getNextRepeat();
-				
+				// only get the next repeat IF its not an exception
+				if (is_null($row->ex_id)){
+					$event = $event->getNextRepeat();
+				}
+
 				$startdate = new JevDate(strtotime($event->_startrepeat));
 				$item->title = $item->title . " (" . $startdate->toFormat($dateformat) . ")";
 				$item->startrepeat = $event->_startrepeat;
-				
-				$myitemid = JRequest::getInt("target_itemid",0);
-				// I must find the itemid that allows this event to be shown
-				$catidsOut = $modcatids = $catidList = $modparams = $showall = "";
-				// Use the plugin params to ensure menu item is picked up
-				//$modparams = new JRegistry($this->_plugin->params);
-				$modparams = new JRegistry(null);
-				// pretend to have category restriction
-				$modparams->set("catid0", $row->catid);
-				$modparams->set("ignorecatfilter", 1);
-				$myitemid = findAppropriateMenuID($catidsOut, $modcatids, $catidList, $modparams->toObject(), $showall);
+
+				$myitemid = $this->params->get("target_itemid",0);
+				if($myitemid == 0)
+				{
+					// I must find the itemid that allows this event to be shown
+					$catidsOut = $modcatids = $catidList = $modparams = $showall = "";
+					// Use the plugin params to ensure menu item is picked up
+					//$modparams = new JRegistry($this->_plugin->params);
+					$modparams = new JRegistry(null);
+					// pretend to have category restriction
+					$modparams->set("catid0", $row->catid);
+					$modparams->set("ignorecatfilter", 1);
+
+					$myitemid = findAppropriateMenuID($catidsOut, $modcatids, $catidList, $modparams->toObject(), $showall);
+				}
 				$item->href = $event->viewDetailLink($event->yup(), $event->mup(), $event->dup(), false, $myitemid);
 				$link = $item->href;
 

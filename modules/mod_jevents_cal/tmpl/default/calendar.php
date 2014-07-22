@@ -54,24 +54,32 @@ class DefaultModCalView
 	// data model for module
 	var $datamodel				= null;
 
+	// flag to say if we want to load tooltips
+	protected $hasTooltips	 = false;
+
 	function DefaultModCalView($params, $modid){
+		if (JFile::exists(JPATH_SITE . "/components/com_jevents/assets/css/jevcustom.css"))
+		{
+			$document = JFactory::getDocument();
+			JHTML::stylesheet( "components/com_jevents/assets/css/jevcustom.css");
+		}
 
 		$this->_modid = $modid;
 
-		$user =& JFactory::getUser();
+		$user = JFactory::getUser();
 
-		$cfg = & JEVConfig::getInstance();
+		$cfg = JEVConfig::getInstance();
 		$jev_component_name  = JEV_COM_COMPONENT;
-		$db	=& JFactory::getDBO();
+		$db	= JFactory::getDBO();
 
 		$this->datamodel = new JEventsDataModel();
 
 		// component config object
-		$jevents_config		= & JEVConfig::getInstance();
+		$jevents_config		= JEVConfig::getInstance();
 
 		$this->modparams	= & $params;
 		$this->aid			= $user->aid;
-		$tmplang			=& JFactory::getLanguage();
+		$tmplang			= JFactory::getLanguage();
 
 		// get params exclusive to module
 		$this->inc_ec_css			= $this->modparams->get('inc_ec_css', 1);
@@ -195,32 +203,17 @@ class DefaultModCalView
 		static $included = false;
 		if ($included) return;
 		$included = true;
-?>
-	<script language="javascript"  type="text/javascript" ><!--
-	function navLoaded(elem, modid){
-		var myspan = document.getElementById("testspan"+modid);
-		var modbody = myspan.parentNode;
-		modbody.innerHTML=elem.innerHTML;
-	}
-	function callNavigation(link){
-		var body = document.getElementsByTagName('body')[0];
-		if (!document.getElementById('calnav')){
-			myiframe = document.createElement('iframe');
-			myiframe.setAttribute("name","calnav");
-			myiframe.setAttribute("id","calnav");
-			myiframe.style.display = "none";
-			body.appendChild(myiframe);
+		$viewname = $this->getTheme();
+		if (file_exists(JPATH_SITE."/modules/mod_jevents_cal/tmpl/$viewname/assets/js/calnav.js")){
+			JHtml::script("modules/mod_jevents_cal/tmpl/$viewname/assets/js/calnav.js");
 		}
 		else {
-			myiframe = document.getElementById('calnav');
+			JHtml::script("modules/mod_jevents_cal/tmpl/default/assets/js/calnav.js");
 		}
-		myiframe.setAttribute("src",link);
 	}
-	//--></script>
-	<?php }
 
 	function monthYearNavigation($cal_today,$adj,$symbol, $label,$action="month.calendar"){
-		$cfg = & JEVConfig::getInstance();
+		$cfg = JEVConfig::getInstance();
 		$jev_component_name  = JEV_COM_COMPONENT;
 		$adjDate = JevDate::strtotime($adj,$cal_today);
 		list($year,$month) = explode(":",JevDate::strftime("%Y:%m",$adjDate));
@@ -229,7 +222,7 @@ class DefaultModCalView
 		$content ="";
 		if (isset($this->_modid) && $this->_modid>0){
 			$this->_navigationJS($this->_modid);
-			$link = htmlentities("index.php?option=$jev_component_name&task=modcal.ajax&day=1&month=$month&year=$year&modid=$this->_modid&tmpl=component".$this->cat);
+			$link = htmlentities(JURI::base()  . "index.php?option=$jev_component_name&task=modcal.ajax&day=1&month=$month&year=$year&modid=$this->_modid&tmpl=component".$this->cat);
 			$content = '<td>';
 			$content .= '<div class="mod_events_link" onmousedown="callNavigation(\''.$link.'\');">'.$symbol."</div>\n";
 			$content .= '</td>';
@@ -239,8 +232,8 @@ class DefaultModCalView
 
 	function _displayCalendarMod($time, $startday, $linkString, $day_name, $monthMustHaveEvent=false, $basedate=false){
 
-		$db	=& JFactory::getDBO();
-		$cfg = & JEVConfig::getInstance();
+		$db	= JFactory::getDBO();
+		$cfg = JEVConfig::getInstance();
 		$option = JEV_COM_COMPONENT;
 
 		$cal_year=date("Y",$time);
@@ -275,9 +268,15 @@ class DefaultModCalView
 			$cal_month=date("m",$time);
 		}		
 
-		$reg =& JFactory::getConfig();
+		$reg = JFactory::getConfig();
 		$reg->set("jev.modparams",$this->modparams);
-		$data = $this->datamodel->getCalendarData($cal_year,$cal_month,1,true, $this->modparams->get("noeventcheck",0));
+		if ($this->modparams->get("showtooltips",0)) {
+			$data = $this->datamodel->getCalendarData($cal_year,$cal_month,1,false, false);
+			$this->hasTooltips	 = true;
+		}
+		else {
+			$data = $this->datamodel->getCalendarData($cal_year,$cal_month,1,true, $this->modparams->get("noeventcheck",0));
+		}
 		$reg->set("jev.modparams",false);
                 $width = $this->modparams->get("mod_cal_width","140px");
                 $height = $this->modparams->get("mod_cal_height","");
@@ -391,7 +390,13 @@ class DefaultModCalView
 							$class = ($currentDay["cellDate"] == $today) ? "mod_events_td_todaynoevents" : "mod_events_td_daynoevents";
 						}
 						$content .= "<td class='".$class."'>\n";
-						$content .= $this->htmlLinkCloaking($currentDay["link"], $currentDay['d'], array('class'=>"mod_events_daylink",'title'=> JText::_('JEV_CLICK_TOSWITCH_DAY')));
+						$tooltip = $this->getTooltip($currentDay, array('class'=>"mod_events_daylink"));
+						if ($tooltip) {
+							$content .= $tooltip;
+						}
+						else {
+							$content .= $this->htmlLinkCloaking($currentDay["link"], $currentDay['d'], array('class'=>"mod_events_daylink",'title'=> JText::_('JEV_CLICK_TOSWITCH_DAY')));
+						}
 						$content .="</td>\n";
 
 						break;
@@ -411,14 +416,14 @@ class DefaultModCalView
 		if ($modid!=0) {
 			$this->_modid=$modid;
 		}
-		$user =& JFactory::getUser();
+		$user = JFactory::getUser();
 
-		$db	=& JFactory::getDBO();
+		$db	= JFactory::getDBO();
 
 		// this will get the viewname based on which classes have been implemented
 		$viewname = $this->getTheme();
 
-		$cfg = & JEVConfig::getInstance();
+		$cfg = JEVConfig::getInstance();
 		$compname = JEV_COM_COMPONENT;
 
 		$viewpath = "components/".JEV_COM_COMPONENT."/views/".$viewname."/assets/css/";
@@ -467,16 +472,16 @@ class DefaultModCalView
 		if ($modid!=0) {
 			$this->_modid=$modid;
 		}
-		$user =& JFactory::getUser();
+		$user = JFactory::getUser();
 
-		$db	=& JFactory::getDBO();
+		$db	= JFactory::getDBO();
 
 		static $isloaded_css = false;
 		// this will get the viewname based on which classes have been implemented
-		$cfg = & JEVConfig::getInstance();
+		$cfg = JEVConfig::getInstance();
 		$viewname = ucfirst($cfg->get('com_calViewName',"default"));
 
-		$cfg = & JEVConfig::getInstance();
+		$cfg = JEVConfig::getInstance();
 
 		// get array
 		$day_name = JEVHelper::getWeekdayLetter(null, 1);
@@ -519,4 +524,7 @@ class DefaultModCalView
 		return $content;
 	} // function getSpecificCal
 
+	 protected function getTooltip($currentDay, $linkattr) {
+		return "";
+	 }
 }

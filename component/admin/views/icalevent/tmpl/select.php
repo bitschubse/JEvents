@@ -16,7 +16,7 @@ $db = JFactory::getDBO();
 $user = JFactory::getUser();
 
 // get configuration object
-$cfg = & JEVConfig::getInstance();
+$cfg = JEVConfig::getInstance();
 $this->_largeDataSet = $cfg->get('largeDataSet', 0);
 $orderdir = JRequest::getCmd("filter_order_Dir", 'asc');
 $order = JRequest::getCmd("filter_order", 'start');
@@ -105,7 +105,7 @@ $function = JRequest::getCmd('function', 'jSelectEvent');
 				?>
 				<tr class="row<?php echo $k; ?>">
 					<td >
-						<a href="#select" onclick="return window.parent.<?php echo $function; ?>('<?php echo $link; ?>','<?php echo addslashes(htmlspecialchars($repeat->title())); ?>' , ($('Itemid')?$('Itemid').value:0) , <?php echo $repeat->rp_id(); ?>, <?php echo $repeat->ev_id(); ?>)" title="<?php echo JText::_('JEV_SELECT_EVENT'); ?>"><?php echo $row->title(); ?></a>
+						<a href="#select" onclick="return window.parent.<?php echo $function; ?>('<?php echo $link; ?>','<?php echo addslashes(htmlspecialchars($repeat->title())); ?>' , ($('Itemid')?$('Itemid').value:0) , <?php echo $repeat->ev_id(); ?>, <?php echo $repeat->rp_id(); ?>)" title="<?php echo JText::_('JEV_SELECT_EVENT'); ?>"><?php echo $row->title(); ?></a>
 					</td>
 					<td align="center">
 						<?php

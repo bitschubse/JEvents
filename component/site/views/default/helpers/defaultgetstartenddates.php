@@ -3,7 +3,7 @@ defined('_JEXEC') or die('Restricted access');
 
 function Defaultgetstartenddates($view){
 
-	$params =& JComponentHelper::getParams( JEV_COM_COMPONENT );
+	$params = JComponentHelper::getParams( JEV_COM_COMPONENT );
 
 	$startdate = JRequest::getString("startdate","");
 	$enddate = JRequest::getString("enddate","");
@@ -15,7 +15,7 @@ function Defaultgetstartenddates($view){
 		}
 		else if ($params->get("relative","rel")=="strtotime"){
 			$value = $params->get("strstart","");
-			$value = new JevDate($value);
+			$value = new JevDate(JevDate::strtotime($value));
 			$startdate = $value->toFormat("%Y-%m-%d");
 		}
 		else {
@@ -35,7 +35,7 @@ function Defaultgetstartenddates($view){
 		}
 		else if ($params->get("relative","rel")=="strtotime"){
 			$value = $params->get("strend","");
-			$value = new JevDate($value);
+			$value = new JevDate(JevDate::strtotime($value));
 			$enddate = $value->toFormat("%Y-%m-%d");
 		}
 		else {

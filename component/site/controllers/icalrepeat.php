@@ -22,7 +22,7 @@ class ICalRepeatController extends AdminIcalrepeatController   {
 		$this->registerDefaultTask( 'detail' );
 
 		// Load abstract "view" class
-		$cfg = & JEVConfig::getInstance();
+		$cfg = JEVConfig::getInstance();
 		$theme = JEV_CommonFunctions::getJEventsViewName();
 		JLoader::register('JEvents'.ucfirst($theme).'View',JEV_VIEWS."/$theme/abstract/abstract.php");
 		if (!isset($this->_basePath)){
@@ -42,7 +42,7 @@ class ICalRepeatController extends AdminIcalrepeatController   {
 			$link = $uri->toString();
 			$comuser= version_compare(JVERSION, '1.6.0', '>=') ? "com_users":"com_user";
 			$link = 'index.php?option='.$comuser.'&view=login&return='.base64_encode($link);
-			$link = JRoute::_($link);
+			$link = JRoute::_($link, false);
 			$this->setRedirect($link,JText::_('JEV_LOGIN_TO_VIEW_EVENT'));
 			return;
 		}
@@ -52,6 +52,39 @@ class ICalRepeatController extends AdminIcalrepeatController   {
 			$evid =JRequest::getInt("evid",0);
 			// In this case I do not have a repeat id so I 
 		}
+
+		// special case where loading a direct menu item to an event with nextrepeat specified
+		/*
+		 * This is problematic since it will affect direct links to a specific repeat e.g. from latest events module on this menu item
+		$params = JComponentHelper::getParams(JEV_COM_COMPONENT);
+		$Itemid = JRequest::getInt("Itemid");
+		if ($params->get("nextrepeat", 0) && $Itemid>0 )
+		{
+			$menu = JFactory::getApplication()->getMenu();
+			$menuitem = $menu->getItem($Itemid);
+			if (!is_null($menuitem) && isset($menuitem->query["layout"]) && isset($menuitem->query["view"]) && isset($menuitem->query["rp_id"]))
+			{
+				// we put the xml file in the wrong folder - stupid.  Hard to move now!
+				if ($menuitem->query["view"] == "icalrepeat" || $menuitem->query["view"] == "icalevent") {
+					if (intval($menuitem->query["rp_id"]) == $evid ){
+						$this->datamodel  =  new JEventsDataModel();
+						$this->datamodel->setupComponentCatids();
+						list($year,$month,$day) = JEVHelper::getYMD();
+						$uid = urldecode((JRequest::getVar( 'uid', "" )));
+						$eventdata = $this->datamodel->getEventData( $evid, "icaldb", $year, $month, $day, $uid );
+						if ($eventdata && isset($eventdata["row"])){
+							$nextrepeat = $eventdata["row"]->getNextRepeat();
+							if ($nextrepeat){
+								//$evid = $nextrepeat->rp_id();
+							}
+						}
+					}
+				}
+			}			
+		}
+		 *
+		 */
+
 		// if cancelling from save of copy and edit use the old event id
 		if ($evid==0){
 			$evid =JRequest::getInt("old_evid",0);
@@ -62,15 +95,15 @@ class ICalRepeatController extends AdminIcalrepeatController   {
 
 		$uid = urldecode((JRequest::getVar( 'uid', "" )));
 		
-		$document =& JFactory::getDocument();
+		$document = JFactory::getDocument();
 		$viewType	= $document->getType();
 		
-		$cfg = & JEVConfig::getInstance();
+		$cfg = JEVConfig::getInstance();
 		$theme = JEV_CommonFunctions::getJEventsViewName();
 
 		$view = "icalevent";
 		$this->addViewPath($this->_basePath.'/'."views".'/'.$theme);
-		$this->view = & $this->getView($view,$viewType, $theme."View", 
+		$this->view = $this->getView($view,$viewType, $theme."View", 
 			array( 'base_path'=>$this->_basePath, 
 				"template_path"=>$this->_basePath.'/'."views".'/'.$theme.'/'.$view.'/'.'tmpl',
 				"name"=>$theme.'/'.$view));
@@ -89,18 +122,18 @@ class ICalRepeatController extends AdminIcalrepeatController   {
 		$this->view->assign("uid",$uid);
 		
 		// View caching logic -- simple... are we logged in?
-		$cfg	 = & JEVConfig::getInstance();
+		$cfg	 = JEVConfig::getInstance();
 		$joomlaconf = JFactory::getConfig();
 		$useCache = intval($cfg->get('com_cache', 0)) && $joomlaconf->get('caching', 1);
 		if ($user->get('id') || !$useCache) {
 			$this->view->display();
 		} else {
-			$cache =& JFactory::getCache(JEV_COM_COMPONENT, 'view');
+			$cache = JFactory::getCache(JEV_COM_COMPONENT, 'view');
 			$cache->get($this->view, 'display');
 		}
 	}
 
-	function edit(){
+	function edit($key = NULL, $urlVar = NULL){
 		$is_event_editor = JEVHelper::isEventCreator();
 		if (!$is_event_editor){
 			$user = JFactory::getUser();
@@ -121,7 +154,7 @@ class ICalRepeatController extends AdminIcalrepeatController   {
 		parent::edit();
 	}
 	
-	function save(){
+	function save($key = NULL, $urlVar = NULL){
 		$is_event_editor = JEVHelper::isEventCreator();
 		if (!$is_event_editor){
 			JError::raiseError( 403, JText::_( 'ALERTNOTAUTH' ) );

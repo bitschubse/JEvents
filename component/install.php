@@ -1,7 +1,7 @@
 <?php
 
 /**
- * copyright (C) 2012 GWE Systems Ltd - All rights reserved
+ * copyright (C) 2012-2014 GWE Systems Ltd - All rights reserved
  * @license GNU/GPLv3 www.gnu.org/licenses/gpl-3.0.html
  * */
 // Check to ensure this file is included in Joomla!
@@ -18,6 +18,8 @@ class com_jeventsInstallerScript
 	{
 		
 		$this->createTables();
+
+		$this->updateTables();
 		
 		return true;
 
@@ -41,7 +43,7 @@ class com_jeventsInstallerScript
 	
 	private function createTables() {
 
-		$db = & JFactory::getDBO();
+		$db = JFactory::getDBO();
 		$db->setDebug(0);
 		
 		$charset = ($db->hasUTF()) ?  ' DEFAULT CHARACTER SET `utf8`' : '';
@@ -60,14 +62,14 @@ CREATE TABLE IF NOT EXISTS #__jevents_vevent(
 	ev_id int(12) NOT NULL auto_increment,
 	icsid int(12) NOT NULL default 0,
 	catid int(11) NOT NULL default 1,
-	uid varchar(255) NOT NULL UNIQUE default "",
+	uid varchar(50) NOT NULL UNIQUE default "",
 	refreshed datetime  NOT NULL default '0000-00-00 00:00:00',
 	created datetime  NOT NULL default '0000-00-00 00:00:00',
 	created_by int(11) unsigned NOT NULL default '0',
 	created_by_alias varchar(100) NOT NULL default '',
 	modified_by int(11) unsigned NOT NULL default '0',
 
-	rawdata longtext NOT NULL default "",
+	rawdata longtext NOT NULL ,
 	recurrence_id varchar(30) NOT NULL default "",
 	
 	detail_id int(12) NOT NULL default 0,
@@ -100,7 +102,7 @@ SQL;
 CREATE TABLE IF NOT EXISTS #__jevents_vevdetail(
 	evdet_id int(12) NOT NULL auto_increment,
 
-	rawdata longtext NOT NULL default "",
+	rawdata longtext NOT NULL ,
 	dtstart int(11) NOT NULL default 0,
 	dtstartraw varchar(30) NOT NULL default "",
 	duration int(11) NOT NULL default 0,
@@ -111,17 +113,17 @@ CREATE TABLE IF NOT EXISTS #__jevents_vevdetail(
 	class  varchar(10) NOT NULL default "",
 	categories varchar(120) NOT NULL default "",
 	color varchar(20) NOT NULL default "",
-	description longtext NOT NULL default "",
+	description longtext NOT NULL ,
 	geolon float NOT NULL default 0,
 	geolat float NOT NULL default 0,
 	location VARCHAR(120) NOT NULL default "",
 	priority tinyint unsigned NOT NULL default 0,
 	status varchar(20) NOT NULL default "",
-	summary longtext NOT NULL default "",
+	summary longtext NOT NULL ,
 	contact VARCHAR(120) NOT NULL default "",
 	organizer VARCHAR(120) NOT NULL default "",
-	url text NOT NULL default "",
-	extra_info VARCHAR(240) NOT NULL DEFAULT '',
+	url text NOT NULL ,
+	extra_info text NOT NULL DEFAULT '',
 	created varchar(30) NOT NULL default "",
 	sequence int(11) NOT NULL default 1,
 	state tinyint(3) NOT NULL default 1,
@@ -294,12 +296,16 @@ CREATE TABLE IF NOT EXISTS #__jev_defaults (
 	id int( 11 ) unsigned NOT NULL AUTO_INCREMENT ,
 	title varchar(100) NOT NULL default "",
 	name varchar(50) NOT NULL default "",
-	subject text NOT NULL default "",
-	value text NOT NULL default "",
+	subject text NOT NULL ,
+	value text NOT NULL ,
 	state tinyint(3) NOT NULL default 1,
-	params text NOT NULL default "",
+	params text NOT NULL ,
+	language varchar(20) NOT NULL default '*',
+	catid  int( 11 ) NOT NULL default '0',
 	PRIMARY KEY  (id),
-	INDEX (name)
+	INDEX (name),
+	INDEX langcodename (language, catid, name )
+
 ) $charset;
 SQL;
 		$db->setQuery($sql);
@@ -320,11 +326,27 @@ SQL;
 		$db->query();
 		echo $db->getErrorMsg();
 
+		// Filter module mapping table
+		// Maps filter values to URL keys
+		$sql = <<<SQL
+CREATE TABLE IF NOT EXISTS #__jevents_filtermap (
+	fid int(12) NOT NULL auto_increment,
+	userid int(12) NOT NULL default 0,
+	filters TEXT NOT NULL,
+	md5 VARCHAR(255) NOT NULL,
+	PRIMARY KEY  (fid),
+	INDEX (md5)
+) $charset;
+SQL;
+		$db->setQuery($sql);
+		$db->query();
+		echo $db->getErrorMsg();
+
 	}
 		
 	private function updateTables() {
 
-		$db = & JFactory::getDBO();
+		$db = JFactory::getDBO();
 		$db->setDebug(0);
 		
 		$charset = ($db->hasUTF()) ? 'DEFAULT CHARACTER SET `utf8`' : '';
@@ -400,6 +422,12 @@ SQL;
 		if (!array_key_exists("hits", $cols))
 		{
 			$sql = "ALTER TABLE #__jevents_vevdetail ADD hits int(11) NOT NULL default 0";
+			$db->setQuery($sql);
+			@$db->query();
+		}
+		if (array_key_exists("extra_info", $cols))
+		{
+			$sql = "ALTER TABLE #__jevents_vevdetail modify extra_info text NOT NULL default ''";
 			$db->setQuery($sql);
 			@$db->query();
 		}
@@ -579,7 +607,7 @@ SQL;
 
 		if (!array_key_exists("params", $cols))
 		{
-			$sql = "ALTER TABLE #__jev_defaults ADD params text NOT NULL default ''";
+			$sql = "ALTER TABLE #__jev_defaults ADD params text NOT NULL ";
 			$db->setQuery($sql);
 			@$db->query();
 		}
@@ -612,6 +640,24 @@ SQL;
 			@$db->query();
 		}
 		
+		if (!array_key_exists("catid", $cols))
+		{
+			$sql = "ALTER TABLE #__jev_defaults ADD catid  int( 11 ) NOT NULL default '0'";
+			$db->setQuery($sql);
+			@$db->query();
+		}
+
+		$sql = "SHOW INDEX FROM #__jev_defaults";
+		$db->setQuery($sql);
+		$cols = @$db->loadObjectList("Key_name");
+
+		if (!array_key_exists("langcodename", $cols))
+		{
+			$sql = "ALTER TABLE #__jev_defaults ADD INDEX langcodename (language, catid, name)";
+			$db->setQuery($sql);
+			@$db->query();
+		}
+
 		// fill this table if upgrading  and there are no mapped categories
 		$sql = "SELECT count(*) FROM #__jevents_catmap";
 		$db->setQuery($sql);

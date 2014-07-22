@@ -20,12 +20,12 @@ class ExtModLatestView extends DefaultModLatestView
 		// this will get the viewname based on which classes have been implemented
 		$viewname = $this->getTheme();
 
-		$cfg = & JEVConfig::getInstance();
+		$cfg = JEVConfig::getInstance();
 		$compname = JEV_COM_COMPONENT;
 
 		$viewpath = "components/".JEV_COM_COMPONENT."/views/".$viewname."/assets/css/";
 		
-		$dispatcher	=& JDispatcher::getInstance();
+		$dispatcher	= JDispatcher::getInstance();
 		$datenow	= JEVHelper::getNow();
 
 		$this->getLatestEventsData();
@@ -96,7 +96,8 @@ class ExtModLatestView extends DefaultModLatestView
 			} // end of foreach
 			$content .="</table>\n";
 
-		} else {
+		}
+		else if ($this->modparams->get("modlatest_NoEvents", 1)){
 			$content .= '<table class="mod_events_latest_table" width="100%" border="0" cellspacing="0" cellpadding="0" align="center">';
 			$content .= '<tr><td class="mod_events_latest_noevents">'. JText::_('JEV_NO_EVENTS') . '</td></tr>' . "\n";
 			$content .="</table>\n";
@@ -120,6 +121,16 @@ class ExtModLatestView extends DefaultModLatestView
 			. '</div>';
 			$content .= $callink_HTML;
 		}
+
+		if ($this->modparams->get("contentplugins", 0)){
+			$dispatcher = JDispatcher::getInstance();
+			$eventdata = new stdClass();
+			//$eventdata->text = str_replace("{/toggle","{/toggle}",$content);
+			$eventdata->text = $content;
+			$dispatcher->trigger('onContentPrepare', array('com_jevents', &$eventdata, &$this->modparams, 0));
+			 $content = $eventdata->text;
+		}
+
 		return $content;
 	} // end of function
 } // end of class

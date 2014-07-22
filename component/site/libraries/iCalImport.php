@@ -1,4 +1,4 @@
-b<?php
+<?php
 /**
  * JEvents Component for Joomla 1.5.x
  *
@@ -41,7 +41,7 @@ class iCalImport
 		@ini_set("max_execution_time",600);
 
 		echo JText::sprintf("Importing events from ical file %s", $filename)."<br/>";
-		$cfg = & JEVConfig::getInstance();
+		$cfg = JEVConfig::getInstance();
 		$option = JEV_COM_COMPONENT;
 		// resultant data goes here
 		if ($filename!=""){
@@ -86,6 +86,7 @@ class iCalImport
 				curl_setopt($ch, CURLOPT_VERBOSE, 1);
 				curl_setopt($ch, CURLOPT_POST, 0);
 				curl_setopt($ch, CURLOPT_RETURNTRANSFER,1);
+				curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
 				$this->rawData = curl_exec($ch);
 				curl_close ($ch);
 
@@ -268,6 +269,10 @@ class iCalImport
 					//$vevent["DTEND"] += 86400;
 					$vevent["NOENDTIME"]  = 1;
 				}
+				// some imports do not have UID set
+				if (!isset($vevent["UID"])){
+					$vevent["UID"] = md5(uniqid(rand(), true));
+				}
 				$this->vevents[] = iCalEvent::iCalEventFromData($vevent);
 			}
 		}
@@ -435,7 +440,7 @@ class iCalImport
 
 		static $offset = null;
 		if (is_null($offset)) {
-			$config	=& JFactory::getConfig();
+			$config	= JFactory::getConfig();
 			$offset = $config->get('config.offset', 0);
 
 		}
@@ -574,7 +579,7 @@ class iCalImport
 	}
 
 	// function to convert windows timezone IDs into Olsen equivalent
-	function convertWindowsTzid($wtzid){
+	public static function convertWindowsTzid($wtzid){
 		$wtzdata = array();
 		$wtzdata["Midway Island, Samoa"] = "Pacific/Midway";
 		$wtzdata["Hawaii-Aleutian"] = "America/Adak";
@@ -675,6 +680,8 @@ class iCalImport
 		$wtzdata["E. Europe Standard Time"] = "Europe/Helsinki";
 		$wtzdata["FLE Standard Time"] = "Europe/Helsinki";
 		$wtzdata["Mountain Standard Time"] = "America/Denver";
+		$wtzdata["Romance Standard Time"] = "Europe/Brussels";
+		$wtzdata["GMT Standard Time"] = "UTC";
 		
 		$wtzid = str_replace('"','',$wtzid);
 		return array_key_exists($wtzid,$wtzdata ) ? $wtzdata[$wtzid] : $wtzid;
@@ -697,7 +704,7 @@ class iCalImport
 				$parts = explode(";",$key);
 				if (count($parts)>=2 && JString::strpos($parts[1],"TZID=")!==false){
 					$tz = str_replace("TZID=", "",$parts[1]);
-					$tz = $this->convertWindowsTzid($tz);
+					$tz = iCalImport::convertWindowsTzid($tz);
 				}
 			}
 			$value = $this->unixTime($value, $tz);

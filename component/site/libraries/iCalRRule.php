@@ -42,7 +42,7 @@ class iCalRRule extends JTable  {
 	 * @return n/a
 	 */
 	function iCalRRuleFromDB($icalrowAsArray){
-		$db	=& JFactory::getDBO();
+		$db	= JFactory::getDBO();
 		$temp = new iCalRRule($db);
 
 		$temp->data = $icalrowAsArray;
@@ -57,7 +57,7 @@ class iCalRRule extends JTable  {
 			$temp->processField2("until","");
 		}
 		else {
-			$cfg = & JEVConfig::getInstance();
+			$cfg = JEVConfig::getInstance();
 			// cap indefinate repeats if count is blank as well as until
 			if (array_key_exists("COUNT",$temp->data)){
 				$temp->processField2("until","");
@@ -90,8 +90,8 @@ class iCalRRule extends JTable  {
 	 * @param iCal Entry parsed from ICS file as an array $ice
 	 * @return n/a
 	 */
-	function iCalRRuleFromData($rrule){
-		$db	=& JFactory::getDBO();
+	public static  function iCalRRuleFromData($rrule){
+		$db	= JFactory::getDBO();
 		$temp = new iCalRRule($db);
 
 		$temp->data = $rrule;
@@ -113,7 +113,7 @@ class iCalRRule extends JTable  {
 				$temp->processField("until","");
 			}
 			else {
-				$cfg = & JEVConfig::getInstance();
+				$cfg = JEVConfig::getInstance();
 				$temp->processField("until",JevDate::mktime(23,59,59,12,12,$cfg->get("com_latestyear",2020)));
 			}
 		}
@@ -143,7 +143,7 @@ class iCalRRule extends JTable  {
 	 */
 	function _makeRepeat($start,$end){
 		if (!isset($this->_repetitions)) $this->_repetitions = array();
-		$db	=& JFactory::getDBO();
+		$db	= JFactory::getDBO();
 		$repeat = new iCalRepetition($db);
 		$repeat->eventid = $this->eventid;
 		// TODO CHECK THIS logic
@@ -152,7 +152,9 @@ class iCalRRule extends JTable  {
 		list ($h,$m,$s) = explode(":",JevDate::strftime("%H:%M:%S",$end));
 		if (($h+$m+$s)==0) {
 			//			$repeat->endrepeat = JevDate::strftime('%Y-%m-%d 23:59:59',($end-86400));
-			$repeat->endrepeat = JevDate::strftime('%Y-%m-%d 23:59:59',$end);
+			$duration = $end-$start;
+			$repeat->endrepeat = JevDate::strftime('%Y-%m-%d %H:%M:%S',$start+$duration-1);
+			//$repeat->endrepeat = JevDate::strftime('%Y-%m-%d 23:59:59',$end);
 		}
 		else {
 			$repeat->endrepeat = JevDate::strftime('%Y-%m-%d %H:%M:%S',$end);

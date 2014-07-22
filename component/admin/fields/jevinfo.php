@@ -19,7 +19,7 @@ jimport('joomla.form.helper');
 JFormHelper::loadFieldClass('spacer');
 
 // Must load admin language files
-$lang = & JFactory::getLanguage();
+$lang = JFactory::getLanguage();
 $lang->load("com_jevents", JPATH_ADMINISTRATOR);
 
 /**
@@ -50,7 +50,7 @@ class JFormFieldJEVInfo extends JFormFieldSpacer
 	{
 
 		// Must load admin language files
-		$lang = & JFactory::getLanguage();
+		$lang = JFactory::getLanguage();
 		$lang->load("com_jevents", JPATH_ADMINISTRATOR);
 
 		$node = $this->element;
@@ -74,7 +74,7 @@ class JFormFieldJEVInfo extends JFormFieldSpacer
 			{
 				$help = $helps[$key];
 				list($helpfile, $varname, $part) = explode("::", $help);
-				$lang = & JFactory::getLanguage();
+				$lang = JFactory::getLanguage();
 				$langtag = $lang->getTag();
 				if (file_exists(JPATH_COMPONENT_ADMINISTRATOR . '/help/' . $langtag . '/' . $helpfile))
 				{
@@ -90,6 +90,10 @@ class JFormFieldJEVInfo extends JFormFieldSpacer
 			}
 			$value = implode(", ", $parts);
 		}
+		
+		JLoader::register('JEVHelper',JPATH_SITE."/components/com_jevents/libraries/helper.php");
+		JEVHelper::ConditionalFields( $this->element,$this->form->getName());
+
 		return "<strong style='color:#993300'>" . JText::_($value) . "</strong>";
 
 	}
@@ -136,12 +140,12 @@ class JFormFieldJEVInfo extends JFormFieldSpacer
 		}
 
 		// RSH 10/11/10 - Added float:none for 1.6 compatiblity - The default template was floating images to the left
-		$str = '<img border="0" style="float: none; vertical-align:bottom; cursor:help;" alt="' . JText::_('JEV_HELP') . '"'
+		$str = '<img border="0" class="jev_help" alt="' . JText::_('JEV_HELP') . '"'
 				. ' title="' . JText::_('JEV_HELP') . '"'
 				. ' src="' . $imgpath . '/help_ques_inact.gif"'
 				//. ' onmouseover="this.src="' . $imgpath . '/help_ques.gif'.'" '
 				//. ' onmouseout="this.src="' . $imgpath . '/help_ques_inact.gif'.'" '
-				. ' onclick="' . $onclick_cmd . '" /><div style="display:none;"><div id="helpdiv'.$counthelps.'" >'.$help.'</div></div>';
+				. ' onclick="' . $onclick_cmd . '" /><div class="jev_none"><div id="helpdiv'.$counthelps.'" >'.$help.'</div></div>';
 
 		return $str;
 

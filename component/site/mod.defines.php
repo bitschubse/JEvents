@@ -19,8 +19,8 @@ if (!defined("JEV_COM_COMPONENT")){
 if (!defined("JEV_LIBS")){
 	define("JEV_ADMINPATH",JPATH_ADMINISTRATOR."/components/".JEV_COM_COMPONENT."/");
 	define("JEV_PATH",JPATH_SITE."/components/".JEV_COM_COMPONENT."/");
-	define("JEV_VIEWS",JEV_PATH."/views");
-	define("JEV_LIBS",JEV_PATH."/libraries");
+	define("JEV_VIEWS",JEV_PATH."views");
+	define("JEV_LIBS",JEV_PATH."libraries");
 	define("JEV_ABSTRACTEMPLATES",JEV_VIEWS."/abstract/tmpl/");
 	define("JEV_ADMINLIBS",JEV_ADMINPATH."libraries/");
 }
@@ -39,6 +39,7 @@ if (!defined("JEV_LIBS")){
 	JLoader::register('JEventsHTML',JEV_PATH."/libraries/jeventshtml.php");
 
 	JLoader::register('JEventsVersion',JEV_ADMINPATH."/libraries/version.php");
+	JLoader::register('JevJoomlaVersion',JPATH_ADMINISTRATOR."/components/com_jevents/libraries/version.php");
 	
 	JLoader::register('catLegend',JEV_PATH."/libraries/catLegend.php");
 	

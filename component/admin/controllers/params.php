@@ -42,15 +42,15 @@ class AdminParamsController extends JControllerAdmin
 	 * Show the configuration edit form
 	 * @param string The URL option
 	 */
-	function edit()
+	function edit($key = NULL, $urlVar = NULL)
 	{
 
 		// get the view
-		$this->view = & $this->getView("params", "html");
+		$this->view = $this->getView("params", "html");
 
 		//$model = $this->getModel('params');
 		$model = $this->getModel('component');
-		$table = & JTable::getInstance('extension');
+		$table =  JTable::getInstance('extension');
 		if (!$table->load(array("element" => "com_jevents", "type" => "component"))) // 1.6 mod
 		{
 			JError::raiseWarning(500, 'Not a valid component');
@@ -72,7 +72,7 @@ class AdminParamsController extends JControllerAdmin
 	/**
 	 * Save the configuration
 	 */
-	function save()
+	function save($key = NULL, $urlVar = NULL)
 	{
 		// Check for request forgeries
 		JRequest::checkToken() or jexit('Invalid Token');
@@ -81,7 +81,7 @@ class AdminParamsController extends JControllerAdmin
 		$component = JEV_COM_COMPONENT;
 
 		$model = $this->getModel('params');
-		$table = & JTable::getInstance('extension');
+		$table =  JTable::getInstance('extension');
 		//if (!$table->loadByOption( $component ))
 		if (!$table->load(array("element" => "com_jevents", "type" => "component"))) // 1.6 mod
 		{
@@ -171,7 +171,15 @@ class AdminParamsController extends JControllerAdmin
 		
 		// Clear cache of com_config component.
 		$this->cleanCache('_system');
-		
+
+		// If caching is enabled then remove the component params from the cache!
+		// Bug fixed in Joomla 3.2.1 ??
+		$joomlaconfig = JFactory::getConfig();
+		if ($joomlaconfig->get("caching",0)){
+			$cacheController = JFactory::getCache('_system', 'callback');
+			$cacheController->cache->remove("com_jevents");
+		}
+
 		//SAVE AND APPLY CODE FROM PRAKASH
 		switch ($this->getTask()) {
 			case 'apply':
@@ -198,7 +206,7 @@ class AdminParamsController extends JControllerAdmin
 		$component = JEV_COM_COMPONENT;
 
 		$model = $this->getModel('params');
-		$table = & JTable::getInstance('extension');
+		$table =  JTable::getInstance('extension');
 		//if (!$table->loadByOption( $component ))
 		if (!$table->load(array("element" => "com_jevents", "type" => "component"))) // 1.6 mod
 		{
@@ -283,7 +291,7 @@ class AdminParamsController extends JControllerAdmin
 	/**
 	 * Cancel operation
 	 */
-	function cancel()
+	function cancel($key=NULL)
 	{
 		$this->setRedirect('index.php');
 
@@ -313,6 +321,7 @@ class AdminParamsController extends JControllerAdmin
 		$cache->clean();
 
 		// Trigger the onContentCleanCache event.
+		$this->event_clean_cache = 'onContentCleanCache';
 		$dispatcher->trigger($this->event_clean_cache, $options);
 	}
 	

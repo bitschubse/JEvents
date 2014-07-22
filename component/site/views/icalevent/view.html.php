@@ -18,13 +18,14 @@ defined('_JEXEC') or die();
  */
 include_once(JEV_ADMINPATH . "/views/icalevent/view.html.php");
 
-class ICalEventViewIcalEvent extends AdminIcaleventViewIcalevent
+class ICalEventViewIcalevent extends AdminIcaleventViewIcalevent
 {
 
 	var $jevlayout = null;
 
 	function __construct($config = array())
 	{
+		
 		include_once(JPATH_ADMINISTRATOR . '/' . "includes" . '/' . "toolbar.php");
 		parent::__construct($config);
 
@@ -32,47 +33,64 @@ class ICalEventViewIcalEvent extends AdminIcaleventViewIcalevent
 		$this->jevlayout = "default";
 		$this->addHelperPath(realpath(dirname(__FILE__) . "/../default/helpers"));
 		$this->addHelperPath(JPATH_BASE . '/' . 'templates' . '/' . JFactory::getApplication()->getTemplate() . '/' . 'html' . '/' . JEV_COM_COMPONENT . '/' . "helpers");
-
+		// stop crawler and set meta tag.
+		JEVHelper::checkRobotsMetaTag();
+		
+		// Call the MetaTag setter function.
+		JEVHelper::SetMetaTags();
 	}
 
 	function edit($tpl = null)
 	{
-		$document = & JFactory::getDocument();
+		$document = JFactory::getDocument();
 		include(JEV_ADMINLIBS . "/editStrings.php");
 		$document->addScriptDeclaration($editStrings);
 
 		JEVHelper::script('editical.js', 'components/' . JEV_COM_COMPONENT . '/assets/js/');
-		//JEVHelper::script('toolbarfix.js','components/'.JEV_COM_COMPONENT.'/assets/js/');
+                  JEVHelper::script('JevStdRequiredFields.js', 'components/' . JEV_COM_COMPONENT . '/assets/js/');
 
-		$document->setTitle(JText::_('EDIT_ICAL_EVENT'));
+		if ($this->row->title() <= "")
+		{
+			// Set toolbar items for the page
+			JToolBarHelper::title(JText::_('CREATE_ICAL_EVENT'), 'jevents');
 
-		// Set toolbar items for the page
-		JToolBarHelper::title(JText::_('EDIT_ICAL_EVENT'), 'jevents');
+			$document->setTitle(JText::_('CREATE_ICAL_EVENT'));
+		}
+		else
+		{
+			// Set toolbar items for the page
+			JToolBarHelper::title(JText::_('EDIT_ICAL_EVENT'), 'jevents');
 
-		$bar = & JToolBar::getInstance('toolbar');
+			$document->setTitle(JText::_('EDIT_ICAL_EVENT'));
+		}
+
+		$bar =  JToolBar::getInstance('toolbar');
 		if ($this->id > 0)
 		{
 			if ($this->editCopy)
 			{
-				$this->toolbarConfirmButton("icalevent.save", JText::_("save_copy_warning"), 'save', 'save', 'Save', false);
+				
 				if (JEVHelper::isEventEditor())
-					$this->toolbarConfirmButton("icalevent.apply", JText::_("save_copy_warning"), 'apply', 'apply', 'jev_Apply', false);
+					$this->toolbarConfirmButton("icalevent.apply", JText::_("save_copy_warning"), 'apply', 'apply', 'SAVE', false);
 				//$this->toolbarConfirmButton("icalevent.savenew", JText::_("save_copy_warning"), 'save', 'save', 'JEV_Save_New', false);
+                                $this->toolbarConfirmButton("icalevent.save", JText::_("save_copy_warning"), 'save', 'save', 'JEV_SAVE_CLOSE', false);
 			}
 			else
 			{
-				$this->toolbarConfirmButton("icalevent.save", JText::_("save_icalevent_warning"), 'save', 'save', 'Save', false);
-				if (JEVHelper::isEventEditor())
-					$this->toolbarConfirmButton("icalevent.apply", JText::_("save_icalevent_warning"), 'apply', 'apply', 'jev_Apply', false);
+                            if (JEVHelper::isEventEditor())
+					$this->toolbarConfirmButton("icalevent.apply", JText::_("save_icalevent_warning"), 'apply', 'apply', 'SAVE', false);
 				//$this->toolbarConfirmButton("icalevent.savenew", JText::_("save_icalevent_warning"), 'save', 'save', 'JEV_Save_New', false);
+                            $this->toolbarConfirmButton("icalevent.save", JText::_("save_icalevent_warning"), 'save', 'save', 'JEV_SAVE_CLOSE', false);
+				
 			}
 		}
 		else
 		{
-			$this->toolbarButton("icalevent.save", 'save', 'save', 'Save', false);
+			
 			if (JEVHelper::isEventEditor())
-				$this->toolbarButton("icalevent.apply", 'apply', 'apply', 'Apply', false);
+				$this->toolbarButton("icalevent.apply", 'apply', 'apply', 'SAVE', false);
 			//JToolBarHelper::save('icalevent.savenew', "JEV_Save_New");
+                        $this->toolbarButton("icalevent.save", 'save', 'save', 'JEV_SAVE_CLOSE', false);
 		}
 
 		$params = JComponentHelper::getParams(JEV_COM_COMPONENT);
@@ -86,7 +104,7 @@ class ICalEventViewIcalEvent extends AdminIcaleventViewIcalevent
 		{
 			if ($this->id > 0)
 			{
-				$this->toolbarButton("icalevent.detail", 'cancel', 'cancel', 'Cancel', false);
+				$this->toolbarButton("icalrepeat.detail", 'cancel', 'cancel', 'Cancel', false);
 			}
 			else
 			{
@@ -103,7 +121,7 @@ class ICalEventViewIcalEvent extends AdminIcaleventViewIcalevent
 
 		$this->_adminStart();
 
-		if (JVersion::isCompatible("3.0"))
+		if (JevJoomlaVersion::isCompatible("3.0"))
 		{
 			$this->setLayout("edit");
 		}
@@ -113,6 +131,16 @@ class ICalEventViewIcalEvent extends AdminIcaleventViewIcalevent
 		}
 
 		JEVHelper::componentStylesheet($this, "editextra.css");		
+		jimport('joomla.filesystem.file');
+
+		// Lets check if we have editted before! if not... rename the custom file.
+		if (JFile::exists(JPATH_SITE . "/components/com_jevents/assets/css/jevcustom.css"))
+		{
+			// It is definitely now created, lets load it!
+			JEVHelper::stylesheet('jevcustom.css', 'components/' . JEV_COM_COMPONENT . '/assets/css/');
+		}
+
+		$this->setupEditForm();
 		
 		parent::displaytemplate($tpl);
 
@@ -123,7 +151,7 @@ class ICalEventViewIcalEvent extends AdminIcaleventViewIcalevent
 	function _adminStart()
 	{
 
-		$dispatcher = & JDispatcher::getInstance();
+		$dispatcher = JDispatcher::getInstance();
 		list($this->year, $this->month, $this->day) = JEVHelper::getYMD();
 		$this->Itemid = JEVHelper::getItemid();
 		$this->datamodel = new JEventsDataModel();
@@ -137,12 +165,12 @@ class ICalEventViewIcalEvent extends AdminIcaleventViewIcalevent
 				?>>
 			<div id="toolbar-box" >
 			<?php
-			$bar = & JToolBar::getInstance('toolbar');
+			$bar =  JToolBar::getInstance('toolbar');
 			$barhtml = $bar->render();
 			//$barhtml = str_replace('href="#"','href="javascript void();"',$barhtml);
 			//$barhtml = str_replace('submitbutton','return submitbutton',$barhtml);
 			echo $barhtml;
-			if (JVersion::isCompatible("3.0"))
+			if (JevJoomlaVersion::isCompatible("3.0"))
 			{
 				$title ="";// JFactory::getApplication()->JComponentTitle;
 			}
@@ -162,14 +190,14 @@ class ICalEventViewIcalEvent extends AdminIcaleventViewIcalevent
 		?>
 		</div>
 		<?php
-		$dispatcher = & JDispatcher::getInstance();
+		$dispatcher = JDispatcher::getInstance();
 		$dispatcher->trigger('onJEventsFooter', array($this));
 
 	}
 
 	function toolbarButton($task = '', $icon = '', $iconOver = '', $alt = '', $listSelect = true)
 	{
-		$bar = & JToolBar::getInstance('toolbar');
+		$bar =  JToolBar::getInstance('toolbar');
 
 		// Add a standard button
 		$bar->appendButton('Jev', $icon, $alt, $task, $listSelect);
@@ -178,7 +206,7 @@ class ICalEventViewIcalEvent extends AdminIcaleventViewIcalevent
 
 	function toolbarLinkButton($task = '', $icon = '', $iconOver = '', $alt = '')
 	{
-		$bar = & JToolBar::getInstance('toolbar');
+		$bar =  JToolBar::getInstance('toolbar');
 
 		// Add a standard button
 		$bar->appendButton('Jevlink', $icon, $alt, $task, false);
@@ -187,7 +215,7 @@ class ICalEventViewIcalEvent extends AdminIcaleventViewIcalevent
 
 	function toolbarConfirmButton($task = '', $msg = '', $icon = '', $iconOver = '', $alt = '', $listSelect = true)
 	{
-		$bar = & JToolBar::getInstance('toolbar');
+		$bar =  JToolBar::getInstance('toolbar');
 
 		// Add a standard button
 		$bar->appendButton('Jevconfirm', $msg, $icon, $alt, $task, $listSelect, false, "document.adminForm.updaterepeats.value");

@@ -1,7 +1,7 @@
 <?php 
 defined('_JEXEC') or die('Restricted access');
 
-$cfg	 = & JEVConfig::getInstance();
+$cfg	 = JEVConfig::getInstance();
 
 $view =  $this->getViewName();
 $this->dataModel = new JEventsDataModel("JEventsAdminDBModel");
@@ -11,13 +11,13 @@ $this->queryModel = new JEventsDBModel($this->dataModel);
 $action = JFactory::getApplication()->isAdmin()?"index.php":JURI::root()."index.php?option=".JEV_COM_COMPONENT."&Itemid=".JEVHelper::getItemid();
 
 ?>
-<div style="padding:10px;">
+<div class="p10px">
 <?php
 echo "<h3>".JText::_('JEV_IMPORT_ICALEVENT')."</h3>\n";
 
 ?>
 
-<script type="text/javascript" language="Javascript">
+<script type="text/javascript" >
 function submitbutton() {
 	var form = document.ical;
 	
@@ -45,7 +45,7 @@ function submitbutton() {
 	<input class="inputbox" type="text" name="uploadURL" id="uploadURL" size="30" /><br/><br/>
 
 	<?php 	if ($this->clistChoice){?>
-			<script type="text/javascript" language="Javascript">
+			<script type="text/javascript" >
 			function preselectCategory(select){
 				var lookup = new Array();
 				lookup[0]=0;

@@ -13,12 +13,15 @@ defined('_JEXEC') or die('No Direct Access');
 
 JLoader::register('JEVConfig', JPATH_ADMINISTRATOR . "/components/com_jevents/libraries/config.php");
 JLoader::register('JEVHelper', JPATH_SITE . "/components/com_jevents/libraries/helper.php");
+JLoader::register('JSite' , JPATH_SITE.'/includes/application.php');
 
 function JEventsBuildRoute(&$query)
 {
 	$params = JComponentHelper::getParams("com_jevents");
-
-	$cfg = & JEVConfig::getInstance();
+	// Must also load backend language files
+	$lang = JFactory::getLanguage();
+	$lang->load("com_jevents", JPATH_SITE);
+	
 	$segments = array();
 
 	// sometimes the task is not set but view and layout are so tackle this!
@@ -26,6 +29,7 @@ function JEventsBuildRoute(&$query)
 	{
 		$query['task'] = $query['view'] . "." . $query['layout'];
 	}
+	
 	// We don't need the view - its only used to manipulate parameters
 	if (isset($query['view']))
 	{
@@ -42,7 +46,7 @@ function JEventsBuildRoute(&$query)
 	{
 		if (isset($query["Itemid"]))
 		{
-			$menu = & JSite::getMenu();
+			$menu =  JFactory::getApplication()->getMenu();
 			$menuitem = $menu->getItem($query["Itemid"]);
 			if (!is_null($menuitem) && isset($menuitem->query["task"]))
 			{
@@ -51,6 +55,10 @@ function JEventsBuildRoute(&$query)
 			}
 			else if (!is_null($menuitem) && isset($menuitem->query["layout"]) && isset($menuitem->query["view"]))
 			{
+				// we put the xml file in the wrong folder - stupid.  Hard to move now!
+				if ($menuitem->query["view"]=="icalrepeat"){
+					$menuitem->query["view"] = "icalevent";
+				}
 				$task = $menuitem->query["view"] . "." . $menuitem->query["layout"];
 			}
 		}
@@ -84,7 +92,7 @@ function JEventsBuildRoute(&$query)
 		case "search.results":
 		case "admin.listevents": {
 				$segments[] = $task;
-				$config = & JFactory::getConfig();
+				$config =  JFactory::getConfig();
 				$t_datenow = JEVHelper::getNow();
 
 				// if no date in the query then use TODAY not the calendar date
@@ -144,7 +152,7 @@ function JEventsBuildRoute(&$query)
 							if (isset($query["Itemid"]))
 							{
 								// event detail menu item
-								$menu = JSite::getMenu();
+								$menu = JFactory::getApplication()->getMenu();
 								$menuitem = $menu->getItem($query["Itemid"]);
 								if (!is_null($menuitem) && isset($menuitem->query["evid"]))
 								{
@@ -220,6 +228,10 @@ function JEventsBuildRoute(&$query)
 		case "icalevent.delete":
 		case "icalrepeat.delete":
 		case "icalrepeat.deletefuture":
+			JPluginHelper::importPlugin("jevents");
+			$dispatcher	= JDispatcher::getInstance();
+			$dispatcher->trigger( 'onJEventsRoute');
+
 			$segments[] = $task;
 			if (isset($query['jevtype']))
 			{
@@ -235,7 +247,7 @@ function JEventsBuildRoute(&$query)
 				if (isset($query["Itemid"]))
 				{
 					// event detail menu item
-					$menu = JSite::getMenu();
+					$menu = JFactory::getApplication()->getMenu();
 					$menuitem = $menu->getItem($query["Itemid"]);
 					if (!is_null($menuitem) && isset($menuitem->query["evid"]))
 					{
@@ -324,7 +336,7 @@ function JEventsParseRoute($segments)
 	{
 
 		// Must also load backend language files
-		$lang = & JFactory::getLanguage();
+		$lang = JFactory::getLanguage();
 		$lang->load("com_jevents", JPATH_SITE);
 
 		$translatedTasks = array();
@@ -364,8 +376,8 @@ function JEventsParseRoute($segments)
 	}
 
 	//Get the active menu item
-	$menu = & JSite::getMenu();
-	$item = & $menu->getActive();
+	$menu =  JFactory::getApplication()->getMenu();
+	$item = $menu->getActive();
 
 	// Count route segments
 	$count = count($segments);
@@ -552,14 +564,14 @@ function JEventsBuildRouteNew(&$query, $task)
 		$menuItemGiven = true;
 	}
 	
-	$cfg = & JEVConfig::getInstance();
+	$cfg = JEVConfig::getInstance();
 	$segments = array();
 
 	if (count($query)==2 && isset($query['Itemid'])  && isset($query['option'])){
 
 		// special case where we do not need any information since its a menu item
 		// as long as the task matches up!
-		$menu = & JSite::getMenu();
+		$menu =  JFactory::getApplication()->getMenu();
 		$menuitem = $menu->getItem($query["Itemid"]);
 		if (!is_null($menuitem) && (isset($menuitem->query["task"]) || (isset($menuitem->query["view"]) && isset($menuitem->query["layout"]))))
 		{
@@ -590,7 +602,7 @@ function JEventsBuildRouteNew(&$query, $task)
 				if (!in_array($transtask, $segments)){
 					$segments[] = $transtask;
 				}
-				$config = & JFactory::getConfig();
+				$config =  JFactory::getConfig();
 				$t_datenow = JEVHelper::getNow();
 
 				// if no date in the query then use TODAY not the calendar date
@@ -751,6 +763,10 @@ function JEventsBuildRouteNew(&$query, $task)
 		case "icalevent.delete":
 		case "icalrepeat.delete":
 		case "icalrepeat.deletefuture":
+			JPluginHelper::importPlugin("jevents");
+			$dispatcher	= JDispatcher::getInstance();
+			$dispatcher->trigger( 'onJEventsRoute');
+
 			$segments[] = $transtask;
 			if (isset($query['jevtype']))
 			{

@@ -60,7 +60,7 @@ class iCalEventDetail extends JTable  {
 	 */
 	function iCalEventDetail( &$db ) {
 		// get default value for multiday from params
-		$cfg = & JEVConfig::getInstance();
+		$cfg = JEVConfig::getInstance();
 		$this->_multiday=$cfg->get('multiday',1);
 
 		parent::__construct( '#__jevents_vevdetail', 'evdet_id', $db );
@@ -73,12 +73,12 @@ class iCalEventDetail extends JTable  {
 	 * @param unknown_type $updateNulls
 	 */
 	function store($updateNulls=false ) {
-		$date =& JevDate::getDate();
+		$date = JevDate::getDate();
 		$this->modified = $date->toMySQL();
 
 		if (parent::store($updateNulls)){
 			// I also need to store custom data
-			$dispatcher	=& JDispatcher::getInstance();
+			$dispatcher	= JDispatcher::getInstance();
 			// just incase we don't have jevents plugins registered yet
 			JPluginHelper::importPlugin("jevents");
 			$res = $dispatcher->trigger( 'onStoreCustomDetails' , array(&$this));
@@ -95,8 +95,8 @@ class iCalEventDetail extends JTable  {
 	 * @param iCal Event parsed from ICS file as an array $ice
 	 * @return n/a
 	 */
-	function iCalEventDetailFromData($ice){
-		$db	=& JFactory::getDBO();
+	public static function iCalEventDetailFromData($ice){
+		$db	= JFactory::getDBO();
 		$temp = new iCalEventDetail($db);
 		$temp->_data = $ice;
 		$temp->convertData();
@@ -110,8 +110,8 @@ class iCalEventDetail extends JTable  {
 	 * @param iCal Event parsed from ICS file as an array $ice
 	 * @return n/a
 	 */
-	function iCalEventDetailFromDB($icalrowAsArray){
-		$db	=& JFactory::getDBO();
+	public static function iCalEventDetailFromDB($icalrowAsArray){
+		$db	= JFactory::getDBO();
 		$temp = new iCalEventDetail($db);
 		$temp->_data = $icalrowAsArray;
 		$temp->convertData();
@@ -198,7 +198,7 @@ class iCalEventDetail extends JTable  {
 		*/
 
 		// get default value for multiday from params
-		$cfg = & JEVConfig::getInstance();
+		$cfg = JEVConfig::getInstance();
 		$this->processField("multiday",$cfg->get('multiday',1));
 
 		$this->processField("noendtime",0);

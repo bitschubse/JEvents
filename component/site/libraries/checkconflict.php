@@ -109,7 +109,34 @@ function ProcessRequest(&$requestObject, $returnData)
 	define("REQUESTOBJECT", serialize($requestObject));
 	define("RETURNDATA", serialize($returnData));
 
-	require_once JPATH_BASE . '/' . 'includes' . '/' . 'defines.php';
+	// Do this ourselves to avoid Joomla 3.0 template path issues
+	// require_once JPATH_BASE . '/' . 'includes' . '/' . 'defines.php';
+	
+	//Global definitions.
+	//Joomla framework path definitions.
+	$parts = explode(DIRECTORY_SEPARATOR, JPATH_BASE);
+
+	//Defines.
+	define('JPATH_ROOT',           implode(DIRECTORY_SEPARATOR, $parts));
+	define('JPATH_SITE',          JPATH_ROOT);
+	define('JPATH_CONFIGURATION', JPATH_ROOT);
+	define('JPATH_ADMINISTRATOR', JPATH_ROOT . '/administrator');
+	define('JPATH_LIBRARIES',     JPATH_ROOT . '/libraries');
+	define('JPATH_PLUGINS',       JPATH_ROOT . '/plugins');
+	define('JPATH_INSTALLATION',  JPATH_ROOT . '/installation');
+	// IMPORTANT CHANGE!
+	$requestObject = unserialize(REQUESTOBJECT);
+	$client = "site";
+	if (isset($requestObject->client) && in_array($requestObject->client, array("site", "administrator")))
+	{
+		$client = $requestObject->client;
+	}
+	$patharray = array("site"=>JPATH_SITE, "administrator"=>JPATH_ADMINISTRATOR);
+	define('JPATH_THEMES',        $patharray[$client] . '/templates');
+	
+	define('JPATH_CACHE',         JPATH_ROOT . '/cache');
+	define('JPATH_MANIFESTS',     JPATH_ADMINISTRATOR . '/manifests');
+	
 	require_once JPATH_BASE . '/' . 'includes' . '/' . 'framework.php';
 
 	$requestObject = unserialize(REQUESTOBJECT);
@@ -127,17 +154,17 @@ function ProcessRequest(&$requestObject, $returnData)
 	$mainframe = JFactory::getApplication($client);
 	JFactory::getApplication()->initialise();
 	$option = "com_jevents";
-	// Not sure why this is needed but it is if (use use $mainframe =& JFactory::getApplication($client); )!!!
+	// Not sure why this is needed but it is if (use use $mainframe = JFactory::getApplication($client); )!!!
 	// needed for Joomla 1.5 plugins
 	$GLOBALS['mainframe'] = $mainframe;
 
-	$lang = & JFactory::getLanguage();
+	$lang = JFactory::getLanguage();
 	$lang->load("com_jevents", JPATH_SITE);
 	$lang->load("com_jevents", JPATH_ADMINISTRATOR);
 
 	include_once(JPATH_SITE . "/components/com_jevents/jevents.defines.php");
 
-	$params = & JComponentHelper::getParams("com_jevents");
+	$params = JComponentHelper::getParams("com_jevents");
 	if (!$params->get("checkclashes", 0) && !$params->get("noclashes", 0))
 		return $returnData;
 
@@ -163,7 +190,7 @@ function ProcessRequest(&$requestObject, $returnData)
 		$timezone = date_default_timezone_get();
 		$tz = $params->get("icaltimezonelive", "");
 		date_default_timezone_set($tz);
-		$registry = & JRegistry::getInstance("jevents");
+		$registry = JRegistry::getInstance("jevents");
 		$registry->set("jevents.timezone", $timezone);
 	}
 
@@ -358,7 +385,7 @@ function simulateSaveRepeat($requestObject)
 		throwerror(JText::_('ALERTNOTAUTH'));
 	}
 
-	$db = & JFactory::getDBO();
+	$db = JFactory::getDBO();
 	$rpt = new iCalRepetition($db);
 	$rpt->load($rp_id);
 
@@ -456,7 +483,7 @@ function valueIfExists($array, $key, $default)
 
 function checkEventOverlaps($testevent, & $returnData, $eventid, $requestObject)
 {
-	$params = & JComponentHelper::getParams("com_jevents");
+	$params = JComponentHelper::getParams("com_jevents");
 	$db = JFactory::getDBO();
 	$overlaps = array();
 	if ($params->get("noclashes", 0))
@@ -464,9 +491,11 @@ function checkEventOverlaps($testevent, & $returnData, $eventid, $requestObject)
 		foreach ($testevent->repetitions as $repeat)
 		{
 
-			$sql = "SELECT * FROM #__jevents_repetition as rpt ";
+			$sql = "SELECT *, ev.state FROM #__jevents_repetition as rpt ";
 			$sql .= " LEFT JOIN #__jevents_vevdetail as det ON det.evdet_id=rpt.eventdetail_id ";
+			$sql .= " LEFT JOIN #__jevents_vevent as ev ON ev.ev_id=rpt.eventid ";
 			$sql .= " WHERE rpt.eventid<>" . intval($eventid) . " AND rpt.startrepeat<" . $db->Quote($repeat->endrepeat) . " AND rpt.endrepeat>" . $db->Quote($repeat->startrepeat);
+			$sql .= " AND ev.state=1";
 			$sql .= " LIMIT 100";
 			$db->setQuery($sql);
 			$conflicts = $db->loadObjectList();
@@ -492,7 +521,7 @@ function checkEventOverlaps($testevent, & $returnData, $eventid, $requestObject)
 		$catinfo = $dbModel->getCategoryInfo( $catids );
 		if ($catinfo && count($catinfo) >0)
 		{
-			for ($c=0;$c<count($catids);$c++){
+			foreach ($catids as $c => $specificCatid){
 				if (isset($catinfo[$catids[$c]])){
 					$cinfo = $catinfo[$catids[$c]];
 					$catparams = json_decode($cinfo->params);
@@ -515,7 +544,7 @@ function checkEventOverlaps($testevent, & $returnData, $eventid, $requestObject)
 			foreach ($testevent->repetitions as $repeat)
 			{
 
-				$sql = "SELECT *, evt.catid ";
+				$sql = "SELECT *, evt.catid , evt.state";
 				if ($params->get("multicategory", 0))
 				{
 					$sql .= ", GROUP_CONCAT(DISTINCT catmap.catid SEPARATOR ',') as catids";
@@ -531,6 +560,7 @@ function checkEventOverlaps($testevent, & $returnData, $eventid, $requestObject)
 				}
 
 				$sql .= " WHERE rpt.eventid<>" . intval($eventid) . " AND rpt.startrepeat<" . $db->Quote($repeat->endrepeat) . " AND rpt.endrepeat>" . $db->Quote($repeat->startrepeat);
+				$sql .= " AND evt.state=1";
 				if ($params->get("multicategory", 0))
 				{
 					 $sql .= " AND  catmap.catid IN(" . implode(",",$catids) . ") GROUP BY rpt.rp_id";
@@ -539,6 +569,7 @@ function checkEventOverlaps($testevent, & $returnData, $eventid, $requestObject)
 				else {
 					$sql .= " AND (evt.catid=" . $testevent->catid() . ") GROUP BY rpt.rp_id";
 				}
+
 				$sql .= " LIMIT 100";
 				$db->setQuery($sql);
 				$conflicts = $db->loadObjectList();
@@ -570,10 +601,11 @@ function checkEventOverlaps($testevent, & $returnData, $eventid, $requestObject)
 		{
 			foreach ($testevent->repetitions as $repeat)
 			{
-				$sql = "SELECT * FROM #__jevents_repetition as rpt ";
+				$sql = "SELECT *, evt.state FROM #__jevents_repetition as rpt ";
 				$sql .= " LEFT JOIN #__jevents_vevdetail as det ON det.evdet_id=rpt.eventdetail_id ";
 				$sql .= " LEFT JOIN #__jevents_vevent as evt ON evt.ev_id=rpt.eventid ";
 				$sql .= " WHERE rpt.eventid<>" . intval($eventid) . " AND rpt.startrepeat<" . $db->Quote($repeat->endrepeat) . " AND rpt.endrepeat>" . $db->Quote($repeat->startrepeat);
+				$sql .= " AND evt.state=1";
 				$sql .= " AND evt.icsid=" . $testevent->icsid() . " GROUP BY rpt.rp_id";
 				$sql .= " LIMIT 100";
 				$db->setQuery($sql);
@@ -592,7 +624,7 @@ function checkEventOverlaps($testevent, & $returnData, $eventid, $requestObject)
 		
 	}
 
-	$dispatcher = & JDispatcher::getInstance();
+	$dispatcher = JDispatcher::getInstance();
 	$dispatcher->trigger('onCheckEventOverlaps', array(&$testevent, &$overlaps, $eventid, $requestObject));
 
 	return $overlaps;
@@ -601,14 +633,16 @@ function checkEventOverlaps($testevent, & $returnData, $eventid, $requestObject)
 
 function checkRepeatOverlaps($repeat, & $returnData, $eventid, $requestObject)
 {
-	$params = & JComponentHelper::getParams("com_jevents");
+	$params = JComponentHelper::getParams("com_jevents");
 	$db = JFactory::getDBO();
 	$overlaps = array();
 	if ($params->get("noclashes", 0))
 	{
-		$sql = "SELECT * FROM #__jevents_repetition as rpt ";
+		$sql = "SELECT *, ev.state  FROM #__jevents_repetition as rpt ";
 		$sql .= " LEFT JOIN #__jevents_vevdetail as det ON det.evdet_id=rpt.eventdetail_id ";
+		$sql .= " LEFT JOIN #__jevents_vevent as ev ON ev.ev_id=rpt.eventid ";
 		$sql .= " WHERE rpt.rp_id<>" . intval($repeat->rp_id) . " AND rpt.startrepeat<" . $db->Quote($repeat->endrepeat) . " AND rpt.endrepeat>" . $db->Quote($repeat->startrepeat);
+		$sql .= " AND ev.state=1";
 		$sql .= " LIMIT 100";
 
 		$db->setQuery($sql);
@@ -657,7 +691,7 @@ function checkRepeatOverlaps($repeat, & $returnData, $eventid, $requestObject)
 
 		if (!$skipCatTest)
 		{
-			$sql = "SELECT *, evt.catid ";
+			$sql = "SELECT *, evt.catid, evt.state ";
 			if ($params->get("multicategory", 0))
 			{
 				$sql .= ", GROUP_CONCAT(DISTINCT catmap.catid SEPARATOR ',') as catids";
@@ -671,6 +705,7 @@ function checkRepeatOverlaps($repeat, & $returnData, $eventid, $requestObject)
 				$sql .= " LEFT JOIN #__categories AS catmapcat ON catmap.catid = catmapcat.id";
 			}
 			$sql .= " WHERE rpt.rp_id<>" . intval($repeat->rp_id) . " AND rpt.startrepeat<" . $db->Quote($repeat->endrepeat) . " AND rpt.endrepeat>" . $db->Quote($repeat->startrepeat);
+			$sql .= " AND evt.state=1";
 			if ($params->get("multicategory", 0))
 			{
 				$sql .= " AND  catmap.catid IN(" . implode(",",$catids) . ") GROUP BY rpt.rp_id";
@@ -704,7 +739,7 @@ function checkRepeatOverlaps($repeat, & $returnData, $eventid, $requestObject)
 		}
 	}
 
-	$dispatcher = & JDispatcher::getInstance();
+	$dispatcher = JDispatcher::getInstance();
 	$dispatcher->trigger('onCheckRepeatOverlaps', array(&$repeat, &$overlaps, $eventid, $requestObject));
 
 	return $overlaps;

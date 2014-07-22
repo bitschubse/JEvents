@@ -15,7 +15,6 @@ if (version_compare(phpversion(), '5.0.0', '<')===true) {
 	echo  '<div style="font:12px/1.35em arial, helvetica, sans-serif;"><div style="margin:0 0 25px 0; border-bottom:1px solid #ccc;"><h3 style="margin:0; font-size:1.7em; font-weight:normal; text-transform:none; text-align:left; color:#2f2f2f;">'.JText::_("JEV_INVALID_PHP1").'</h3></div>'.JText::_("JEV_INVALID_PHP2").'</div>';
 	return;
 }
-
 // remove metadata.xml if its there.
 jimport('joomla.filesystem.file');
 if (JFile::exists(JPATH_COMPONENT_SITE.'/'."metadata.xml")){
@@ -37,17 +36,47 @@ define("JEV_COMPONENT",str_replace("com_","",$option));
 
 include_once(JPATH_COMPONENT_ADMINISTRATOR.'/'.JEV_COMPONENT.".defines.php");
 
-$registry	=& JRegistry::getInstance("jevents");
+if (JevJoomlaVersion::isCompatible("3.0")){
+	JHtml::_('jquery.framework');
+	JHtml::_('behavior.framework', true);
+	JHtml::_('bootstrap.framework');
+	if ( JComponentHelper::getParams(JEV_COM_COMPONENT)->get("fixjquery",1)){
+		JHTML::script("components/com_jevents/assets/js/jQnc.js");
+		// this script should come after all the URL based scripts in Joomla so should be a safe place to know that noConflict has been set
+		JFactory::getDocument()->addScriptDeclaration( "checkJQ();");
+	}
+}
+else if ( JComponentHelper::getParams(JEV_COM_COMPONENT)->get("fixjquery",1)){
+	// Make loading this conditional on config option
+	JFactory::getDocument()->addScript("//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js");
+	//JFactory::getDocument()->addScript("//www.google.com/jsapi");
+	JHTML::script("components/com_jevents/assets/js/jQnc.js");
+	//JHTML::script("components/com_jevents/assets/js/bootstrap.min.js");
+	//JHTML::stylesheet("components/com_jevents/assets/css/bootstrap.css");
+	// this script should come after all the URL based scripts in Joomla so should be a safe place to know that noConflict has been set
+	JFactory::getDocument()->addScriptDeclaration( "checkJQ();");
+}
+
+$registry	= JRegistry::getInstance("jevents");
 /*
  * frontend only!
 // In Joomla 1.6 JComponentHelper::getParams(JEV_COM_COMPONENT) is a clone so the menu params do not propagate so we force this here!
-if (JVersion::isCompatible("1.6.0")){
+if (JevJoomlaVersion::isCompatible("1.6.0")){
 	$newparams	= JFactory::getApplication()->getParams();
-	$component =& JComponentHelper::getComponent(JEV_COM_COMPONENT);
+	$component = JComponentHelper::getComponent(JEV_COM_COMPONENT);
 	$component->params =& $newparams;
 }
 */
 // See http://www.php.net/manual/en/timezones.php
+
+// If progressive caching is enabled then remove the component params from the cache!
+/* Bug fixed in Joomla 3.2.1 ?? - not always it appears */
+$joomlaconfig = JFactory::getConfig();
+if ($joomlaconfig->get("caching",0)){
+	$cacheController = JFactory::getCache('_system', 'callback');
+	$cacheController->cache->remove("com_jevents");
+}
+
 $params = JComponentHelper::getParams(JEV_COM_COMPONENT);
 if ($params->get("icaltimezonelive","")!="" && is_callable("date_default_timezone_set") && $params->get("icaltimezonelive","")!=""){
 	$timezone= date_default_timezone_get();
@@ -63,13 +92,31 @@ if (!$authorisedonly && !$user->authorise('core.manage',      'com_jevents')) {
     return;
 }
 
+// Backend of JEvents needs Boostrap and jQuery
+/*
+if (JevJoomlaVersion::isCompatible("3.0")){
+	JHtml::_('jquery.framework');
+	JHtml::_('behavior.framework', true);
+	JHtml::_('bootstrap.framework');
+	JHTML::stylesheet("components/com_jevents/assets/css/bootstrap.css");
+}
+else {
+	// Make loading this conditional on config option
+	JFactory::getDocument()->addScript("//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js");
+	JHTML::script("components/com_jevents/assets/js/jQnc.js");
+	JHTML::script("components/com_jevents/assets/js/bootstrap.min.js");
+	JHTML::stylesheet("components/com_jevents/assets/css/bootstrap.css");
+}
+
+*/
+
 // Must also load frontend language files
-$lang =& JFactory::getLanguage();
+$lang = JFactory::getLanguage();
 $lang->load(JEV_COM_COMPONENT, JPATH_SITE);
 
 if (!version_compare(JVERSION,'1.6.0',">=")){
 	// Load Site specific language overrides - can't use getTemplate since wer'e in the admin interface
-	$db =& JFactory::getDBO();
+	$db = JFactory::getDBO();
 	$query = 'SELECT template'
 	. ' FROM #__templates_menu'
 	. ' WHERE client_id = 0 AND menuid=0'
@@ -127,7 +174,7 @@ if (class_exists($controllerClass)) {
 }
 
 // record what is running - used by the filters
-$registry	=& JRegistry::getInstance("jevents");
+$registry	= JRegistry::getInstance("jevents");
 $registry->set("jevents.activeprocess","administrator");
 
 // Perform the Request task

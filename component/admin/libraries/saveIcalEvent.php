@@ -14,14 +14,14 @@ defined( '_JEXEC' ) or die( 'Restricted access' );
 class SaveIcalEvent {
 
 	// we can use dry run to create the event data without saving it!
-	function save($array, &$queryModel, $rrule, $dryrun = false){
+	public static function save($array, &$queryModel, $rrule, $dryrun = false){
 
-		$cfg = & JEVConfig::getInstance();
-		$db	=& JFactory::getDBO();
+		$cfg = JEVConfig::getInstance();
+		$db	= JFactory::getDBO();
 		$user = JFactory::getUser();
 
 		// Allow plugins to check data validity
-		$dispatcher     =& JDispatcher::getInstance();
+		$dispatcher     = JDispatcher::getInstance();
 		JPluginHelper::importPlugin("jevents");
 		$res = $dispatcher->trigger( 'onBeforeSaveEvent' , array(&$array, &$rrule, $dryrun));
 
@@ -37,6 +37,11 @@ class SaveIcalEvent {
 		$data["X-EXTRAINFO"]	= JArrayHelper::getValue( $array,  "extra_info","");
 		$data["LOCATION"]		= JArrayHelper::getValue( $array,  "location","");
 		$data["allDayEvent"]	= JArrayHelper::getValue( $array,  "allDayEvent","off");
+		// Joomla 3.2 fix !!  The form doesn't respect the checkbox value in the form xml file being "on" instead of 1
+		if ($data["allDayEvent"]==1)
+		{
+			$data["allDayEvent"]="on";
+		}
 		$data["CONTACT"]		= JArrayHelper::getValue( $array,  "contact_info","");
 		$data["DESCRIPTION"]	= JArrayHelper::getValue( $array,  "jevcontent","");
 		$data["publish_down"]	= JArrayHelper::getValue( $array,  "publish_down","2006-12-12");
@@ -141,14 +146,10 @@ class SaveIcalEvent {
 		// Always unpublish if no Publisher otherwise publish automatically (for new events)
 		// Should we always notify of new events
 		$notifyAdmin = $cfg->get("com_notifyallevents",0);
-		if (!JFactory::getApplication()->isAdmin()){
-			if ($frontendPublish && $ev_id==0){
-				$vevent->state = 1;
-			}else if (!$frontendPublish){
-				$vevent->state = 0;
-				// In this case we send a notification email to admin
-				$notifyAdmin = true;
-			}
+		if (!$frontendPublish){
+			$vevent->state = 0;
+			// In this case we send a notification email to admin
+			$notifyAdmin = true;
 		}
 
 		$vevent->icsid = $ics_id;
@@ -165,7 +166,7 @@ class SaveIcalEvent {
 			}
 		}
 
-		$db =& JFactory::getDBO();
+		$db = JFactory::getDBO();
 		$success = true;
 		//echo "class = ".get_class($vevent);
 		if (!$dryrun){
@@ -194,6 +195,9 @@ class SaveIcalEvent {
 				}
 			}
 		}
+		
+		// whilst the DB field is called 'state' we use the variable 'published' in all of JEvents so must set it before the plugin
+		$vevent->published =  $vevent->state ;
 		$res = $dispatcher->trigger( 'onAfterSaveEvent' , array(&$vevent, $dryrun));
 		if ($dryrun) return $vevent;
 
@@ -210,7 +214,7 @@ class SaveIcalEvent {
 			$config = new JConfig();
 			$sitename =  $config->sitename;
 			$subject	= JText::_('JEV_MAIL_ADDED') . ' ' . $sitename;
-			$subject	= ($vevent->state == '1') ? '[Info] ' . $subject : '[Approval] ' . $subject;
+			$subject	= ($vevent->state == '1') ? JText::_('COM_JEV_INFO') . $subject : JText::_('COM_JEV_APPROVAL') . $subject;
 			$Itemid = JEVHelper::getItemid();
 			// reload the event to get the reptition ids
 			$evid = intval($vevent->ev_id);
@@ -218,17 +222,41 @@ class SaveIcalEvent {
 
 			list($year,$month,$day) = JEVHelper::getYMD();
 			//http://joomlacode1.5svn/index.php?option=com_jevents&task=icalevent.edit&evid=1&Itemid=68&rp_id=72&year=2008&month=09&day=10&lang=cy
-			$uri  =& JURI::getInstance(JURI::base());
+			$uri  = JURI::getInstance(JURI::base());
 			$root = $uri->toString( array('scheme', 'host', 'port') );
 
 			if ($testevent){
 				$rp_id = $testevent->rp_id();
 				$modifylink = '<a href="' . $root . JRoute::_( 'index.php?option=' .JEV_COM_COMPONENT . '&task=icalevent.edit&evid='.$evid.'&rp_id='.$rp_id. '&Itemid=' . $Itemid."&year=$year&month=$month&day=$day" ) . '"><b>' . JText::_('JEV_MODIFY') . '</b></a>' . "\n";
 				$viewlink = '<a href="' . $root . JRoute::_( 'index.php?option=' .JEV_COM_COMPONENT . '&task=icalrepeat.detail&evid='.$rp_id. '&Itemid=' . $Itemid."&year=$year&month=$month&day=$day&login=1" ) . '"><b>' . JText::_('JEV_VIEW') . '</b></a>' . "\n";
+				$title = $testevent->title();
+				$content = $testevent->content();
+				$catids = $testevent->catids() ? $testevent->catids() : array();
+				if (($key = array_search($testevent->catid() ,  $catids)) !== false) {
+					unset($catids[$key]);
+				}
+				$cc = "";
+				if (count($catids)>0){
+					$ccs = array();
+					foreach ($catids as $catid){
+						$cat->load($catid);
+						$catadminuser = $cat->getAdminUser();
+						if ($catadminuser->email!=$adminEmail && !in_array($catadminuser->email, $ccs)){
+							$ccs[]= $catadminuser->email;
+						}
+					}
+					if (count($ccs)>0){
+						$cc = implode(",",$ccs);
+					}
+				}
 			}
 			else {
 				$modifylink = '<a href="' . $root . JRoute::_( 'index.php?option=' .JEV_COM_COMPONENT . '&task=icalevent.edit&evid='.$evid. '&Itemid=' . $Itemid."&year=$year&month=$month&day=$day" ) . '"><b>' . JText::_('JEV_MODIFY') . '</b></a>' . "\n";
 				$viewlink = '<a href="' . $root . JRoute::_( 'index.php?option=' .JEV_COM_COMPONENT . '&task=icalevent.detail&evid='.$evid. '&Itemid=' . $Itemid."&year=$year&month=$month&day=$day&login=1" ) . '"><b>' . JText::_('JEV_VIEW') . '</b></a>' . "\n";
+				$title = $data["SUMMARY"];
+				$content = $data["DESCRIPTION"]	;
+				$subject .= " PROBLEMS SAVING THIS EVENT";
+				$cc = "";
 			}
 
 			$created_by = $user->name;
@@ -239,7 +267,7 @@ class SaveIcalEvent {
 				}
 			}
 
-			JEV_CommonFunctions::sendAdminMail( $sitename, $adminEmail, $subject, $testevent->title(), $testevent->content(), $created_by, JURI::root(), $modifylink, $viewlink , $testevent);
+			JEV_CommonFunctions::sendAdminMail( $sitename, $adminEmail, $subject, $title, $content, $day, $month, $year, $start_time, $end_time, $created_by, JURI::root(), $modifylink, $viewlink , $testevent, $cc);
 
 		}
 		if ($success){
@@ -248,7 +276,7 @@ class SaveIcalEvent {
 		return $success;
 }
 
-function generateRRule($array){
+public static function generateRRule($array){
 	//static $weekdayMap=array("SU"=>0,"MO"=>1,"TU"=>2,"WE"=>3,"TH"=>4,"FR"=>5,"SA"=>6);
 	static $weekdayReverseMap=array("SU","MO","TU","WE","TH","FR","SA");
 

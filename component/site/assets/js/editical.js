@@ -46,7 +46,9 @@ Date.extend({
 		re = new RegExp('^' + re + '$', 'i');
 		var handler = function(bits){
 			bits = bits.slice(1).associate(parsed);
-			var date = new Date().clearTime(),
+			var date = new Date().clearTime();
+			// Brazil timezone problems when clocks change - a date of 20 Oct 2013 is parsed as 11pm on 19th October !!!
+			date.setHours(6);
 			year = bits.y || bits.Y;
 			// set month to January  to ensure we can set days to 31 first!!!
 			date.set('month', 0); 
@@ -268,11 +270,15 @@ function checkEndTime() {
 	starttimeparts = start_time.value.split(":");
 	start_date = document.getElementById("publish_up");
 	startDate = new Date();
-	startDate = startDate.dateFromYMD(start_date.value);	
+	startDate = startDate.dateFromYMD(start_date.value);
+	startDate.setHours(starttimeparts[0]);
+	startDate.setMinutes(starttimeparts[1]);
 
 	endtimeparts = (end_time.value=="00:00") ? [23,59] : end_time.value.split(":");
 	endDate = new Date();
 	endDate = endDate.dateFromYMD(end_date.value);
+	endDate.setHours(endtimeparts[0]);
+	endDate.setMinutes(endtimeparts[1]);
 
 	var jevmultiday = document.getElementById('jevmultiday');
 	if (end_date.value>start_date.value){
@@ -315,7 +321,7 @@ function reformatStartEndDates() {
 	start_date = document.getElementById("publish_up");
 	start_date2 = document.getElementById("publish_up2");
 	startDate = new Date();
-	startDate = startDate.dateFromYMD(start_date.value);	
+	startDate = startDate.dateFromYMD(start_date.value);
 	start_date2.value = startDate.getFullYear()+"-"+(startDate.getMonth()+1)+"-"+startDate.getDate();
 	
 	end_date = document.getElementById("publish_down");
@@ -561,15 +567,23 @@ function toggleCountUntil(cu){
 		elem = document.getElementById(inputtype);
 		inputs = elem.getElementsByTagName('input');
 		for (var e=0;e<inputs.length;e++){
-			inputelem = inputs[e];
+			inputelem = $(inputs[e]);
 			if (inputelem.name!="countuntil"){
 				if (inputtype==cu){
 					inputelem.disabled = false;
 					inputelem.parentNode.style.backgroundColor="#ffffff";
+					if (inputelem.getParent('fieldset').getElement('legend')){
+						inputelem.getParent('fieldset').getElement('legend').style.backgroundColor="#ffffff";
+						inputelem.getParent('fieldset').getParent().style.backgroundColor="#ffffff";
+					}
 				}
 				else {
 					inputelem.disabled = true;
 					inputelem.parentNode.style.backgroundColor="#dddddd";
+					if (inputelem.getParent('fieldset').getElement('legend')){
+						inputelem.getParent('fieldset').getElement('legend').style.backgroundColor="#dddddd";
+						inputelem.getParent('fieldset').getParent().style.backgroundColor="#dddddd";
+					}
 				}
 			}
 		}
@@ -586,15 +600,23 @@ function toggleWhichBy(wb)
 		elem = document.getElementById(inputtype);
 		inputs = elem.getElementsByTagName('input');
 		for (var e=0;e<inputs.length;e++){
-			inputelem = inputs[e];
+			inputelem = $(inputs[e]);
 			if (inputelem.name!="whichby"){
 				if (inputtype==wb){
 					inputelem.disabled = false;
 					inputelem.parentNode.style.backgroundColor="#ffffff";
+					if (inputelem.getParent('fieldset').getElement('legend')){
+						inputelem.getParent('fieldset').getElement('legend').style.backgroundColor="#ffffff";
+						inputelem.getParent('fieldset').getParent().style.backgroundColor="#ffffff";
+					}					
 				}
 				else {
 					inputelem.disabled = true;
 					inputelem.parentNode.style.backgroundColor="#dddddd";
+					if (inputelem.getParent('fieldset').getElement('legend')){
+						inputelem.getParent('fieldset').getElement('legend').style.backgroundColor="#dddddd";
+						inputelem.getParent('fieldset').getParent().style.backgroundColor="#dddddd";
+					}
 				}
 			}
 
@@ -975,7 +997,7 @@ window.addEvent("domready",function(){
 					if (now>startDate){
 						alert("Events cannot start in the past");
 						event = new Event(event); 
-						event.stop();
+						event.stopImmediatePropagation();
 					}
 				}
 			}
@@ -983,3 +1005,42 @@ window.addEvent("domready",function(){
 	});
 });
 */
+
+window.addEvent('domready',function(){
+	if ($('view12Hour')){
+		$('view12Hour').addEvent('click', function(){toggleView12Hour();});
+	}
+
+	hideEmptyJevTabs();
+});
+
+// Hide empty tabs and their links
+function hideEmptyJevTabs() {
+		var tabs = $$("#myEditTabsContent .tab-pane");
+		if (tabs){
+			tabs.each(function(tab) {
+				if (tab.children.length==0){
+					tab.style.display="none";
+					var tablink = document.getElement("#myEditTabs a[href='#"+tab.id+"']");
+					if (tablink){
+						tablink.getParent().style.display="none";
+					}
+				}
+			})
+		}
+		tabs = $$(".adminform dd.tabs .jevextrablock");
+		if (tabs){
+			var tablinks = $$(".adminform dl dt.tabs");
+			tabs.each(function(tab) {
+				if (tab.children.length==0){
+					var classname = tab.getParent().className.clean().replace(" ","").replace("tabs","");
+					tab.innerHTML="xx";
+					//tab.style.display="none";
+					var tablink = document.getElement(".adminform #"+classname);
+					if (tablink){
+						tablink.style.display="none";
+					}
+				}
+			})
+		}
+	}

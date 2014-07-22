@@ -22,10 +22,16 @@ class ICalsController extends AdminIcalsController
 		$this->registerDefaultTask('ical');
 		//		$this->registerTask( 'show',  'showContent' );
 		// Ensure authorised to do this
-		$cfg = & JEVConfig::getInstance();
+		$cfg = JEVConfig::getInstance();
 		if ($cfg->get("disableicalexport", 0) && !$cfg->get("feimport", 0))
 		{
-			JError::raiseError(403, JText::_('ALERTNOTAUTH'));
+	                 $query = "SELECT icsf.* FROM #__jevents_icsfile as icsf where icsf.autorefresh=1";
+			$db	= JFactory::getDBO();
+			$db->setQuery($query);
+			$allICS = $db->loadObjectList();
+			if (count($allICS)==0){
+				JError::raiseError(403, JText::_('ALERTNOTAUTH'));
+			}
 		}
 
 		// Load abstract "view" class
@@ -50,15 +56,15 @@ class ICalsController extends AdminIcalsController
 
 		// get the view
 
-		$document = & JFactory::getDocument();
+		$document = JFactory::getDocument();
 		$viewType = $document->getType();
 
-		$cfg = & JEVConfig::getInstance();
+		$cfg = JEVConfig::getInstance();
 		$theme = JEV_CommonFunctions::getJEventsViewName();
 
 		$view = "icals";
 		$this->addViewPath($this->_basePath . '/' . "views" . '/' . $theme);
-		$this->view = & $this->getView($view,$viewType, $theme."View", 
+		$this->view = $this->getView($view,$viewType, $theme."View", 
 				array('base_path' => $this->_basePath,
 					"template_path" => $this->_basePath . '/' . "views" . '/' . $theme . '/' . $view . '/' . 'tmpl',
 					"name" => $theme . '/' . $view));
@@ -73,7 +79,7 @@ class ICalsController extends AdminIcalsController
 		$this->view->assign("task", $this->_task);
 
 		// View caching logic -- simple... are we logged in?
-		$cfg = & JEVConfig::getInstance();
+		$cfg = JEVConfig::getInstance();
 		$joomlaconf = JFactory::getConfig();
 		$useCache = intval($cfg->get('com_cache', 0)) && $joomlaconf->get('caching', 1);
 		$user = JFactory::getUser();
@@ -83,7 +89,7 @@ class ICalsController extends AdminIcalsController
 		}
 		else
 		{
-			$cache = & JFactory::getCache(JEV_COM_COMPONENT, 'view');
+			$cache =  JFactory::getCache(JEV_COM_COMPONENT, 'view');
 			$cache->get($this->view, 'display');
 		}
 
@@ -128,7 +134,7 @@ class ICalsController extends AdminIcalsController
 			$this->dataModel->aid = JEVHelper::getAid($puser);
 			$this->dataModel->accessuser = $puser->get('id');
 			
-			$registry = & JRegistry::getInstance("jevents");
+			$registry = JRegistry::getInstance("jevents");
 			$registry->set("jevents.icaluser", $puser);
 		}
 		else if ($k != "NONE")
@@ -162,7 +168,7 @@ class ICalsController extends AdminIcalsController
 		{
 			$params = JComponentHelper::getParams(JEV_COM_COMPONENT);
 			$years = array();
-			for ($y = $params->get("com_earliestyear", date('Y')); $y <= $params->get("com_latestyear", date('Y')); $y++)
+			for ($y = JEVHelper::getMinYear(); $y <= JEVHelper::getMaxYear(); $y++)
 			{
 				if (!in_array($y, $years))
 					$years[] = $y;
@@ -188,13 +194,13 @@ class ICalsController extends AdminIcalsController
 		// Lockin hte categories from the URL
 		$this->dataModel->setupComponentCatids();
 
-		$dispatcher = & JDispatcher::getInstance();
+		$dispatcher = JDispatcher::getInstance();
 		// just incase we don't have jevents plugins registered yet
 		JPluginHelper::importPlugin("jevents");
 
 		//And then the real work
 		// Force all only the one repeat
-		$cfg = & JEVConfig::getInstance();
+		$cfg = JEVConfig::getInstance();
 		$cfg->set('com_showrepeats', 0);
 		$icalEvents = array();
 		foreach ($years as $year)
@@ -221,7 +227,7 @@ class ICalsController extends AdminIcalsController
 		$mainframe = JFactory::getApplication();
 
 		// get the view
-		$this->view = & $this->getView("icals", "html");
+		$this->view = $this->getView("icals", "html");
 		$this->view->setLayout("export");
 		$this->view->assign("dataModel",$this->dataModel) ;
 		$this->view->assign("outlook2003icalexport", $outlook2003icalexport);
@@ -270,15 +276,15 @@ class ICalsController extends AdminIcalsController
 			return;
 		}
 
-		$document = & JFactory::getDocument();
+		$document = JFactory::getDocument();
 		$viewType = $document->getType();
 
-		$cfg = & JEVConfig::getInstance();
+		$cfg = JEVConfig::getInstance();
 		$theme = JEV_CommonFunctions::getJEventsViewName();
 
 		$view = "icals";
 		$this->addViewPath($this->_basePath . '/' . "views" . '/' . $theme);
-		$this->view = & $this->getView($view,$viewType, $theme."View", 
+		$this->view = $this->getView($view,$viewType, $theme."View", 
 				array('base_path' => $this->_basePath,
 					"template_path" => $this->_basePath . '/' . "views" . '/' . $theme . '/' . $view . '/' . 'tmpl',
 					"name" => $theme . '/' . $view));
@@ -293,7 +299,7 @@ class ICalsController extends AdminIcalsController
 		$nativeCals = $this->dataModel->queryModel->getNativeIcalendars();
 
 		// Strip this list down based on user permissions
-		$jevuser = & JEVHelper::getAuthorisedUser();
+		$jevuser =  JEVHelper::getAuthorisedUser();
 		if ($jevuser && $jevuser->calendars != "" && $jevuser->calendars != "all")
 		{
 			$cals = array_keys($nativeCals);
@@ -354,7 +360,7 @@ class ICalsController extends AdminIcalsController
 		$this->view->assign('clist', $clist);
 
 		// View caching logic -- simple... are we logged in?
-		$cfg = & JEVConfig::getInstance();
+		$cfg = JEVConfig::getInstance();
 		$joomlaconf = JFactory::getConfig();
 		$useCache = intval($cfg->get('com_cache', 0)) && $joomlaconf->get('caching', 1);
 		$user = JFactory::getUser();
@@ -364,7 +370,7 @@ class ICalsController extends AdminIcalsController
 		}
 		else
 		{
-			$cache = & JFactory::getCache(JEV_COM_COMPONENT, 'view');
+			$cache =  JFactory::getCache(JEV_COM_COMPONENT, 'view');
 			$cache->get($this->view, 'display');
 		}
 
@@ -479,14 +485,14 @@ class ICalsController extends AdminIcalsController
 			
 			JRequest::setVar("tmpl", "component");
 		
-			//$dispatcher = & JDispatcher::getInstance();
+			//$dispatcher = JDispatcher::getInstance();
 			// just incase we don't have jevents plugins registered yet
 			//JPluginHelper::importPlugin("jevents");
 			//$dispatcher->trigger('onExportRow', array(&$row));
 			$icalEvents[$a->ev_id()] = $a;
 
 			// get the view
-			$this->view = & $this->getView("icals", "html");
+			$this->view = $this->getView("icals", "html");
 			$this->view->setLayout("export");
 			$this->view->assign("dataModel",$this->dataModel) ;
 			$this->view->assign("outlook2003icalexport", false);
@@ -509,7 +515,7 @@ class ICalsController extends AdminIcalsController
 			$description = $desc;
 
 		// wraplines	from vCard class
-		$cfg = & JEVConfig::getInstance();
+		$cfg = JEVConfig::getInstance();
 		if ($cfg->get("outlook2003icalexport", 0))
 		{
 			return "DESCRIPTION:" . $this->wraplines($description, 76, false);

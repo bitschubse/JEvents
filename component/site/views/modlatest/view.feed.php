@@ -33,9 +33,9 @@ class ModlatestViewModlatest extends AdminICalRepeatViewICalRepeat
 			$modid = 0;
 		}
 		
-		$cfg = & JEVConfig::getInstance();
+		$cfg = JEVConfig::getInstance();
 
-		$db	=& JFactory::getDBO();
+		$db	= JFactory::getDBO();
 
 		// setup for all required function and classes
 		$file = JPATH_SITE . '/components/com_jevents/mod.defines.php';
@@ -45,7 +45,7 @@ class ModlatestViewModlatest extends AdminICalRepeatViewICalRepeat
 		JEVHelper::loadLanguage('modlatest');
 
 		// Check document type
-		$doc =& JFactory::getDocument();
+		$doc = JFactory::getDocument();
 		if ($doc->getType() != 'feed') {
 			JError::raiseError('E999', 'Fatal error, document type: "' . $doc->getType() . '" not supported.');
 		}
@@ -58,7 +58,7 @@ class ModlatestViewModlatest extends AdminICalRepeatViewICalRepeat
 			. "\n AND m.id = ". $modid
 			. "\n AND m.access  " . (version_compare(JVERSION, '1.6.0', '>=') ? ' IN (' .  JEVHelper::getAid($user, 'string') . ')' : ' <=  ' .  JEVHelper::getAid($user))
 			. "\n AND m.client_id != 1";
-			$db	=& JFactory::getDBO();
+			$db	= JFactory::getDBO();
 			$db->setQuery( $query );
 			$modules = $db->loadObjectList();
 			if (count($modules)<=0){
@@ -93,15 +93,15 @@ class ModlatestViewModlatest extends AdminICalRepeatViewICalRepeat
 		if (($params->get('modlatest_useLocalParam', 0) == 1) && (!empty($t_description))) {
 			$info['description'] = $t_description;
 		}
-		$info['image_url']		= htmlspecialchars($cfg->get( 'com_rss_logo', JURI::root() . 'components/' . JEV_COM_COMPONENT . '/assets/images/logo.gif'));
-		if ($info['image_url']=="") $info['image_url']	= htmlspecialchars( JURI::root() . 'components/' . JEV_COM_COMPONENT . '/assets/images/logo.gif');
+		$info['image_url']		= htmlspecialchars($cfg->get( 'com_rss_logo', JURI::root() . 'components/' . JEV_COM_COMPONENT . '/assets/images/JeventsTransparent.png'));
+		if ($info['image_url']=="") $info['image_url']	= htmlspecialchars( JURI::root() . 'components/' . JEV_COM_COMPONENT . '/assets/images/JeventsTransparent.png');
 		$info['image_alt'] 		= $info['title'];
 
 		$info['limit_text']		= $cfg->get( 'com_rss_limit_text', 1 );
 		$info['text_length']	= $cfg->get( 'com_rss_text_length', 20 );
 
 		// include the appropraite VIEW - this should be based on config and/or URL?
-		$cfg = & JEVConfig::getInstance();
+		$cfg = JEVConfig::getInstance();
 		$theme = JEV_CommonFunctions::getJEventsViewName();
 		$viewclass = ucfirst($theme)."ModLatestView";
 

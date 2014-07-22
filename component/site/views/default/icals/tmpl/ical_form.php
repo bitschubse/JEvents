@@ -1,7 +1,7 @@
 <?php
 defined('_JEXEC') or die('Restricted access');
 
-$cfg = & JEVConfig::getInstance();
+$cfg = JEVConfig::getInstance();
 
 $view = $this->getViewName();
 
@@ -65,10 +65,10 @@ if (JRequest::getString("submit","")!="")
 		
 	echo "<h2 class='ical_generated'>" . JText::_("JEV_ICAL_GENERATED") . "</h2>";
 	
-	echo "<h3 class='export_pub'>" . JText::_("Public Events") . "</h3>";
+	echo "<h3 class='export_pub'>" . JText::_("JEV_PUBLIC_EVENTS") . "</h3>";
 	if ($user->id != 0)
 	{
-		echo "<h3 class='export_priv'>" . JText::_("Public and Private Events") . "</h3>";
+		echo "<h3 class='export_priv'>" . JText::_("JEV_PUBLIC_AND_PRIVATE_EVENTS") . "</h3>";
 	}
 	
 	if ($cfg->get("show_webcal_url", 0) == 1){
@@ -116,9 +116,9 @@ if ($cfg->get("outlook2003icalexport", 0) == 0 && $cfg->get("show_ical_download"
 			$cb = $cb . " CHECKED";
 			$checked = true;
 		}
-		echo $cb . "><strong>" . JText::_("JEV_EVENT_ALLCAT") . "</strong><br/>\n";
+		echo $cb . " /><strong>" . JText::_("JEV_EVENT_ALLCAT") . "</strong><br/>\n";
 		?>
-		<div id='othercats' <?php echo $checked ? 'style="display:none;max-height:100px;overflow-y:auto;"' : ''; ?> >
+		<div id='othercats' <?php echo $checked ? '' : ''; ?> >
 			<?php
 			foreach ($categories AS $c)
 			{
@@ -134,7 +134,7 @@ if ($cfg->get("outlook2003icalexport", 0) == 0 && $cfg->get("show_ical_download"
 				{
 					$cb = $cb . " CHECKED";
 				}
-				$cb = $cb . "><span style=\"background:" . $c->color . "\">&nbsp;&nbsp;&nbsp;&nbsp;</span> " . str_repeat(" - ", $c->level - 1) . $c->title . "<br/>\n";
+				$cb = $cb . " /><span style=\"background:" . $c->color . "\">&nbsp;&nbsp;&nbsp;&nbsp;</span> " . str_repeat(" - ", $c->level - 1) . $c->title . "<br/>\n";
 				echo $cb;
 			}
 			?>
@@ -157,15 +157,15 @@ if ($cfg->get("outlook2003icalexport", 0) == 0 && $cfg->get("show_ical_download"
 			$yt = $yt . " CHECKED";
 			$checked = true;
 		}
-		$yt = $yt . "><strong>" . JText::_("JEV_EVENT_ALLYEARS") . "</strong><br/>\n";
+		$yt = $yt . " /><strong>" . JText::_("JEV_EVENT_ALLYEARS") . "</strong><br/>\n";
 		echo $yt;
 		?>
-		<div id='otheryears' <?php echo $checked ? 'style="display:none;max-height:100px;overflow-y:auto;"' : ''; ?> >
+		<div id='otheryears' <?php echo $checked ? '' : ''; ?> >
 			<?php
 //consturc years array, easy to add own kind of selection
 			$params = JComponentHelper::getParams(JEV_COM_COMPONENT);
 			$year = array();
-			for ($y = $params->get("com_earliestyear", date('Y')); $y <= $params->get("com_latestyear", date('Y')); $y++)
+			for ($y = JEVHelper::getMinYear(); $y <= JEVHelper::getMaxYear(); $y++)
 			{
 				if (!in_array($y, $year))
 					$year[] = $y;
@@ -182,21 +182,25 @@ if ($cfg->get("outlook2003icalexport", 0) == 0 && $cfg->get("show_ical_download"
 				{
 					$yt = $yt . " CHECKED";
 				}
-				$yt = $yt . ">" . $y . "<br/>\n";
+				$yt = $yt . " />" . $y . "<br/>\n";
 				echo $yt;
 			}
 			?>
 		</div>
 	</div>
 	<?php
+	
 	echo "<div class='icalformat' style='clear:left; padding-top:5px;'>";
+	if ($params->get("icalformatted", 1) == 1){
 	echo "<h3>" . JText::_('JEV_ICAL_FORMATTING') . "</h3>\n";
 	?>
-	<input name="icalformatted" type="checkbox" value="1" <?php echo JRequest::getInt("icalformatted", 0) ? "checked='checked'" : ""; ?>/>
+	<input name="icalformatted" type="checkbox" value="1" <?php echo JRequest::getInt("icalformatted", 0) ? "checked='checked'" : ""; ?> />
 	<label>		<?php echo JText::_("JEV_PRESERVE_HTML_FORMATTING") ; ?>	</label>
-	
+<?php } 
+	echo "</div>";
+?>
+
 <input id="submit" class="ical_submit" type="submit" name="submit" value="<?php echo JText::_('JEV_GENERATE_ICALS'); ?>" />
 </form>
-</div>
 </div>
 <?php } ?>

@@ -49,6 +49,19 @@ class AdminDefaultsController extends JControllerForm {
 			$db->setQuery("UPDATE #__jev_defaults set title=".$db->Quote("JEV_EVENT_DETAIL_PAGE")." WHERE name='icalevent.detail_body'");
 			$db->query();
 		}
+
+		if (!isset($defaults['icalevent.edit_page'])){
+			$db->setQuery("INSERT INTO  #__jev_defaults set name='icalevent.edit_page',
+						title=".$db->Quote("JEV_EVENT_EDIT_PAGE").",
+						subject='',
+						value='',
+						state=0");
+			$db->query();
+		}
+		else {
+			$db->setQuery("UPDATE #__jev_defaults set title=".$db->Quote("JEV_EVENT_EDIT_PAGE")." WHERE name='icalevent.edit_page'");
+			$db->query();
+		}
 		
 		if (!isset($defaults['icalevent.list_row'])){
 			$db->setQuery("INSERT INTO  #__jev_defaults set name='icalevent.list_row',
@@ -114,15 +127,16 @@ class AdminDefaultsController extends JControllerForm {
 	function overview( )
 	{
 		$this->populateLanguages();
+		$this->populateCategories();
 		
 		// get the view
-		$this->view = & $this->getView("defaults","html");
+		$this->view = $this->getView("defaults","html");
 
 		// Set the layout
 		$this->view->setLayout('overview');
 
 		// Get/Create the model
-		if ($model = & $this->getModel("defaults", "defaultsModel")) {
+		if ($model =  $this->getModel("defaults", "defaultsModel")) {
 			// Push the model into the view (as default)
 			$this->view->setModel($model, true);
 		}
@@ -130,15 +144,15 @@ class AdminDefaultsController extends JControllerForm {
 		$this->view->overview();
 	}
 
-	function edit(){
+	function edit($key = NULL, $urlVar = NULL){
 		// get the view
-		$this->view = & $this->getView("defaults","html");
+		$this->view = $this->getView("defaults","html");
 
 		// Set the layout
 		$this->view->setLayout('edit');
 
 		// Get/Create the model
-		if ($model = & $this->getModel("default", "defaultsModel")) {
+		if ($model =  $this->getModel("default", "defaultsModel")) {
 			// Push the model into the view (as default)
 			$this->view->setModel($model, true);
 		}
@@ -147,7 +161,7 @@ class AdminDefaultsController extends JControllerForm {
 
 	} // editdefaults()
 
-	function cancel(){
+	function cancel($key = NULL){
 		$this->setRedirect(JRoute::_("index.php?option=".JEV_COM_COMPONENT."&task=defaults.overview",false) );
 	}
 
@@ -174,6 +188,34 @@ class AdminDefaultsController extends JControllerForm {
 			return;
 		}
 		$name = $cid[0];
+
+		// Check if the layout is the same as the default value - if it is then do NOT publish it
+		$sql = "SELECT * FROM #__jev_defaults where id=".$db->Quote($name);
+		$db->setQuery($sql);
+		$value = $db->loadObject();
+
+		$defaultvalue = "";
+		$componentname = explode(".",$value->name ,2);
+		$componentname =  $componentname[0];
+
+		if (JevJoomlaVersion::isCompatible("3.0.0"))
+		{
+			if ($defaultvalue == "" && file_exists(JPATH_ADMINISTRATOR . '/components/'.  $componentname   .'/views/defaults/tmpl/' . $value->name . ".3.html"))
+			{
+				$defaultvalue = file_get_contents(JPATH_ADMINISTRATOR . '/components/'.  $componentname   .'/views/defaults/tmpl/' . $value->name . ".3.html");
+			}
+		}
+		if ($defaultvalue == "" && file_exists(JPATH_ADMINISTRATOR . '/components/'.  $componentname   .'/views/defaults/tmpl/' . $value->name . ".html"))
+		{
+			$defaultvalue = file_get_contents(JPATH_ADMINISTRATOR . '/components/'.  $componentname   .'/views/defaults/tmpl/' . $value->name . ".html");
+		}
+
+		if (str_replace(" ", "",$defaultvalue)==str_replace(" ","",$value->value) || $value->value=="") {
+			JFactory::getApplication()->enqueueMessage(JText::_("JEV_LAYOUT_IS_DEFAULT_NOT_PUBLISHED", "WARNING"));
+			$this->setRedirect(JRoute::_("index.php?option=".JEV_COM_COMPONENT."&task=defaults.overview",false) );
+			return;
+		}
+		
 		$sql = "UPDATE #__jev_defaults SET state=1 where id=".$db->Quote($name);
 		$db->setQuery($sql);
 		$db->query();
@@ -185,14 +227,14 @@ class AdminDefaultsController extends JControllerForm {
 	/**
 	* Saves the Session Record
 	*/
-	function save() {
+	function save($key = NULL, $urlVar = NULL) {
 
 
 		$id = JRequest::getInt("id",0);
 		if ($id >0 ){
 
 			// Get/Create the model
-			if ($model = & $this->getModel("default", "defaultsModel")) {
+			if ($model =  $this->getModel("default", "defaultsModel")) {
 				if ($model->store(JRequest::get("post",JREQUEST_ALLOWRAW))){
 					if (JRequest::getCmd("task")=="defaults.apply"){
 						$this->setRedirect("index.php?option=".JEV_COM_COMPONENT."&task=defaults.edit&id=$id",JText::_("JEV_TEMPLATE_SAVED"));
@@ -290,5 +332,138 @@ class AdminDefaultsController extends JControllerForm {
 		
 		//echo $db->getgetErrorMsg();
 	
+	}
+
+	private function populateCategories() {
+		$db = JFactory::getDBO();
+
+		// get the list of languages first
+		$query	= $db->getQuery(true);
+		$query->select("c.*");
+		$query->from("#__categories as c");
+		$query->where('extension="com_jevents"');
+		$query->where('published=1');
+		$query->order("c.title asc");
+
+		$db->setQuery($query);
+		$categories  = $db->loadObjectList('id');
+
+		// remove ones where the category is no longer installed
+		$query	= $db->getQuery(true);
+		$cats = array();
+		$cats[0] = $db->quote("0");
+		foreach ($categories as $cat){
+			$cats[$cat->id] = $db->quote($cat->id);
+		}
+		$incats =  implode(",",$cats);
+		$query->delete('#__jev_defaults')->where("catid NOT IN ($incats)");
+		$db->setQuery($query);
+		$db->query();
+
+		// not needed if only one language
+		if (count($cats )==1){
+			return;
+		}
+		$query	= $db->getQuery(true);
+		$query->select("def.*");
+		$query->from("#__jev_defaults as def");
+
+		//$query->where('def.language = "*"');
+		$query->where('def.catid = "0"');
+		$query->where('def.name NOT like ("com_jevpeople%") AND def.name NOT like ("com_jevlocations%")' );
+		$query->order("def.name asc");
+		$db->setQuery($query);
+		$tempdata = $db->loadObjectList();
+		$allCatidNames = array();
+		foreach ($tempdata as $td){
+			if (!isset($allCatidNames[$td->name])){
+				$allCatidNames[$td->name] = array();
+			}
+			$allCatidNames[$td->name][] = $td;
+		}
+
+		$query	= $db->getQuery(true);
+		$query->select("def.*");
+		$query->from("#__jev_defaults as def");
+
+		$query->where('def.catid<> "0"');
+		$query->where('def.name NOT like ("com_jevpeople%") AND def.name NOT like ("com_jevlocations%")' );
+		$query->order("def.name, catid asc");
+
+		$db->setQuery($query);
+		$catdata = $db->loadObjectList();
+		$specificCategoryNames = array();
+		foreach ($catdata as $cat){
+			if (!isset($specificCategoryNames[$cat->name])){
+				$specificCategoryNames[$cat->name] = array();
+			}
+			$specificCategoryNames[$cat->name][$cat->catid.".".$cat->language] = $cat;
+		}
+
+		$missingDefaults = array();
+		foreach ($allCatidNames as $name => $namedata){
+			// all language versions to check and populate
+			if (!isset($specificCategoryNames[$name])) {
+				foreach ($cats  as $catid=>$cat){
+					if ($catid==0) continue;
+					foreach ($namedata as $nd){
+						$missingDefaults[] = array("catid"=>$catid, "lang_code"=>$nd->language, "name"=>$nd);
+						//echo $nd->name." ".$catid." ".$nd->language."<Br/>";
+					}
+				}
+			}
+			else {
+				foreach ($namedata as $nd){
+					foreach ($cats  as $catid=>$cat){
+						if ($catid==0) continue;
+						$matched = false;
+						foreach ($specificCategoryNames[$name] as $sname){
+							if ($nd->name == $sname->name && $nd->language == $sname->language && $sname->catid == $catid){
+								$matched = true;
+								break;
+							}
+						}
+						if (!$matched){
+							$missingDefaults[] = array("catid"=>$catid, "lang_code"=>$nd->language, "name"=>$nd);
+							//echo $nd->name." ".$catid." ".$nd->language."<Br/>";
+						}
+					}
+				}
+
+			}
+		
+			/*
+					foreach ($namedata as $allcat){
+						if ( $catid == $sname->catid){
+							$matched = false;
+							foreach ($specificCategoryNames as $sname){
+								if ($name->name == $sname->name && $name->language == $sname->language ){
+									$matched = true;
+									$count++;
+									break;
+								}
+							}
+							if (!$matched){
+								$missingDefaults[] = array("catid"=>$catid, "lang_code"=>$name->language, "name"=>$name);
+							}
+						}
+					}
+				}
+			*/
+		}
+
+		if (count ($missingDefaults)>0){
+			$query	= $db->getQuery(true);
+			$query->insert("#__jev_defaults")->columns("title, name, subject,value,state,params,language, catid");
+			foreach ($missingDefaults as $md){
+				$values = array($db->quote($md["name"]->title), $db->quote($md["name"]->name), $db->quote($md["name"]->subject), $db->quote($md["name"]->value), 0, $db->quote($md["name"]->params), $db->quote($md["lang_code"]), $md["catid"]);
+				$query->values(implode(",",$values));
+			}
+			$db->setQuery($query);			
+			$db->query();
+		}
+
+		echo $db->getErrorMsg();
+
 	}
 }

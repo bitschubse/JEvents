@@ -14,6 +14,7 @@ jimport('joomla.application.component.helper');
 
 // Load the base adapter.
 require_once JPATH_ADMINISTRATOR . '/components/com_finder/helpers/indexer/adapter.php';
+JLoader::register('JevJoomlaVersion',JPATH_ADMINISTRATOR."/components/com_jevents/libraries/version.php");
 
 /**
  * Finder adapter for com_jevents.
@@ -226,8 +227,9 @@ class plgFinderJEvents extends FinderIndexerAdapter
 		$item->body = FinderIndexerHelper::prepareContent($item->body, $item->params);
 
 		// Build the necessary route and path information.
-		$item->url = "index.php?option=com_jevents&task=icalevent.detail&evid=".$item->eventid;//$this->getURL($item->id, $this->extension, $this->layout);
-		$item->route = "index.php?option=com_jevents&task=icalevent.detail&evid=".$item->eventid;
+		$itemid= $this->params->get("target_itemid",0);
+		$item->url = "index.php?option=com_jevents&task=icalevent.detail&evid=".$item->eventid."&Itemid=".$itemid;//$this->getURL($item->id, $this->extension, $this->layout);
+		$item->route = "index.php?option=com_jevents&task=icalevent.detail&evid=".$item->eventid."&Itemid=".$itemid;
 		
 		$item->path = FinderIndexerHelper::getContentPath($item->route);
 
@@ -256,7 +258,7 @@ class plgFinderJEvents extends FinderIndexerAdapter
 		FinderIndexerHelper::getContentExtras($item);
 
 		// Index the item.
-		if (JVersion::isCompatible("3.0.0")){
+		if (JevJoomlaVersion::isCompatible("3.0.0")){
 			$this->indexer->index($item);
 		}
 		else {
@@ -289,7 +291,7 @@ class plgFinderJEvents extends FinderIndexerAdapter
 	 *
 	 * @since   2.5
 	 */
-	protected function getListQuery()
+	protected function getListQuery($query = NULL)
 	{
 		$db = JFactory::getDbo();
 		// Check if we can use the supplied SQL query.

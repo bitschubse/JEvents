@@ -34,13 +34,14 @@ if (!defined("JEV_LIBS")){
 	JLoader::register('SaveIcalEvent',JEV_ADMINLIBS."saveIcalEvent.php");
 
 	JLoader::register('JEventsVersion',JEV_ADMINLIBS."version.php");
+	JLoader::register('JevJoomlaVersion',JEV_ADMINLIBS."version.php");
 	JLoader::register('JEventsDBModel',JEV_PATH."libraries/dbmodel.php");
 	JLoader::register('JEventsDataModel',JEV_PATH."libraries/datamodel.php");
 	
 	JLoader::register('JEVHelper',JEV_PATH."libraries/helper.php");
 	JLoader::register('JevModuleHelper',JEV_PATH."/libraries/jevmodulehelper.php"); 
 	
-	JLoader::register('JEventsAbstractView',JEV_VIEWS."/abstract/abstract.php");
+	JLoader::register('JEventsAbstractView',JEV_ADMINPATH."views/abstract/abstract.php");
 	
 	JLoader::register('jEventCal',JEV_PATH."libraries/jeventcal.php");
 	JLoader::register('jIcal',JEV_PATH."libraries/jical.php");

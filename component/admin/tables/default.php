@@ -31,6 +31,8 @@ class TableDefault extends JTable
 	var $subject = null;
 	var $value = null;
 	var $state = null;
+	var $language = null;
+	var $params = null;
 
 	/**
 	 * Constructor
@@ -39,7 +41,7 @@ class TableDefault extends JTable
 	 * @since 1.0
 	 */
 	function __construct() {
-		$db =& JFactory::getDBO();
+		$db = JFactory::getDBO();
 		parent::__construct('#__jev_defaults', 'id', $db);
 	}
 

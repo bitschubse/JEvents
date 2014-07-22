@@ -27,15 +27,15 @@ class JElementJevdate extends JElement
 	{
 
 		// Must load admin language files
-		$lang =& JFactory::getLanguage();
+		$lang = JFactory::getLanguage();
 		$lang->load("com_jevents", JPATH_ADMINISTRATOR);
 		$lang->load("com_jevents", JPATH_SITE);
 
 		JLoader::register('JEVHelper',JPATH_SITE."/components/com_jevents/libraries/helper.php");
 		$option = "com_jevents"; 
-		$params =& JComponentHelper::getParams( $option );
-		$minyear = $params->get("com_earliestyear",1970);
-		$maxyear = $params->get("com_latestyear",2150);
+		$params = JComponentHelper::getParams( $option );
+		$minyear = JEVHelper::getMinYear();
+		$maxyear = JEVHelper::getMaxYear();
 		ob_start();
 		JEVHelper::loadCalendar($control_name.'['.$name.']', $control_name.$name, $value,$minyear, $maxyear, '',"", 'Y-m-d');
 		return ob_get_clean();

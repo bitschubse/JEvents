@@ -11,7 +11,9 @@
 
 defined( '_JEXEC' ) or die( 'Restricted access' );
 
-JLoader::register('JTableCategory', JPATH_PLATFORM . '/joomla/database/table/category.php');
+if (version_compare(JVERSION, "3.2.0", "lt")){
+	JLoader::register('JTableCategory', JPATH_PLATFORM . '/joomla/database/table/category.php');
+}
 
 class JEventsCategory extends JTableCategory {
 
@@ -21,26 +23,32 @@ class JEventsCategory extends JTableCategory {
 	var $catid 			= null;
 
 	// security check
-	function bind( $array ) {
-		$cfg = & JEVConfig::getInstance();
+	function bind( $array , $ignore=array()) {
+		$cfg = JEVConfig::getInstance();
 		$array['id'] = isset($array['id']) ? intval($array['id']) : 0;
 		parent::bind($array);
 		
-		$params = new JRegistry();
-		$color = array_key_exists("color",$array)?$array['color']:"#000000";
-		if(!preg_match("/^#[0-9a-f]+$/i", $color)) $color= "#000000";
-		$params->set("catcolor",$color);
-		
-		$admin = array_key_exists("admin",$array)?$array['admin']:0;
-		$params->set("admin",$admin);
-		
-		$overlaps = array_key_exists("overlaps",$array)?intval($array['overlaps']):0;
-		$params->set("overlaps",$overlaps);
+		$params = new JRegistry($this->params);
+		if (!$params->get("catcolour", false)){
+			$color = array_key_exists("color",$array)?$array['color']:"#000000";
+			if(!preg_match("/^#[0-9a-f]+$/i", $color)) $color= "#000000";
+			$params->set("catcolor",$color);
+		}
+		if (!$params->get("admin", false)){
+			$admin = array_key_exists("admin",$array)?$array['admin']:0;
+			$params->set("admin",$admin);
+		}
+		if (!$params->get("overlaps", false)){
+			$overlaps = array_key_exists("overlaps",$array)?intval($array['overlaps']):0;
+			$params->set("overlaps",$overlaps);
+		}
 
-		$params->set("image","");
-		
+		if (!$params->get("image", false)){
+			$image = array_key_exists("image",$array)?intval($array['image']):"";
+			$params->set("image",$image);
+		}
 		$this->params = (string)  $params;
-		
+				
 		// Fill in the gaps
 		$this->parent_id = array_key_exists("parent_id",$array)?intval($array['parent_id']):1;
 		$this->level = array_key_exists("level",$array)?intval($array['level']):1;		
@@ -52,19 +60,20 @@ class JEventsCategory extends JTableCategory {
 		return true;
 	}
 
-	function load($oid=null){
+	function load($oid = NULL, $reset = true){
 		parent::load($oid);
 		$params = new JRegistry($this->params);
 		$this->color = $params->get("catcolour", "#000000");
 		$this->overlaps = $params->get("overlaps",0);
 		$this->admin = $params->get("admin",0);		
+		$this->image = $params->get("image","");
 	}
 
-	function store(){
+	function store($updateNulls = false){
 		$success = parent::store();
 		if ($success){
 			JPluginHelper::importPlugin("jevents");
-			$dispatcher	=& JDispatcher::getInstance();
+			$dispatcher	= JDispatcher::getInstance();
 			$set = $dispatcher->trigger('afterSaveCategory', array ($this));
 /*			
 			$table = JTable::getInstance('Category', 'JTable', array('dbo' => JFactory::getDbo()));
@@ -101,7 +110,7 @@ class JEventsCategory extends JTableCategory {
 
 	public static function categoriesTree() {
 
-		$db = & JFactory::getDBO();
+		$db = JFactory::getDBO();
 		$query = "SELECT *, parent_id as parent FROM #__categories  WHERE extension = '".JEV_COM_COMPONENT."' and published>=0";
 		$query.=" ORDER BY parent, lft";
 		$db->setQuery($query);

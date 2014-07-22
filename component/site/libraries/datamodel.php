@@ -30,7 +30,7 @@ class JEventsDataModel {
 	var $queryModel;
 
 	function  JEventsDataModel($dbmodel=null){
-		$cfg = & JEVConfig::getInstance();
+		$cfg = JEVConfig::getInstance();
 		
 		$user = JFactory::getUser();
 		$this->aid = JEVHelper::getAid($user);
@@ -83,10 +83,10 @@ class JEventsDataModel {
 		$Itemid = JEVHelper::getItemid();
 		$this->myItemid = $Itemid;
 
-		$menu	=& JSite::getMenu();
+		$menu	= JFactory::getApplication()->getMenu();
 		$active = $menu->getActive();
 		if (!is_null($active) && $active->component==JEV_COM_COMPONENT){
-			$params	=&  JComponentHelper::getParams(JEV_COM_COMPONENT);
+			$params	=  JComponentHelper::getParams(JEV_COM_COMPONENT);
 		}
 		else {
 			// If accessing this function from outside the component then I must load suitable parameters
@@ -214,7 +214,7 @@ class JEventsDataModel {
 		$data['year']=$year;
 		$data['month']=$month;
 
-		$db	=& JFactory::getDBO();
+		$db	= JFactory::getDBO();
 
 		if (!isset($this->myItemid) || is_null($this->myItemid)) {
 			$Itemid = JEVHelper::getItemid();
@@ -223,7 +223,7 @@ class JEventsDataModel {
 
 		include_once(JPATH_ADMINISTRATOR."/components/".JEV_COM_COMPONENT."/libraries/colorMap.php");
 
-		$cfg = & JEVConfig::getInstance();
+		$cfg = JEVConfig::getInstance();
 
 		if (!$veryshort){
 			$icalrows = $this->queryModel->listIcalEventsByMonth( $year, $month);
@@ -458,9 +458,9 @@ class JEventsDataModel {
 		$data = array();
 		$data ["year"]=$year;
 
-		$db	=& JFactory::getDBO();
+		$db	= JFactory::getDBO();
 
-		$cfg = & JEVConfig::getInstance();
+		$cfg = JEVConfig::getInstance();
 
 		include_once(JPATH_ADMINISTRATOR."/components/".JEV_COM_COMPONENT."/libraries/colorMap.php");
 
@@ -510,9 +510,9 @@ class JEventsDataModel {
 		
 		$data = array();
 
-		$db	=& JFactory::getDBO();
+		$db	= JFactory::getDBO();
 
-		$cfg = & JEVConfig::getInstance();
+		$cfg = JEVConfig::getInstance();
 
 		include_once(JPATH_ADMINISTRATOR."/components/".JEV_COM_COMPONENT."/libraries/colorMap.php");
 
@@ -552,14 +552,14 @@ class JEventsDataModel {
 
 		
 		$Itemid = JEVHelper::getItemid();
-		$db	=& JFactory::getDBO();
+		$db	= JFactory::getDBO();
 
 		$cat = "";
 		if ($this->catidsOut != 0){
 			$cat = '&catids='.$this->catidsOut;
 		}
 
-		$cfg = & JEVConfig::getInstance();
+		$cfg = JEVConfig::getInstance();
 
 		include_once(JPATH_ADMINISTRATOR."/components/".JEV_COM_COMPONENT."/libraries/colorMap.php");
 
@@ -639,7 +639,7 @@ class JEventsDataModel {
 			$row =& $rows[$r];
 			if ($row->checkRepeatDay($target_date))  {
 
-				if ($row->alldayevent() || (!$row->noendtime() && ($row->hup()==$row->hdn() && $row->minup()==$row->mindn() && $row->sup()==$row->sdn()))){
+				if ($row->alldayevent() || (!$row->noendtime() && ($row->hup()==$row->hdn() && $row->minup()==$row->mindn() && $row->sup()==$row->sdn() && ($row->hup()==0 || $row->hup()==24)))){
 					$count = count($data['hours']['timeless']['events']);
 					$data['hours']['timeless']['events'][$count]=$row;
 				}
@@ -655,7 +655,7 @@ class JEventsDataModel {
 			for( $r = 0; $r < $num_events; $r++ ){
 				$row =& $rows[$r];
 				if (!isset($row->alreadyHourSlotted) && $row->checkRepeatDay($target_date))  {
-					if ($row->alldayevent() || (!$row->noendtime() && ($row->hup()==$row->hdn() && $row->minup()==$row->mindn() && $row->sup()==$row->sdn()))){
+					if ($row->alldayevent() || (!$row->noendtime() && ($row->hup()==$row->hdn() && $row->minup()==$row->mindn() && $row->sup()==$row->sdn() && ($row->hup()==0 || $row->hup()==24)))){
 						// Ignore timeless events
 					}
 					// if first hour of the day get the previous days events here!!
@@ -700,15 +700,15 @@ class JEventsDataModel {
 		
 		$pop = intval(JRequest::getVar( 'pop', 0 ));
 		$Itemid = JEVHelper::getItemid();
-		$db	=& JFactory::getDBO();
+		$db	= JFactory::getDBO();
+		$user= JFactory::getUser();
 
-		$cfg = & JEVConfig::getInstance();
+		$cfg = JEVConfig::getInstance();
 
 		$row = $this->queryModel->listEventsById ($rpid, 1, $jevtype);  // include unpublished events for publishers and above
 
 		// if the event is not published then make sure the user can edit or publish it or created it before allowing it to be seen!
-		if ($row && !$row->published()) {
-			$user= JFactory::getUser();
+		if ($row && $row->published()!=1) {
 			if ($user->id!=$row->created_by() && !JEVHelper::canEditEvent($row)  && !JEVHelper::canPublishEvent($row)  && !JEVHelper::isAdminUser($user) ) {
 				$row=null;
 			}
@@ -721,6 +721,11 @@ class JEventsDataModel {
 			$rpid = $this->queryModel->findMatchingRepeat($uid, $year, $month, $day);
 			if (isset($rpid) && $rpid>0){
 				$row = $this->queryModel->listEventsById ($rpid, 1, $jevtype);  // include unpublished events for publishers and above
+				if ($row && !$row->published()) {					
+					if ($user->id!=$row->created_by() && !JEVHelper::canEditEvent($row)  && !JEVHelper::canPublishEvent($row)  && !JEVHelper::isAdminUser($user) ) {
+						$row=null;
+					}
+				}
 				$num_row = count($row);
 			}
 		}
@@ -728,7 +733,7 @@ class JEventsDataModel {
 		if( $num_row ){
 
 			// process the new plugins
-			$dispatcher	=& JDispatcher::getInstance();
+			$dispatcher	= JDispatcher::getInstance();
 			$dispatcher->trigger('onGetEventData', array (& $row));
 
 			$params =new JRegistry(null);
@@ -767,7 +772,7 @@ class JEventsDataModel {
 				$tmprow = new stdClass();
 				$tmprow->text = $row->location();
 
-				$dispatcher	=& JDispatcher::getInstance();
+				$dispatcher	= JDispatcher::getInstance();
 
 				$dispatcher->trigger( 'onContentPrepare', array('com_jevents', &$tmprow, &$params, 0 ));
 				
@@ -830,7 +835,7 @@ class JEventsDataModel {
 		else {
 			// Do we have to be logged in to see this event?
 			// If we set the access user for ical export (as an example) then use this user id for access checks!
-			$user = JFactory::getUser(isset($this->accessuser)?$this->accessuser:null);
+			$user = JEVHelper::getUser(isset($this->accessuser)?$this->accessuser:null);
 			if ($user->id==0)
 			{
 				$db=JFactory::getDBO();
@@ -855,25 +860,25 @@ class JEventsDataModel {
 
 			// See if a plugin can find our missing event - maybe on another menu item
 			JPluginHelper::importPlugin('jevents');
-			$dispatcher	=& JDispatcher::getInstance();
+			$dispatcher	= JDispatcher::getInstance();
 			$dispatcher->trigger('onMissingEvent', array (& $row,$rpid, $jevtype, $year, $month, $day, $uid));
 
 			return null;
 		}
 	}
 
-	function accessibleCategoryList($aid=null, $catids=null, $catidList=null){
-		return $this->queryModel->accessibleCategoryList($aid, $catids, $catidList);
+	function accessibleCategoryList($aid=null, $catids=null, $catidList=null, $allLanguages=false){
+		return $this->queryModel->accessibleCategoryList($aid, $catids, $catidList, $allLanguages);
 	}
 
 	function getCatData( $catids, $showRepeats=true, $limit=0, $limitstart=0, $order="rpt.startrepeat asc, rpt.endrepeat ASC, det.summary ASC"){
 		$data = array();
 
 		$Itemid = JEVHelper::getItemid();
-		$db	=& JFactory::getDBO();
+		$db	= JFactory::getDBO();
 		include_once(JPATH_ADMINISTRATOR."/components/".JEV_COM_COMPONENT."/libraries/colorMap.php");
 
-		$cfg = & JEVConfig::getInstance();
+		$cfg = JEVConfig::getInstance();
 
 		$counter = $this->queryModel->countIcalEventsByCat( $catids,$showRepeats);
 
@@ -977,7 +982,7 @@ class JEventsDataModel {
 		$Itemid = JEVHelper::getItemid();
 		$db	= JFactory::getDBO();
 
-		$cfg = & JEVConfig::getInstance();
+		$cfg = JEVConfig::getInstance();
 
 		include_once(JPATH_ADMINISTRATOR."/components/".JEV_COM_COMPONENT."/libraries/colorMap.php");
 
@@ -1054,7 +1059,7 @@ class JEventsDataModel {
 
 		$db	= JFactory::getDBO();		
 
-		$cfg = & JEVConfig::getInstance();
+		$cfg = JEVConfig::getInstance();
 
 		include_once(JPATH_ADMINISTRATOR."/components/".JEV_COM_COMPONENT."/libraries/colorMap.php");
 
@@ -1096,16 +1101,16 @@ class JEventsDataModel {
 
 	function getAdjacentMonth($data, $direction=1)
 	{
-		$cfg = & JEVConfig::getInstance();
+		$cfg = JEVConfig::getInstance();
 		$monthResult = array();
 		$d1 = JevDate::mktime(0,0,0,intval($data['month'])+$direction,1,$data['year']);
 		$monthResult['day1'] = $d1;
 		$monthResult['lastday'] = date("t",$d1);
 		$year = JevDate::strftime("%Y",$d1);
 		
-		$cfg = & JEVConfig::getInstance();
-		$earliestyear =  $cfg->get('com_earliestyear');
-		$latestyear = $cfg->get('com_latestyear');
+		$cfg = JEVConfig::getInstance();
+		$earliestyear =  JEVHelper::getMinYear();
+		$latestyear = JEVHelper::getMaxYear();
 		if ($year>$latestyear || $year<$earliestyear){
 			return false;
 		}
@@ -1139,9 +1144,9 @@ class JEventsDataModel {
 		$day = JevDate::strftime("%d",$d1);
 		$year = JevDate::strftime("%Y",$d1);
 		
-		$cfg = & JEVConfig::getInstance();
-		$earliestyear =  $cfg->get('com_earliestyear');
-		$latestyear = $cfg->get('com_latestyear');
+		$cfg = JEVConfig::getInstance();
+		$earliestyear =  JEVHelper::getMinYear();
+		$latestyear = JEVHelper::getMaxYear();
 		if ($year>$latestyear || $year<$earliestyear){
 			return false;
 		}
@@ -1169,9 +1174,9 @@ class JEventsDataModel {
 		$day = JevDate::strftime("%d",$d1);
 		$year = JevDate::strftime("%Y",$d1);
 		
-		$cfg = & JEVConfig::getInstance();
-		$earliestyear =  $cfg->get('com_earliestyear');
-		$latestyear = $cfg->get('com_latestyear');
+		$cfg = JEVConfig::getInstance();
+		$earliestyear =  JEVHelper::getMinYear();
+		$latestyear = JEVHelper::getMaxYear();
 		if ($year>$latestyear || $year<$earliestyear){
 			return false;
 		}

@@ -13,15 +13,19 @@ class DefaultViewNavTableBarIconic {
 		$this->cat = $this->view->datamodel->getCatidsOutLink();
 		$this->task = $task;
 
-		$cfg = & JEVConfig::getInstance();
+		$cfg = JEVConfig::getInstance();
+                
+                //Lets check if we should show the nav on event details 
+                if ($task == "icalrepeat.detail" && $cfg->get('shownavbar_detail', 1) == 0) { return;}
+		
 		$this->iconstoshow = $cfg->get('iconstoshow', array('byyear', 'bymonth', 'byweek', 'byday', 'search'));
 		
 		if (JRequest::getInt( 'pop', 0 )) return;
 				
     	?>
-    	<div class="ev_navigation" style="width:100%">
-    		<table  border="0" align="center" >
-    			<tr align="center" valign="top">
+    	<div class="ev_navigation">
+    		<table class="b0" align="center" >
+    			<tr align="center" class="vtop">
     	    		<?php 
     	    		if($cfg->get('com_calUseIconic', 1) != 2  && $task!="range.listevents"){
     	    			echo $this->_lastYearIcon($dates, $alts);
@@ -39,7 +43,7 @@ class DefaultViewNavTableBarIconic {
     	    		}
     	    		?>
                 </tr>
-    			<tr class="icon_labels" align="center" valign="top">
+    			<tr class="icon_labels" align="center">
     				<?php   if($cfg->get('com_calUseIconic', 1) != 2  && $task!="range.listevents"){ ?>
 	        		<td colspan="2"></td>
 	        		<?php } ?>
@@ -63,7 +67,7 @@ class DefaultViewNavTableBarIconic {
 	}
 
 	function _genericMonthNavigation($dates, $alts, $which, $icon){
-		$cfg = & JEVConfig::getInstance();
+		$cfg = JComponentHelper::getParams(JEV_COM_COMPONENT);
 		$task = $this->task;
 		$link = 'index.php?option=' . JEV_COM_COMPONENT . '&task=' . $task . $this->cat . '&Itemid=' . $this->Itemid. '&';
 
@@ -73,7 +77,7 @@ class DefaultViewNavTableBarIconic {
 		. $cfg->get('com_navbarcolor').".gif' alt='".$alts[$which]."'/>";
 
 		$thelink = '<a href="'.JRoute::_($link.$dates[$which]->toDateURL()).'" title="'.$alts[$which].'">'.$gg.'</a>'."\n";
-		if ($dates[$which]->getYear()>=$cfg->get('com_earliestyear') && $dates[$which]->getYear()<=$cfg->get('com_latestyear')){
+		if ($dates[$which]->getYear()>=JEVHelper::getMinYear() && $dates[$which]->getYear()<=$cfg->get('com_latestyear')){
 		?>
     	<td width="10" align="center" valign="middle"><?php echo $thelink; ?></td>
 		<?php		
@@ -152,14 +156,14 @@ class DefaultViewNavTableBarIconic {
 	function _viewJumptoIcon($today_date) {
 		?>
 		<td class="iconic_td" align="center" valign="middle">
-			<div id="ev_icon_jumpto" class="nav_bar_cal"><a href="#" onclick="jtdisp = document.getElementById('jumpto').style.display;document.getElementById('jumpto').style.display=(jtdisp=='none')?'block':'none';return false;" title="<?php echo   JText::_('JEV_JUMPTO');?>"><img src="<?php echo $this->transparentGif;?>" alt="<?php echo  JText::_('JEV_JUMPTO');?>"/></a>
+			<div id="ev_icon_jumpto" class="nav_bar_cal"><a href="#" onclick="if ($('jumpto').hasClass('jev_none')) {$('jumpto').removeClass('jev_none');} else {$('jumpto').addClass('jev_none')};return false;" title="<?php echo   JText::_('JEV_JUMPTO');?>"><img src="<?php echo $this->transparentGif;?>" alt="<?php echo  JText::_('JEV_JUMPTO');?>"/></a>
 			</div>
         </td>                
         <?php
 	}
 
 	function _viewHiddenJumpto($this_date){
-		$cfg = & JEVConfig::getInstance();
+		$cfg = JEVConfig::getInstance();
 		$hiddencat	= "";
 		if ($this->view->datamodel->catidsOut!=0){
 			$hiddencat = '<input type="hidden" name="catids" value="'.$this->view->datamodel->catidsOut.'"/>';
@@ -174,18 +178,18 @@ class DefaultViewNavTableBarIconic {
 	    	<?php }
 			$index = JRoute::_("index.php");
 	    	?>
-	    	<div id="jumpto"  style="display:none">
+	    	<div id="jumpto"  class="jev_none">
 			<form name="BarNav" action="<?php echo $index;?>" method="get">
 				<input type="hidden" name="option" value="<?php echo JEV_COM_COMPONENT;?>" />
 				<input type="hidden" name="task" value="month.calendar" />
 				<?php
 				echo $hiddencat;
 				/*Day Select*/
-				// JEventsHTML::buildDaySelect( $this_date->getYear(1), $this_date->getMonth(1), $this_date->getDay(1), ' style="font-size:10px;"' );
+				// JEventsHTML::buildDaySelect( $this_date->getYear(1), $this_date->getMonth(1), $this_date->getDay(1), ' class="fs10px"' );
 				/*Month Select*/
-				JEventsHTML::buildMonthSelect( $this_date->getMonth(1), 'style="font-size:10px;"');
+				JEventsHTML::buildMonthSelect( $this_date->getMonth(1), 'class="fs10px"');
 				/*Year Select*/
-				JEventsHTML::buildYearSelect( $this_date->getYear(1), 'style="font-size:10px;"' ); ?>
+				JEventsHTML::buildYearSelect( $this_date->getYear(1), 'class="fs10px"' ); ?>
 				<button onclick="submit(this.form)"><?php echo   JText::_('JEV_JUMPTO');?></button>
 				<input type="hidden" name="Itemid" value="<?php echo $this->Itemid; ?>" />
 			</form>

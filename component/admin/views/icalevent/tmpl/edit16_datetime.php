@@ -11,7 +11,7 @@
 defined('_JEXEC') or die('Restricted access');
 
 // get configuration object
-$cfg = & JEVConfig::getInstance();
+$cfg = JEVConfig::getInstance();
 if( $cfg->get('com_calUseStdTime') == 0 ) {
 	$clock24=true;
 }
@@ -24,7 +24,7 @@ else {
 }
 
 // Disable event repeats for non-full editors if disable repeats is enabled
-$params =& JComponentHelper::getParams( JEV_COM_COMPONENT );
+$params = JComponentHelper::getParams( JEV_COM_COMPONENT );
 if ($params->get("disablerepeats",0) && !JEVHelper::isEventEditor() ){
 	$repeatStyle="style='display:none;' class='jeveditrepeats' ";
 }
@@ -46,9 +46,9 @@ if ($params->get("disablerepeats",0) && !JEVHelper::isEventEditor() ){
         <fieldset><legend><?php echo JText::_('JEV_EVENT_STARTDATE'); ?></legend>
         <div style="float:left">
 			<?php
-			$params =& JComponentHelper::getParams( JEV_COM_COMPONENT );
-			$minyear = $params->get("com_earliestyear",1970);
-			$maxyear = $params->get("com_latestyear",2150);
+			$params = JComponentHelper::getParams( JEV_COM_COMPONENT );
+			$minyear = JEVHelper::getMinYear();
+			$maxyear = JEVHelper::getMaxYear();
 			$inputdateformat = $params->get("com_editdateformat","d.m.Y");
 			$document = JFactory::getDocument();
 			$js = "\neventEditDateFormat='$inputdateformat';Date.defineParser(eventEditDateFormat.replace('d','%d').replace('m','%m').replace('Y','%Y'));";
@@ -61,10 +61,10 @@ if ($params->get("disablerepeats",0) && !JEVHelper::isEventEditor() ){
          </div>
          <div style="float:left;margin-left:20px!important;">
             <?php echo JText::_('JEV_EVENT_STARTTIME')."&nbsp;"; ?>
-			<span id="start_24h_area" style="display:inline">
+			<span id="start_24h_area" class="jev_inline">
             <input class="inputbox" type="text" name="start_time" id="start_time" size="8" <?php echo $this->row->alldayevent()?"disabled='disabled'":"";?> maxlength="8" value="<?php echo $this->row->starttime24();?>" onchange="checkTime(this);"/>
 			</span>
-			<span id="start_12h_area" style="display:inline">
+			<span id="start_12h_area" class="jev_inline">
            	<input class="inputbox" type="text" name="start_12h" id="start_12h" size="8" maxlength="8" <?php echo $this->row->alldayevent()?"disabled='disabled'":"";?> value="" onchange="check12hTime(this);" />
       		<input type="radio" name="start_ampm" id="startAM" value="none" checked="checked" onclick="toggleAMPM('startAM');" <?php echo $this->row->alldayevent()?"disabled='disabled'":"";?> /><?php echo JText::_( 'JEV_AM' );?>
       		<input type="radio" name="start_ampm" id="startPM" value="none" onclick="toggleAMPM('startPM');" <?php echo $this->row->alldayevent()?"disabled='disabled'":"";?> /><?php echo JText::_( 'JEV_PM' );?>
@@ -76,9 +76,9 @@ if ($params->get("disablerepeats",0) && !JEVHelper::isEventEditor() ){
         <fieldset><legend><?php echo JText::_('JEV_EVENT_ENDDATE'); ?></legend>
         <div style="float:left">
 				<?php
-			$params =& JComponentHelper::getParams( JEV_COM_COMPONENT );
-			$minyear = $params->get("com_earliestyear",1970);
-			$maxyear = $params->get("com_latestyear",2150);
+			$params = JComponentHelper::getParams( JEV_COM_COMPONENT );
+			$minyear = JEVHelper::getMinYear();
+			$maxyear = JEVHelper::getMaxYear();
 			JEVHelper::loadCalendar("publish_down", "publish_down", $this->row->endDate(),$minyear, $maxyear, 'var elem = $("publish_down");checkDates(elem);',"elem = $('publish_up');checkDates(elem);", $inputdateformat);
 			
 			?>
@@ -87,10 +87,10 @@ if ($params->get("disablerepeats",0) && !JEVHelper::isEventEditor() ){
          </div>
          <div style="float:left;margin-left:20px!important">
              <?php echo JText::_('JEV_EVENT_ENDTIME')."&nbsp;"; ?>
-			<span id="end_24h_area" style="display:inline">
+			<span id="end_24h_area" class="jev_inline">
            	<input class="inputbox" type="text" name="end_time" id="end_time" size="8" maxlength="8" <?php echo ($this->row->alldayevent() || $this->row->noendtime())?"disabled='disabled'":"";?> value="<?php echo $this->row->endtime24();?>" onchange="checkTime(this);" />
 			</span>
-			<span id="end_12h_area" style="display:inline">
+			<span id="end_12h_area" class="jev_inline">
            	<input class="inputbox" type="text" name="end_12h" id="end_12h" size="8" maxlength="8" <?php echo ($this->row->alldayevent() || $this->row->noendtime())?"disabled='disabled'":"";?> value="" onchange="check12hTime(this);" />
       		<input type="radio" name="end_ampm" id="endAM" value="none" checked="checked" onclick="toggleAMPM('endAM');" <?php echo ($this->row->alldayevent() || $this->row->noendtime())?"disabled='disabled'":"";?> /><?php echo JText::_( 'JEV_AM' );?>
       		<input type="radio" name="end_ampm" id="endPM" value="none" onclick="toggleAMPM('endPM');" <?php echo ($this->row->alldayevent() || $this->row->noendtime())?"disabled='disabled'":"";?> /><?php echo JText::_( 'JEV_PM' );?>
@@ -124,7 +124,7 @@ if ($params->get("disablerepeats",0) && !JEVHelper::isEventEditor() ){
             <td class="r2"><input type="radio" name="freq" id="MONTHLY" value="MONTHLY" onclick="toggleFreq('MONTHLY');" /><label for='MONTHLY'><?php echo JText::_( 'MONTHLY' );?></label></td>
             <td class="r1"><input type="radio" name="freq" id="YEARLY" value="YEARLY" onclick="toggleFreq('YEARLY');" /><label for='YEARLY'><?php echo JText::_( 'YEARLY' );?></label></td>
 	   <?php 
-		$params =& JComponentHelper::getParams( JEV_COM_COMPONENT );
+		$params = JComponentHelper::getParams( JEV_COM_COMPONENT );
 		if ($params->get("dayselect",0)){
 		?>
             <td class="r2"><input type="radio" name="freq" id="IRREGULAR" value="IRREGULAR" onclick="toggleFreq('IRREGULAR');" /><label for='IRREGULAR'><?php echo JText::_( 'IRREGULAR' );?></label></td>
@@ -145,15 +145,15 @@ if ($params->get("disablerepeats",0) && !JEVHelper::isEventEditor() ){
             <input class="inputbox" type="text" name="count" id="count" size="3" maxlength="3" value="<?php echo $this->row->count();?>" onchange="checkInterval();" /><span id='count_label' style="margin-left:1em"><?php echo JText::_( 'REPEATS' );?></span>
    		</fieldset>
    		</div>
-   		<div style="float:left;margin-left:20px!important;" id="cu_until">
+   		<div style="float:left;margin-left:20px!important;background-color:#dddddd;" id="cu_until">
    		<fieldset style="background-color:#dddddd"><legend><input type="radio" name="countuntil" value="until" id="cuu" onclick="toggleCountUntil('cu_until');" /><?php echo JText::_( 'REPEAT_UNTIL' ); ?></legend>
 			<?php
 			/*
 			 echo JHTML::calendar(JevDate::strftime("%Y-%m-%d",$this->row->until()), 'until', 'until', '%Y-%m-%d',	array('size'=>'12','maxlength'=>'10'));
 			 */
-			$params =& JComponentHelper::getParams( JEV_COM_COMPONENT );
-			$minyear = $params->get("com_earliestyear",1970);
-			$maxyear = $params->get("com_latestyear",2150);
+			$params = JComponentHelper::getParams( JEV_COM_COMPONENT );
+			$minyear = JEVHelper::getMinYear();
+			$maxyear = JEVHelper::getMaxYear();
 			JEVHelper::loadCalendar("until", "until", JevDate::strftime("%Y-%m-%d",$this->row->until()),$minyear, $maxyear, 'updateRepeatWarning();',"checkUntil();updateRepeatWarning();", $inputdateformat);
 			?>
 			<input type="hidden"  name="until2" id="until2" value="" />
@@ -209,7 +209,7 @@ if ($params->get("disablerepeats",0) && !JEVHelper::isEventEditor() ){
    </div>
    <div style="clear:both;"></div>
 </div>
-<script type="text/javascript" language="Javascript">
+<script type="text/javascript" >
 // make the correct frequency visible
 function setupRepeats(){
 	<?php

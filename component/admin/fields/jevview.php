@@ -23,10 +23,18 @@ class JFormFieldJevview extends JFormFieldList
 
 	protected $type = 'jevview';
 
+	protected
+			function getInput()
+	{
+		JLoader::register('JEVHelper', JPATH_SITE . "/components/com_jevents/libraries/helper.php");
+		JEVHelper::ConditionalFields($this->element, $this->form->getName());
+		return parent::getInput();
+	}
+
 	public function getOptions()
 	{
 		// Must load admin language files
-		$lang =& JFactory::getLanguage();
+		$lang = JFactory::getLanguage();
 		$lang->load("com_jevents", JPATH_ADMINISTRATOR);
 
 		$views = array();

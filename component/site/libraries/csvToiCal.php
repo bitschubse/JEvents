@@ -170,6 +170,9 @@ class CsvToiCal
 				case "RRULE":
 					$dataLine->setRrule($data[$order]);					
 					break;
+				case "UID":
+					$dataLine->setUid($data[$order]);
+					break;
 				case "CATEGORIES":
 				case "SUMMARY":
 				case "DTSTART":
@@ -212,7 +215,7 @@ class CsvToiCal
 	 */
 	private function createNewTmpICal()
 	{
-		$config = & JFactory::getConfig();
+		$config =  JFactory::getConfig();
 		$path = $config->get('config.tmp_path') ? $config->get('config.tmp_path') : $config->get('tmp_path');
 		echo "create temp CSV conversion file in ".$path."<br/>";
 		$this->tmpFileName = tempnam($path, "phpJE");

@@ -23,19 +23,37 @@ class JFormFieldJEVmenu extends JFormFieldList
 
 	protected $type = 'JEVmenu';
 
+	protected
+			function getInput()
+	{
+		JLoader::register('JEVHelper', JPATH_SITE . "/components/com_jevents/libraries/helper.php");
+		JEVHelper::ConditionalFields($this->element, $this->form->getName());
+
+		if (JevJoomlaVersion::isCompatible("3.0"))
+		{
+			JEVHelper::stylesheet('eventsadmin.css', 'components/' . JEV_COM_COMPONENT . '/assets/css/');
+		}
+		else
+		{
+			JEVHelper::stylesheet('eventsadmin16.css', 'components/' . JEV_COM_COMPONENT . '/assets/css/');
+		}
+
+		return parent::getInput();
+	}
+
 	public function getOptions()
 	{
 		// Trap to stop the config from being editing from the categories page
 		// Updated to redirect to the correct edit page, Joomla 3.x Config actually loads this page when configuration components. 
 		if (JRequest::getString("option") =="com_config"){
 			$redirect_url  =  "index.php?option=com_jevents&task=params.edit"; // get rid of any ampersands
-			$app  = & JFactory::getApplication();
+			$app  =  JFactory::getApplication();
 			$app->redirect($redirect_url); //redirect 
 			exit();
 		}
 
 		// Must load admin language files
-		$lang =& JFactory::getLanguage();
+		$lang = JFactory::getLanguage();
 		$lang->load("com_jevents", JPATH_ADMINISTRATOR);
 
 		$node = $this->element;
@@ -43,7 +61,7 @@ class JFormFieldJEVmenu extends JFormFieldList
 		$name = $this->name;
 		$control_name = $this->type;
 		
-		$db =& JFactory::getDBO();
+		$db = JFactory::getDBO();
 
 		// assemble menu items to the array
 		$options 	= array();
@@ -57,11 +75,18 @@ class JFormFieldJEVmenu extends JFormFieldList
 		$db->setQuery( $query );
 		$menuTypes = $db->loadObjectList();
 
-		$menu =& JApplication::getMenu('site');
-		$menuItems = $menu->getMenu();		
+		$menu = JFactory::getApplication()->getMenu('site');
+		$menuItems = $menu->getMenu();
+		$extension = "com_jevents";
+		if ($node){
+			$extension = (string) $node->attributes()->extension;
+		}
+		if (!$extension) {
+			$extension = "com_jevents";
+		}
 		foreach ($menuItems as &$item) {
 		 	
-			if ($item->component =="com_jevents"){
+			if ($item->component ==$extension){
 				if (version_compare(JVERSION, '1.6.0', ">=")){
 					$item->title  = "*** ".$item->title." ***";
 				}

@@ -27,10 +27,10 @@ class JElementJevcategory extends JElement
 	{
 
 		// Must load admin language files
-		$lang =& JFactory::getLanguage();
+		$lang = JFactory::getLanguage();
 		$lang->load("com_jevents", JPATH_ADMINISTRATOR);
 
-		$db = &JFactory::getDBO();
+		$db = JFactory::getDBO();
 
 		$extension	= $node->getAttribute('extension');
 		

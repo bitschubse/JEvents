@@ -21,8 +21,17 @@ $version = JEventsVersion::getInstance();
 			[<?php echo $version->getShortVersion(); ?>&nbsp;<a href='<?php echo $version->getURL(); ?>'><?php echo JText::_('JEV_CHECK_VERSION'); ?> </a>]
 		</div>
 
-
 		<?php
+		$haslayouts = false;
+		foreach (JEV_CommonFunctions::getJEventsViewList() as $viewfile)
+		{
+			$config = JPATH_SITE . "/components/" . JEV_COM_COMPONENT . "/views/" . $viewfile . "/config.xml";
+			if (file_exists($config))
+			{
+				$haslayouts = true;
+			}
+		}
+
 		echo JHtml::_('tabs.start', 'config-tabs-' . $this->component->option . '_configuration', array('useCookie' => 1));
 		$fieldSets = $this->form->getFieldsets();
 		foreach ($fieldSets as $name => $fieldSet)
@@ -45,10 +54,30 @@ $version = JEventsVersion::getInstance();
 
 			foreach ($this->form->getFieldset($name) as $field)
 			{
-				if ($field->hidden)
+				// do not show difficulty option in Joomla 2.5
+				if ($field->hidden || $field->fieldname=="com_difficulty")
 				{
 					continue;
 				}
+
+				// Hide club update field if no club addons are installed
+				//if ($field->fieldname=="clubcode_spacer" || $field->fieldname=="clubcode"){
+				//	// disable if no club addons are installed
+				//	$plugins = JPluginHelper::getPlugin("jevents");
+				//	if (count($plugins)==0 && !$haslayouts){
+				//		continue;
+				//	}
+				//}
+
+				$maxjoomlaversion = $this->form->getFieldAttribute($field->fieldname, "maxjoomlaversion", false);
+				if ( $maxjoomlaversion && version_compare(JVERSION,$maxjoomlaversion , ">")) {
+					continue;
+				}
+				$minjoomlaversion = $this->form->getFieldAttribute($field->fieldname, "minjoomlaversion", false);
+				if ( $minjoomlaversion && version_compare(JVERSION,$minjoomlaversion , "<")) {
+					continue;
+				}
+
 				$class = isset($field->class) ? $field->class : "";
 
 				if (strlen($class) > 0)
@@ -96,16 +125,6 @@ $version = JEventsVersion::getInstance();
 			<?php
 		}
 
-		$haslayouts = false;
-		foreach (JEV_CommonFunctions::getJEventsViewList() as $viewfile)
-		{
-			$config = JPATH_SITE . "/components/" . JEV_COM_COMPONENT . "/views/" . $viewfile . "/config.xml";
-			if (file_exists($config))
-			{
-				$haslayouts = true;
-			}
-		}
-
 		if ($haslayouts)
 		{
 			echo JHtml::_('tabs.panel', JText::_("CLUB_LAYOUTS"), "CLUB_LAYOUTS");
@@ -120,6 +139,16 @@ $version = JEventsVersion::getInstance();
 			{
 				$layoutform = JForm::getInstance("com_jevent.config.layouts.".$viewfile, $config, array('control'=>'jform', 'load_data'=>true), true,"/config");
 				$layoutform->bind($this->component->params);
+
+				if (JFile::exists(JPATH_ADMINISTRATOR."/manifests/files/$viewfile.xml")){
+					$xml = simplexml_load_file(JPATH_ADMINISTRATOR."/manifests/files/$viewfile.xml");
+					$layoutname = (string) $xml->name;
+					$langfile = 'files_' . str_replace('files_', '', strtolower(JFilterInput::getInstance()->clean((string) $layoutname, 'cmd')));
+					$lang = JFactory::getLanguage();
+					$source = $path;
+					 $lang->load($langfile , JPATH_SITE, null, false, true);
+				}
+
 				echo JHtml::_('tabs.panel', JText::_(ucfirst($viewfile)), 'config_' . str_replace(" ", "_", $viewfile));
 				
 				$fieldSets = $layoutform->getFieldsets();
@@ -141,6 +170,15 @@ $version = JEventsVersion::getInstance();
 						{
 							continue;
 						}
+						$maxjoomlaversion = $this->form->getFieldAttribute($field->fieldname, "maxjoomlaversion", false);
+						if ( $maxjoomlaversion && version_compare(JVERSION,$maxjoomlaversion , ">")) {
+							continue;
+						}
+						$minjoomlaversion = $this->form->getFieldAttribute($field->fieldname, "minjoomlaversion", false);
+						if ( $minjoomlaversion && version_compare(JVERSION,$minjoomlaversion , "<")) {
+							continue;
+						}
+
 						$class = isset($field->class) ? $field->class : "";
 
 						if (strlen($class) > 0)

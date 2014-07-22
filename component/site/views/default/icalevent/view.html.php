@@ -17,14 +17,14 @@ defined('_JEXEC') or die();
  *
  * @static
  */
-class DefaultViewICalEvent extends JEventsDefaultView 
+class DefaultViewICalevent extends JEventsDefaultView 
 {
 	
 	function detail($tpl = null)
 	{
 		JEVHelper::componentStylesheet($this);
 
-		$document =& JFactory::getDocument();
+		$document = JFactory::getDocument();
 		// TODO do this properly
 		//$document->setTitle(JText::_( 'BROWSER_TITLE' ));
 						
@@ -33,5 +33,17 @@ class DefaultViewICalEvent extends JEventsDefaultView
 		
 		$this->data = $this->datamodel->getEventData( $this->evid, $this->jevtype, $this->year, $this->month, $this->day, $this->uid );
 
+		// Dynamic pathway
+		if (isset($this->data['row'])){
+			$pathway = JFactory::getApplication()->getPathway();
+
+			$pathway->addItem($this->data['row']->title() ,"");
+
+			// Set date in view for use in navigation icons
+			$this->year = $this->data['row']->yup();
+			$this->month = $this->data['row']->mup();
+			$this->day = $this->data['row']->dup();
+
+		}
 	}	
 }

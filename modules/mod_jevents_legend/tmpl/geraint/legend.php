@@ -26,19 +26,19 @@ class GeraintModLegendView extends DefaultModLegendView{
 	function displayCalendarLegend($style="list"){
 
 		// do not display normal legend if dynamic legend is visible on this page
-		$registry	=& JRegistry::getInstance("jevents");
+		$registry	= JRegistry::getInstance("jevents");
 		if ($registry->get("jevents.dynamiclegend",0)) {
 			return;
 		}
 
 		// since this is meant to be a comprehensive legend look for catids from menu first:
-		$cfg = & JEVConfig::getInstance();
+		$cfg = JEVConfig::getInstance();
 		$Itemid = $this->myItemid;
-		$user =& JFactory::getUser();
+		$user = JFactory::getUser();
 
-		$db	=& JFactory::getDBO();
+		$db	= JFactory::getDBO();
 		// Parameters - This module should only be displayed alongside a com_jevents calendar component!!!
-		$cfg = & JEVConfig::getInstance();
+		$cfg = JEVConfig::getInstance();
 
 		$option = JRequest::getCmd('option');
 		if ($this->disable && $option!=JEV_COM_COMPONENT) return;
@@ -47,16 +47,16 @@ class GeraintModLegendView extends DefaultModLegendView{
 
 		include_once(JPATH_ADMINISTRATOR."/components/".JEV_COM_COMPONENT."/libraries/colorMap.php");
 
-		$menu	=& JSite::getMenu();
+		$menu	= JFactory::getApplication()->getMenu();
 		$active = $menu->getActive();
 		if ((!is_null($active) && $active->component==JEV_COM_COMPONENT) || !isset($Itemid)){
-			$params	=&  JComponentHelper::getParams(JEV_COM_COMPONENT);
+			$params	=  JComponentHelper::getParams(JEV_COM_COMPONENT);
 		}
 		else {
 			// If accessing this function from outside the component then I must load suitable parameters
 			$params = $menu->getParams($Itemid);
 		}
-		$params	=&  JComponentHelper::getParams(JEV_COM_COMPONENT);
+		$params	=  JComponentHelper::getParams(JEV_COM_COMPONENT);
 
 		$c=0;
 		$catids = array();
@@ -85,7 +85,7 @@ class GeraintModLegendView extends DefaultModLegendView{
 				$c++;
 			}
 		}
-
+		$jevleghelper = new modJeventsLegendHelper();
 		if ($catidList == "" && $params->get("catid0", "xxx") == "xxx") {
 			modJeventsLegendHelper::getAllCats($this->_params,$catids,$catidList);
 		}
@@ -158,9 +158,9 @@ class GeraintModLegendView extends DefaultModLegendView{
 				if ($this->_params->get('show_admin', 0) && isset($year) && isset($month) && isset($day) && isset($Itemid)) {
 
 					// This is only displayed when JEvents is the component so I can get the component view
-					$component =& JComponentHelper::getComponent(JEV_COM_COMPONENT);
+					$component = JComponentHelper::getComponent(JEV_COM_COMPONENT);
 
-					$registry	=& JRegistry::getInstance("jevents");
+					$registry	= JRegistry::getInstance("jevents");
 					$controller =& $registry->get("jevents.controller",null);
 					if (!$controller) return $content;
 					$view = $controller->view;
@@ -218,6 +218,9 @@ class GeraintModLegendView extends DefaultModLegendView{
 		if ($row->parent_id>0 && $activeSubCat>0 && $row->id!=$activeSubCat  && !isset($row->activeNode))  $catclass = "childcat";
 
 		$cat = $row->id>0 ? "&catids=$row->id" : "";
+		//$rowparams = new JRegistry(isset($row->params)?$row->params:null);
+		//$image = $rowparams->get("image",false);
+		//$image = $image? "<img src = '".JURI::root().$image."' class='catimage'  alt='categoryimage' />" : "";
 		$content = '<div class="event_legend_item '.$catclass.'" style="border-color:'.$row->color.'">';
 		$content .= '<div class="event_legend_name" style="border-color:'.$row->color.'">'
 		. '<a href="'.JRoute::_("index.php?option=".JEV_COM_COMPONENT."$cat$itm$tsk").'" title="'.JEventsHTML::special($row->name).'">'

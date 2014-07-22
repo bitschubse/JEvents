@@ -27,10 +27,10 @@ class JElementJevuser extends JElement
 	{
 
 		// Must load admin language files
-		$lang =& JFactory::getLanguage();
+		$lang = JFactory::getLanguage();
 		$lang->load("com_jevents", JPATH_ADMINISTRATOR);
 
-		$db = &JFactory::getDBO();
+		$db = JFactory::getDBO();
 		$class		= $node->attributes('class');
 		if (!$class) {
 			$class = "inputbox";
@@ -39,7 +39,7 @@ class JElementJevuser extends JElement
 		//jimport("joomla.html.html.list");
 		$params = JComponentHelper::getParams("com_jevents");
 
-		$db =& JFactory::getDBO();
+		$db = JFactory::getDBO();
 
 		$rules = JAccess::getAssetRules("com_jevents", true);
 		$creatorgroups = $rules->getData();

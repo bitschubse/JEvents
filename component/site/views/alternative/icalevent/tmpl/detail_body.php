@@ -1,7 +1,7 @@
 <?php 
 defined('_JEXEC') or die('Restricted access');
 
-$cfg	= & JEVConfig::getInstance();
+$cfg	= JEVConfig::getInstance();
 
 if( 0 == $this->evid) {
 	$Itemid = JRequest::getInt("Itemid");
@@ -18,15 +18,15 @@ if( array_key_exists('row',$this->data) ){
 	$row=$this->data['row'];
 
 	// Dynamic Page Title
-	JFactory::getDocument()->SetTitle( $row->title() );
+	$this->setPageTitle($row->title());
 
 	$mask = $this->data['mask'];
 	$page = 0;
 
 	
-	$cfg	 = & JEVConfig::getInstance();
+	$cfg	 = JEVConfig::getInstance();
 
-	$dispatcher	=& JDispatcher::getInstance();
+	$dispatcher	= JDispatcher::getInstance();
 	$params =new JRegistry(null);
 
 	if (isset($row)) {
@@ -36,7 +36,7 @@ if( array_key_exists('row',$this->data) ){
             <!-- <div name="events">  -->
             <table class="contentpaneopen" border="0">
                 <tr class="headingrow">
-                    <td  width="100%" class="contentheading"><?php echo $row->title(); ?></td>
+                    <td  width="100%" class="contentheading"><h2 class="contentheading"><?php echo $row->title(); ?></h2></td>
 	                <?php
 	                $jevparams = JComponentHelper::getParams(JEV_COM_COMPONENT);
 	                if ($jevparams->get("showicalicon",0) &&  !$jevparams->get("disableicalexport",0) ){
@@ -168,7 +168,7 @@ if( array_key_exists('row',$this->data) ){
 
 		if(!($mask & MASK_BACKTOLIST)) { ?>
     		<p align="center">
-    			<a href="javascript:window.history.go(-1);" title="<?php echo JText::_('JEV_BACK'); ?>"><?php echo JText::_('JEV_BACK'); ?></a>
+    			<a href="javascript:window.history.go(-1);" class="jev_back btn" title="<?php echo JText::_('JEV_BACK'); ?>"><?php echo JText::_('JEV_BACK'); ?></a>
     		</p>
     		<?php
 		}

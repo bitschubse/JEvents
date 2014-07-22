@@ -2,6 +2,7 @@
 
 // No direct access
 defined('JPATH_BASE') or die;
+JLoader::register('JevJoomlaVersion',JPATH_ADMINISTRATOR."/components/com_jevents/libraries/version.php");
 
 // Class to fix Joomla 1.6 date class bugs
 jimport("joomla.utilities.date");
@@ -54,7 +55,7 @@ jimport("joomla.utilities.date");
 					{
 						$tz = self::$gmt;
 					}
-					elseif (is_numeric($tz) && !JVersion::isCompatible("3.0"))
+					elseif (is_numeric($tz) && !JevJoomlaVersion::isCompatible("3.0"))
 					{
 						// Translate from offset.
 						$tz = new DateTimeZone(self::$offsets[(string) $tz]);
@@ -225,9 +226,12 @@ jimport("joomla.utilities.date");
 				$arg = func_get_args();
 
 				$name = "mktime";
-				if (is_callable($name))
+				if (is_callable($name) && count($arg)>0)
 				{
 					return call_user_func_array($name, $arg);
+				}
+				else {
+					return call_user_func_array("time", $arg);
 				}
 
 			}

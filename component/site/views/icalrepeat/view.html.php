@@ -19,7 +19,7 @@ defined('_JEXEC') or die();
  */
 include_once(JEV_ADMINPATH."/views/icalrepeat/view.html.php");
 
-class ICalRepeatViewICalRepeat extends AdminICalRepeatViewICalRepeat 
+class IcalrepeatViewIcalrepeat extends AdminIcalrepeatViewIcalrepeat
 {
 	var $jevlayout = null;
 	
@@ -35,19 +35,20 @@ class ICalRepeatViewICalRepeat extends AdminICalRepeatViewICalRepeat
 	
 	function edit($tpl = null)
 	{
-		$document =& JFactory::getDocument();		
+		$document = JFactory::getDocument();		
 		include(JEV_ADMINLIBS."/editStrings.php");		
 		$document->addScriptDeclaration($editStrings);
 
 		JEVHelper::script('editical.js',  'components/'.JEV_COM_COMPONENT.'/assets/js/');  
 		JEVHelper::script('view_detail.js', 'components/'.JEV_COM_COMPONENT.'/assets/js/');
+                  JEVHelper::script('JevStdRequiredFields.js', 'components/' . JEV_COM_COMPONENT . '/assets/js/');
 		
 		$document->setTitle(JText::_( 'EDIT_ICAL_REPEAT' ));
 		
 		// Set toolbar items for the page
 		JToolBarHelper::title( JText::_( 'EDIT_ICAL_REPEAT' ), 'jevents' );
 	
-		$bar = & JToolBar::getInstance('toolbar');
+		$bar =  JToolBar::getInstance('toolbar');
 		$this->toolbarConfirmButton("icalrepeat.save", JText::_("save_icalevent_warning"), 'save', 'save', 'Save', false);
 		if (JEVHelper::isEventEditor())
 			$this->toolbarConfirmButton("icalrepeat.apply", JText::_("save_icalevent_warning"), 'apply', 'apply', 'jev_Apply', false);
@@ -73,7 +74,7 @@ class ICalRepeatViewICalRepeat extends AdminICalRepeatViewICalRepeat
 		
 		$this->_adminStart();		
 
-		if (JVersion::isCompatible("3.0"))
+		if (JevJoomlaVersion::isCompatible("3.0"))
 		{
 			$this->setLayout("edit");
 		}
@@ -81,8 +82,18 @@ class ICalRepeatViewICalRepeat extends AdminICalRepeatViewICalRepeat
 		{
 			$this->setLayout("edit16");
 		}
-	
+
+		$this->setupEditForm();
+
 		JEVHelper::componentStylesheet($this, "editextra.css");
+		jimport('joomla.filesystem.file');
+
+		// Lets check if we have editted before! if not... rename the custom file.
+		if (JFile::exists(JPATH_SITE . "/components/com_jevents/assets/css/jevcustom.css"))
+		{
+			// It is definitely now created, lets load it!
+			JEVHelper::stylesheet('jevcustom.css', 'components/' . JEV_COM_COMPONENT . '/assets/css/');
+		}
 
 		parent::displaytemplate($tpl);
 		$this->_adminEnd();
@@ -90,23 +101,28 @@ class ICalRepeatViewICalRepeat extends AdminICalRepeatViewICalRepeat
 	
 	function _adminStart(){
 		
-		$dispatcher	=& JDispatcher::getInstance();
+		$dispatcher	= JDispatcher::getInstance();
 		list($this->year,$this->month,$this->day) = JEVHelper::getYMD();
 		$this->Itemid	= JEVHelper::getItemid();
 		$this->datamodel =new JEventsDataModel();
 		$dispatcher->trigger( 'onJEventsHeader', array($this));
 
 ?>
-	<div style="clear:both">
+	<div style="clear:both"
+				<?php
+				$mainframe = JFactory::getApplication();
+				$params = JComponentHelper::getParams(JEV_COM_COMPONENT);
+				echo (!JFactory::getApplication()->isAdmin() && $params->get("darktemplate", 0)) ? "class='jeventsdark'" : "class='jeventslight'";
+				?>>
 		<div id="toolbar-box" >
 <?php
-		$bar = & JToolBar::getInstance('toolbar');
+		$bar =  JToolBar::getInstance('toolbar');
 		$barhtml = $bar->render();
 		//$barhtml = str_replace('href="#"','href="javascript void();"',$barhtml);
 		//$barhtml = str_replace('submitbutton','return submitbutton',$barhtml);
 		echo $barhtml;
 		
-		if (JVersion::isCompatible("3.0"))
+		if (JevJoomlaVersion::isCompatible("3.0"))
 		{
 			// JFactory::getApplication()->JComponentTitle;
 			$title ="";
@@ -119,7 +135,7 @@ class ICalRepeatViewICalRepeat extends AdminICalRepeatViewICalRepeat
 ?>
 		</div>
 <?php		
-		$dispatcher	=& JDispatcher::getInstance();
+		$dispatcher	= JDispatcher::getInstance();
 		$dispatcher->trigger( 'onJEventsFooter', array($this));
 
 
@@ -145,7 +161,7 @@ class ICalRepeatViewICalRepeat extends AdminICalRepeatViewICalRepeat
 					</div>
 					<div class="m">
 <?php
-		$bar = & JToolBar::getInstance('toolbar');
+		$bar =  JToolBar::getInstance('toolbar');
 		$barhtml = $bar->render();
 		//$barhtml = str_replace('href="#"','href="javascript void();"',$barhtml);
 		//$barhtml = str_replace('submitbutton','return submitbutton',$barhtml);
@@ -224,7 +240,7 @@ class ICalRepeatViewICalRepeat extends AdminICalRepeatViewICalRepeat
 	
 	function toolbarButton($task = '', $icon = '', $iconOver = '', $alt = '', $listSelect = true)
 	{
-		$bar = & JToolBar::getInstance('toolbar');
+		$bar =  JToolBar::getInstance('toolbar');
 
 		// Add a standard button
 		$bar->appendButton('Jev', $icon, $alt, $task, $listSelect);
@@ -233,7 +249,7 @@ class ICalRepeatViewICalRepeat extends AdminICalRepeatViewICalRepeat
 
 	function toolbarLinkButton($task = '', $icon = '', $iconOver = '', $alt = '')
 	{
-		$bar = & JToolBar::getInstance('toolbar');
+		$bar =  JToolBar::getInstance('toolbar');
 
 		// Add a standard button
 		$bar->appendButton('Jevlink', $icon, $alt, $task, false);
@@ -242,10 +258,10 @@ class ICalRepeatViewICalRepeat extends AdminICalRepeatViewICalRepeat
 
 	function toolbarConfirmButton($task = '', $msg = '', $icon = '', $iconOver = '', $alt = '', $listSelect = true)
 	{
-		$bar = & JToolBar::getInstance('toolbar');
+		$bar =  JToolBar::getInstance('toolbar');
 
-		// Add a standard button
-		$bar->appendButton('Jevconfirm', $msg, $icon, $alt, $task, $listSelect, false, "document.adminForm.updaterepeats.value");
+		// Add a standard button - never need to check for cancelled exceptions when editing a repeat!
+		$bar->appendButton('Jevconfirm', $msg, $icon, $alt, $task, $listSelect, false, 0);
 
 	}
 

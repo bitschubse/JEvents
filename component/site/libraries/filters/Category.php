@@ -23,7 +23,7 @@ class jevCategoryFilter extends jevFilter
 		if (file_exists($file) ) {
 			include_once($file);
 		}
-		$reg = & JevRegistry::getInstance("jevents");
+		$reg = JevRegistry::getInstance("jevents");
 		$this->datamodel = $reg->getReference("jevents.datamodel",false);		
 		if (!$this->datamodel){
 			$this->datamodel = new JEventsDataModel();
@@ -45,13 +45,13 @@ class jevCategoryFilter extends jevFilter
 		}
 	}
 
-	function _createFilter(){
+	function _createFilter($prefix=""){
 		if (!$this->filterField ) return "";
 		if ($this->filter_value==$this->filterNullValue  || $this->filter_value=="") return "";
 		/*
 		$sectionname = JEV_COM_COMPONENT;
 		
-		$db =& JFactory::getDBO();
+		$db = JFactory::getDBO();
 		$q_published = JFactory::getApplication()->isAdmin() ? "\n WHERE c.published >= 0" : "\n WHERE c.published = 1";
 		$where = ' AND (c.id =' . $this->filter_value .' OR p.id =' . $this->filter_value .' OR gp.id =' . $this->filter_value .' OR ggp.id =' . $this->filter_value .')';		
 		$query = "SELECT c.id"
@@ -98,11 +98,11 @@ class jevCategoryFilter extends jevFilter
 	}
 	*/
 
-	/**
- * Creates javascript session memory reset action
- *
- */
-	function _createfilterHTML(){
+ 	function _createfilterHTML(){
+		return $this->createfilterHTML(true);
+	}
+
+	function createfilterHTML($allowAutoSubmit = true){
 
 		if (!$this->filterField) return "";
 
@@ -117,11 +117,18 @@ class jevCategoryFilter extends jevFilter
 		$filterList=array();
 		$filterList["title"]=JText::_("Select_Category");
 
-		$filterList["html"] = JEventsHTML::buildCategorySelect( $filter_value, 'onchange="if ($(\'catidsfv\')) $(\'catidsfv\').value=this.value;submit(this.form)" ',$this->allAccessibleCategories,false,false,0,$this->filterType.'_fv' );		
+		if ($allowAutoSubmit){
+			$filterList["html"] = JEventsHTML::buildCategorySelect( $filter_value, 'onchange="if ($(\'catidsfv\')) $(\'catidsfv\').value=this.value;submit(this.form)" ',$this->allAccessibleCategories,false,false,0,$this->filterType.'_fv' );
+		}
+		else {
+			$filterList["html"] = JEventsHTML::buildCategorySelect( $filter_value, 'onchange="if ($(\'catidsfv\')) $(\'catidsfv\').value=this.value;" ',$this->allAccessibleCategories,false,false,0,$this->filterType.'_fv' );
+		}
 		//$script = "function reset".$this->filterType."_fvs(){document.getElements('option',\$('".$this->filterType."_fv')).each(function(item){item.selected=(item.value==0)?true:false;})};\n";
 		//$script .= "try {JeventsFilters.filters.push({action:'reset".$this->filterType."_fvs()',id:'".$this->filterType."_fv',value:".$this->filterNullValue."});} catch (e) {}\n";
 		// try/catch  incase this is called without a filter module!
 		$script = "try {JeventsFilters.filters.push({id:'".$this->filterType."_fv',value:0});} catch (e) {}\n";
+		$script .= "function reset".$this->filterType."_fvs(){document.getElements('option',\$('".$this->filterType."_fv')).each(function(item){item.selected=(item.value==0)?true:false;})};\n";
+		$script .= "try {JeventsFilters.filters.push({action:'reset".$this->filterType."_fvs()',id:'".$this->filterType."_fv',value:".$this->filterNullValue."});} catch (e) {}\n";
 		
 		$document = JFactory::getDocument();
 		$document->addScriptDeclaration($script);

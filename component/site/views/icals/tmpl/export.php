@@ -75,7 +75,7 @@ if (!empty($this->icalEvents))
 	$this->icalEvents = array_values($this->icalEvents);
 			
 	// Call plugin on each event
-	$dispatcher =& JDispatcher::getInstance();
+	$dispatcher = JDispatcher::getInstance();
 	ob_start();
 	JEVHelper::onDisplayCustomFieldsMultiRow($this->icalEvents);
 	ob_end_clean();
@@ -185,6 +185,8 @@ if (!empty($this->icalEvents))
 			$end = JevDate::strftime($endformat, $end);
 			
 			if ( is_callable("date_default_timezone_set")) {
+				// Change timezone to UTC
+				$current_timezone = date_default_timezone_get();
 				date_default_timezone_set("UTC");			
 				$stamptime = JevDate::strftime("%Y%m%dT%H%M%SZ", time());
 				// Change back

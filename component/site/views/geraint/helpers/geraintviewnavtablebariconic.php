@@ -15,7 +15,10 @@ class GeraintViewNavTableBarIconic extends DefaultViewNavTableBarIconic {
 		$this->cat = $this->view->datamodel->getCatidsOutLink();
 		$this->task = $task;
 		
-		$cfg = & JEVConfig::getInstance();
+		$cfg = JEVConfig::getInstance();
+                //Lets check if we should show the nav on event details 
+                if ($task == "icalrepeat.detail" && $cfg->get('shownavbar_detail', 1) == 0) { return;}
+		
 		$this->iconstoshow = $cfg->get('iconstoshow', array('byyear', 'bymonth', 'byweek', 'byday', 'search'));
 		
 		if (JRequest::getInt( 'pop', 0 )) return;		
