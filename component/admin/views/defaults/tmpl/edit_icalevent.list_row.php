@@ -4,7 +4,7 @@
  *
  * @version     $Id: edit_icalevent.list_row.php 3333 2012-03-12 09:36:35Z geraintedwards $
  * @package     JEvents
- * @copyright   Copyright (C)  2008-2009 GWE Systems Ltd
+ * @copyright   Copyright (C)  2008-2015 GWE Systems Ltd
  * @license     GNU/GPLv2, see http://www.gnu.org/licenses/gpl-2.0.html
  * @link        http://www.jevents.net
  */
@@ -19,9 +19,9 @@ defined('_JEXEC') or die('Restricted access');
 </table>
 
 <script type="text/javascript">
-defaultsEditorPlugin.node($('jevdefaults'),"<?php echo JText::_("JEV_PLUGIN_SELECT",true);?>","");
-// built in group
-var optgroup = defaultsEditorPlugin.optgroup($('jevdefaults') , "<?php echo JText::_("JEV_CORE_DATA",true);?>");
+defaultsEditorPlugin.node('#jevdefaults',"<?php echo JText::_("JEV_PLUGIN_SELECT",true);?>","");
+// built in group fields
+var optgroup = defaultsEditorPlugin.optgroup('#jevdefaults' , "<?php echo JText::_("JEV_CORE_DATA",true);?>");
 defaultsEditorPlugin.node(optgroup , "<?php echo JText::_("JEV_FIELD_TITLE",true);?>", "TITLE");
 defaultsEditorPlugin.node(optgroup , "<?php echo JText::_("JEV_FIELD_TITLE_LINK",true);?>", "TITLE_LINK");
 defaultsEditorPlugin.node(optgroup , "<?php echo JText::_("JEV_FIELD_REPEATSUMMARY",true);?>", "REPEATSUMMARY");
@@ -54,6 +54,7 @@ defaultsEditorPlugin.node(optgroup , "<?php echo JText::_("JEV_FIELD_CATEGORY_LI
 defaultsEditorPlugin.node(optgroup , "<?php echo JText::_("JEV_FIELD_CATEGORY_IMAGE",true);?>", "CATEGORYIMG");
 defaultsEditorPlugin.node(optgroup , "<?php echo JText::_("JEV_FIELD_CATEGORY_IMAGES",true);?>", "CATEGORYIMGS");
 defaultsEditorPlugin.node(optgroup , "<?php echo JText::_("JEV_FIELD_CATEGORY_DESCRIPTION",true);?>", "CATDESC");
+defaultsEditorPlugin.node(optgroup , "<?php echo JText::_("JEV_FIELD_FGCOLOUR",true);?>", "FGCOLOUR");
 defaultsEditorPlugin.node(optgroup , "<?php echo JText::_("JEV_FIELD_COLOUR",true);?>", "COLOUR");
 defaultsEditorPlugin.node(optgroup , "<?php echo JText::_("JEV_FIELD_CALENDAR",true);?>", "CALENDAR");
 defaultsEditorPlugin.node(optgroup , "<?php echo JText::_("JEV_FIELD_CREATIONDATE",true);?>", "CREATED");
@@ -62,6 +63,14 @@ defaultsEditorPlugin.node(optgroup , "<?php echo JText::_("JEV_FIELD_LINKEND",tr
 defaultsEditorPlugin.node(optgroup , "<?php echo JText::_("JEV_FIELD_URL",true);?>", "URL");
 defaultsEditorPlugin.node(optgroup , "<?php echo JText::_("JEV_ACCESS_LEVEL",true);?>", "ACCESS");
 defaultsEditorPlugin.node(optgroup , "<?php echo JText::_("JEV_EVENT_PRIORITY",true);?>", "PRIORITY");
+defaultsEditorPlugin.node(optgroup , "<?php echo JText::_("JEV_FIELD_ICALBUTTON",true);?>", "ICALBUTTON");
+defaultsEditorPlugin.node(optgroup , "<?php echo JText::_("JEV_FIELD_ICALDIALOG",true);?>", "ICALDIALOG");
+defaultsEditorPlugin.node(optgroup , "<?php echo JText::_("JEV_FIELD_EDITBUTTON",true);?>", "EDITBUTTON");
+defaultsEditorPlugin.node(optgroup , "<?php echo JText::_("JEV_FIELD_EDITDIALOG",true);?>", "EDITDIALOG");
+defaultsEditorPlugin.node(optgroup , "<?php echo JText::_("JEV_EVENT_STARTED",true);?>", "JEVSTARTED");
+defaultsEditorPlugin.node(optgroup , "<?php echo JText::_("JEV_EVENT_ENDED",true);?>", "JEVENDED");
+defaultsEditorPlugin.node(optgroup , "<?php echo JText::_("JEV_AGE",true);?>", "JEVAGE");
+
 <?php
 // get list of enabled plugins
 $jevplugins = JPluginHelper::getPlugin("jevents");
@@ -74,7 +83,7 @@ foreach ($jevplugins as $jevplugin){
 			$fieldNameArray = call_user_func(array($classname,"fieldNameArray"),'list');
 			if (!isset($fieldNameArray['labels'])) continue;
 			?>
-			optgroup = defaultsEditorPlugin.optgroup($('jevdefaults') , '<?php echo $fieldNameArray["group"];?>');
+			optgroup = defaultsEditorPlugin.optgroup('#jevdefaults' , '<?php echo $fieldNameArray["group"];?>');
 			<?php
 			for ($i=0;$i<count($fieldNameArray['labels']);$i++) {
 				if ($fieldNameArray['labels'][$i]=="" || $fieldNameArray['labels'][$i]==" Label")  continue;

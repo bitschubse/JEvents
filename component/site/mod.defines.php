@@ -4,7 +4,7 @@
  *
  * @version     $Id: mod.defines.php 3059 2011-12-01 12:25:04Z geraintedwards $
  * @package     JEvents
- * @copyright   Copyright (C) 2008-2009 GWE Systems Ltd
+ * @copyright   Copyright (C) 2008-2015 GWE Systems Ltd
  * @license     GNU/GPLv2, see http://www.gnu.org/licenses/gpl-2.0.html
  * @link        http://www.jevents.net
  */
@@ -57,5 +57,3 @@ if (!defined("JEV_LIBS")){
 	
 	// TODO retire this sometime?
 	JLoader::register('JEV_CommonFunctions',JEV_PATH."/libraries/commonfunctions.php");
-
-

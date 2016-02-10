@@ -5,7 +5,7 @@
  *
  * @version     $Id: router.php 3578 2012-05-01 14:25:28Z geraintedwards $
  * @package     JEvents
- * @copyright   Copyright (C) 2008-2009 GWE Systems Ltd, 2006-2008 JEvents Project Group
+ * @copyright   Copyright (C) 2008-2015 GWE Systems Ltd, 2006-2008 JEvents Project Group
  * @license     GNU/GPLv2, see http://www.gnu.org/licenses/gpl-2.0.html
  * @link        http://www.jevents.net
  */
@@ -21,7 +21,7 @@ function JEventsBuildRoute(&$query)
 	// Must also load backend language files
 	$lang = JFactory::getLanguage();
 	$lang->load("com_jevents", JPATH_SITE);
-	
+
 	$segments = array();
 
 	// sometimes the task is not set but view and layout are so tackle this!
@@ -29,7 +29,7 @@ function JEventsBuildRoute(&$query)
 	{
 		$query['task'] = $query['view'] . "." . $query['layout'];
 	}
-	
+
 	// We don't need the view - its only used to manipulate parameters
 	if (isset($query['view']))
 	{
@@ -72,6 +72,10 @@ function JEventsBuildRoute(&$query)
 		$task = $query['task'];
 		unset($query['task']);
 	}
+
+	JPluginHelper::importPlugin("jevents");
+	$dispatcher	= JDispatcher::getInstance();
+	$dispatcher->trigger( 'onJEventsRoute');
 
 	// Translatable URLs
 	if ($params->get("newsef", 0))
@@ -158,21 +162,21 @@ function JEventsBuildRoute(&$query)
 								{
 									$segments[] = $menuitem->query["evid"];
 									if (!isset($query['title'])) {
-										//$query['title'] = substr(JFilterOutput::stringURLSafe($query['title']), 0, 150);
+										//$query['title'] = JString::substr(JApplication::stringURLSafe($query['title']), 0, 150);
 									}
 								}
 								else {
-									$segments[] = "0";									
+									$segments[] = "0";
 								}
 							}
-							else {							
+							else {
 								$segments[] = "0";
 							}
 						}
 						/*
 						  // Can we drop the use of uid?
 						  if(isset($query['title'])) {
-						  $segments[] = JFilterOutput::stringURLSafe($query['title']);
+						  $segments[] = JApplication::stringURLSafe($query['title']);
 						  unset($query['title']);
 						  }
 						  else {
@@ -184,7 +188,7 @@ function JEventsBuildRoute(&$query)
 					default:
 						break;
 				}
-				if (isset($query['catids']) && strlen($query['catids']) > 0)
+				if (isset($query['catids']) && JString::strlen($query['catids']) > 0)
 				{
 					$segments[] = $query['catids'];
 					unset($query['catids']);
@@ -204,7 +208,7 @@ function JEventsBuildRoute(&$query)
 						}
 						if (isset($query['title']))
 						{
-							$segments[] = substr(JFilterOutput::stringURLSafe($query['title']), 0, 150);
+							$segments[] = JString::substr(JApplication::stringURLSafe($query['title']), 0, 150);
 							unset($query['title']);
 						}
 						else
@@ -228,10 +232,6 @@ function JEventsBuildRoute(&$query)
 		case "icalevent.delete":
 		case "icalrepeat.delete":
 		case "icalrepeat.deletefuture":
-			JPluginHelper::importPlugin("jevents");
-			$dispatcher	= JDispatcher::getInstance();
-			$dispatcher->trigger( 'onJEventsRoute');
-
 			$segments[] = $task;
 			if (isset($query['jevtype']))
 			{
@@ -253,14 +253,14 @@ function JEventsBuildRoute(&$query)
 					{
 						$segments[] = $menuitem->query["evid"];
 						if (!isset($query['title'])) {
-							//$query['title'] = substr(JFilterOutput::stringURLSafe($query['title']), 0, 150);
+							//$query['title'] = JString::substr(JApplication::stringURLSafe($query['title']), 0, 150);
 						}
 					}
 					else {
-						$segments[] = "0";									
+						$segments[] = "0";
 					}
 				}
-				else {							
+				else {
 					$segments[] = "0";
 				}
 			}
@@ -387,7 +387,7 @@ function JEventsParseRoute($segments)
 		// task
 		$task = $segments[0];
 		if (translatetask("icalrepeat.detail")==""  && !in_array($task, $tasks) && !array_key_exists($task, $translatedTasks)){
-			//array_unshift($segments, "icalrepeat.detail");			
+			//array_unshift($segments, "icalrepeat.detail");
 			array_unshift($segments, "");
 			if (count($segments)==3){
 				$title = $segments[1];
@@ -547,7 +547,7 @@ function JEventsParseRoute($segments)
 
 function JEventsBuildRouteNew(&$query, $task)
 {
-	$transtask = translatetask($task);
+	$transtask = translatetask($task, $query);
 
 	$params = JComponentHelper::getParams("com_jevents");
 
@@ -563,11 +563,11 @@ function JEventsBuildRouteNew(&$query, $task)
 		$menuItem = $menu->getItem($query['Itemid']);
 		$menuItemGiven = true;
 	}
-	
+
 	$cfg = JEVConfig::getInstance();
 	$segments = array();
 
-	if (count($query)==2 && isset($query['Itemid'])  && isset($query['option'])){
+	if ((count($query)==2 && isset($query['Itemid'])  && isset($query['option'])) || (count($query)==3 && isset($query['Itemid'])  && isset($query['lang'])  && isset($query['option']))){
 
 		// special case where we do not need any information since its a menu item
 		// as long as the task matches up!
@@ -575,18 +575,20 @@ function JEventsBuildRouteNew(&$query, $task)
 		$menuitem = $menu->getItem($query["Itemid"]);
 		if (!is_null($menuitem) && (isset($menuitem->query["task"]) || (isset($menuitem->query["view"]) && isset($menuitem->query["layout"]))))
 		{
-			if (isset($menuitem->query["task"]) && $task == $menuitem->query["task"]){
-				return $segments;
+			if (!isset($query['lang']) ||  $menuitem->language==$query['lang'] || $menuitem->language=="*" ){
+				if (isset($menuitem->query["task"]) && $task == $menuitem->query["task"]){
+					return $segments;
+				}
+				else if (isset($menuitem->query["view"]) && isset($menuitem->query["layout"]) && $task == $menuitem->query["view"].".".$menuitem->query["layout"]){
+					return $segments;
+				}
+				else {
+					 $segments[] = $transtask;
+				}
 			}
-			else if (isset($menuitem->query["view"]) && isset($menuitem->query["layout"]) && $task == $menuitem->query["view"].".".$menuitem->query["layout"]){
-				return $segments;
-			}
-			else {
-				 $segments[] = $transtask;
-			}
-		}				
+		}
 	}
-	
+
 	switch ($task) {
 		case "year.listevents":
 		case "month.calendar":
@@ -689,7 +691,7 @@ function JEventsBuildRouteNew(&$query, $task)
 						{
 							unset($query['jevtype']);
 						}
-						if ($transtask!=""){						
+						if ($transtask!=""){
 							if (isset($query['evid']))
 							{
 								$segments[] = $query['evid'];
@@ -701,11 +703,16 @@ function JEventsBuildRouteNew(&$query, $task)
 							}
 						}
 
+						if ($params->get("nocatindetaillink", 0) && isset($query['catids']) && JString::strlen($query['catids']) > 0)
+						{
+							unset($query['catids']);
+						}
+
 						break;
 					default:
 						break;
 				}
-				if (isset($query['catids']) && strlen($query['catids']) > 0)
+				if (isset($query['catids']) && JString::strlen($query['catids']) > 0)
 				{
 					$segments[] = $query['catids'];
 					unset($query['catids']);
@@ -713,7 +720,9 @@ function JEventsBuildRouteNew(&$query, $task)
 				else
 				{
 					if ($transtask!=""){
-						$segments[] = "-";
+						if (!$params->get("nocatindetaillink", 0)){
+							$segments[] = "-";
+						}
 					}
 				}
 
@@ -727,7 +736,7 @@ function JEventsBuildRouteNew(&$query, $task)
 						}
 						if (isset($query['title']))
 						{
-							$segments[] = substr(JFilterOutput::stringURLSafe($query['title']), 0, 150);
+							$segments[] = JString::substr(JApplication::stringURLSafe($query['title']), 0, 150);
 							unset($query['title']);
 						}
 						else
@@ -745,7 +754,7 @@ function JEventsBuildRouteNew(&$query, $task)
 								$segments[] = "0";
 							}
 						}
-						
+
 
 						break;
 					default:
@@ -763,9 +772,6 @@ function JEventsBuildRouteNew(&$query, $task)
 		case "icalevent.delete":
 		case "icalrepeat.delete":
 		case "icalrepeat.deletefuture":
-			JPluginHelper::importPlugin("jevents");
-			$dispatcher	= JDispatcher::getInstance();
-			$dispatcher->trigger( 'onJEventsRoute');
 
 			$segments[] = $transtask;
 			if (isset($query['jevtype']))
@@ -848,6 +854,7 @@ function JEventsParseRouteNew(&$segments, $task)
 	$vars = array();
 
 	$vars["task"] = $task;
+	$params = JComponentHelper::getParams("com_jevents");
 
 	// Count route segments
 	$count = count($segments);
@@ -909,10 +916,12 @@ function JEventsParseRouteNew(&$segments, $task)
 					case "icalevent.detail":
 					case "icalrepeat.detail":
 						$vars['evid'] = $segments[$slugcount];
-						// note that URI decoding swaps /-/ for :
-						if (count($segments) > $slugcount + 1 && $segments[$slugcount + 1] != ":")
-						{
-							$vars['catids'] = $segments[$slugcount + 1];
+						if (!$params->get("nocatindetaillink", 0)){
+							// note that URI decoding swaps /-/ for :
+							if (count($segments) > $slugcount + 1 && $segments[$slugcount + 1] != ":")
+							{
+								$vars['catids'] = $segments[$slugcount + 1];
+							}
 						}
 						break;
 					default:
@@ -992,7 +1001,7 @@ function JEventsParseRouteNew(&$segments, $task)
 
 }
 
-function translatetask($task)
+function translatetask($task, $query = false)
 {
 	$tasks = array(
 		"year.listevents",
@@ -1026,6 +1035,20 @@ function translatetask($task)
 	// if not translated then just drop the . and use _ instead
 	$task = str_replace(".", "_", $task);
 	$transtask = JText::_("JEV_SEF_" . $task);
+
+	// does it need a translated task in another language
+	$lang = JFactory::getLanguage();
+	if ($query && isset($query["lang"]) && $lang->get("tag")!=$query["lang"])
+	{
+		$sefs 	= JLanguageHelper::getLanguages('sef');
+		$lang_code = $query["lang"];
+		if (array_key_exists($query["lang"], $sefs)){
+			$lang_code = $sefs[$query["lang"]]->lang_code;
+		}
+		$newlang = JLanguage::getInstance($lang_code);
+		$newlang->load("com_jevents", JPATH_SITE);
+		$transtask = $newlang->_("JEV_SEF_" . $task);
+	}
 	$transtask = strpos($transtask, "JEV_SEF_") === 0 ? $task : $transtask;
 	return $transtask;
 

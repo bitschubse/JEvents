@@ -4,7 +4,7 @@
  *
  * @version     $Id: overview.php 3548 2012-04-20 09:25:43Z geraintedwards $
  * @package     JEvents
- * @copyright   Copyright (C)  2008-2009 GWE Systems Ltd
+ * @copyright   Copyright (C)  2008-2015 GWE Systems Ltd
  * @license     GNU/GPLv2, see http://www.gnu.org/licenses/gpl-2.0.html
  * @link        http://www.jevents.net
  */
@@ -26,18 +26,17 @@ JHTML::_('behavior.tooltip');
 
 // get configuration object
 $cfg = JEVConfig::getInstance();
+$mainspan = 10;
+ $fullspan = 12;
 ?>
+<?php if (!empty($this->sidebar)) : ?>
+<div id="j-sidebar-container" class="span2">
+	<?php echo $this->sidebar; ?>
+</div>
+ <?php endif; ?>
 
 <form action="index.php" method="post" name="adminForm" id="adminForm">
-	<?php if (!empty($this->sidebar)) : ?>
-		<div id="j-sidebar-container" class="span2">
-			<?php echo $this->sidebar; ?>
-		</div>
-		<div id="j-main-container" class="span10">
-		<?php else : ?>
-			<div id="j-main-container">
-			<?php endif; ?>
-
+	<div id="j-main-container" class="span<?php echo (!empty($this->sidebar)) ? $mainspan : $fullspan; ?>  ">
 			<table cellpadding="4" cellspacing="0" border="0" width="100%">
 				<tr>
 					<td width="100%">
@@ -162,6 +161,7 @@ $cfg = JEVConfig::getInstance();
 					<th align="center" colspan="10"><?php echo $this->pageNav->getListFooter(); ?></th>
 				</tr>
 			</table>
+			<?php echo JHtml::_('form.token'); ?>
 			<input type="hidden" name="option" value="<?php echo $this->option; ?>" />
 			<input type="hidden" name="task" value="icals.list" />
 			<input type="hidden" name="boxchecked" value="0" />

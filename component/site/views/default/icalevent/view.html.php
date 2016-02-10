@@ -4,7 +4,7 @@
  *
  * @version     $Id: view.html.php 3155 2012-01-05 12:01:16Z geraintedwards $
  * @package     JEvents
- * @copyright   Copyright (C) 2008-2009 GWE Systems Ltd
+ * @copyright   Copyright (C) 2008-2015 GWE Systems Ltd
  * @license     GNU/GPLv2, see http://www.gnu.org/licenses/gpl-2.0.html
  * @link        http://www.jevents.net
  */
@@ -44,6 +44,9 @@ class DefaultViewICalevent extends JEventsDefaultView
 			$this->month = $this->data['row']->mup();
 			$this->day = $this->data['row']->dup();
 
+			// seth month and year to be used by mini-calendar if needed
+			if (!JRequest::getVar("month",0)) JRequest::setVar("month",$this->month);
+			if (!JRequest::getVar("year",0)) JRequest::setVar("year",$this->year);
 		}
 	}	
 }

@@ -32,7 +32,8 @@ function DefaultViewHelperHeader16($view){
 	
 	$lang = JFactory::getLanguage();
 ?>
-<div class="contentpaneopen jeventpage<?php echo $params->get( 'pageclass_sfx' ); ?>" id="jevents_header">
+<div id="jevents">
+<div class="contentpaneopen jeventpage<?php echo $params->get( 'pageclass_sfx' ); ?>  jevbootstrap" id="jevents_header">
 	<?php if ($params->get('show_page_heading', 0)) : ?>
 	<h1>
 		<?php echo $view->escape($params->get('page_heading')); ?>
@@ -86,13 +87,13 @@ function DefaultViewHelperHeader16($view){
 		if ($pop) { ?>
 			<li class="print-icon">
 			<a href="javascript:void(0);" onclick="javascript:window.print(); return false;" title="<?php echo JText::_('JEV_CMN_PRINT'); ?>">
-		              	<?php echo JHTML::_('image', 'media/system/images/printButton.png', JText::_('JEV_CMN_PRINT'), array("title"=>JText::_('JEV_CMN_PRINT')),false);?>
+		              	<span class="icon-print"> </span>
 			</a>
 			</li> <?php
 		} else { ?>
 			<li class="print-icon">
 			<a href="javascript:void(0);" onclick="window.open('<?php echo $print_link; ?>', 'win2', 'status=no,toolbar=no,scrollbars=yes,titlebar=no,menubar=no,resizable=yes,width=600,height=600,directories=no,location=no');" title="<?php echo JText::_('JEV_CMN_PRINT'); ?>">
-				<?php echo JHTML::_('image', 'media/system/images/printButton.png', JText::_('JEV_CMN_PRINT'), array("title"=>JText::_('JEV_CMN_PRINT')),false);?>
+				<span class="icon-print"> </span>
 			</a>
 			</li> <?php
 		}
@@ -111,7 +112,7 @@ function DefaultViewHelperHeader16($view){
 		. $view->datamodel->getCatidsOutLink()
 		;
 		$link =JRoute::_($link);
-		//if (strpos($link,"/")===0) $link = substr($link,1);
+		//if (strpos($link,"/")===0) $link = JString::substr($link,1);
 		$uri	        = JURI::getInstance(JURI::base());
 		$root = $uri->toString( array('scheme', 'host', 'port') );
 
@@ -122,7 +123,7 @@ function DefaultViewHelperHeader16($view){
 		?>
 		<li class="email-icon">
 			<a href="javascript:void(0);" onclick="javascript:window.open('<?php echo $url;?>','emailwin','width=400,height=350,menubar=yes,resizable=yes'); return false;" title="<?php echo JText::_( 'EMAIL' ); ?>">
-				<?php echo JHTML::_('image', 'media/system/images/emailButton.png', JText::_('EMAIL'), array("title"=>JText::_('EMAIL')),false);?>
+				<span class="icon-envelope"> </span>
 			</a>
 		</li>
 		<?php
@@ -139,6 +140,6 @@ function DefaultViewHelperHeader16($view){
 	$view->loadModules("jevprejevents2");
 	$view->loadModules("jevprejevents2_".$task);
 ?>
-<div class="contentpaneopen  jeventpage<?php echo $params->get( 'pageclass_sfx' );  ?>" id="jevents_body">
+<div class="contentpaneopen  jeventpage<?php echo $params->get( 'pageclass_sfx' );  ?>  jevbootstrap" id="jevents_body">
 <?php
 }

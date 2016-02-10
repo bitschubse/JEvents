@@ -4,7 +4,7 @@
  *
  * @version     $Id: abstract.php 3153 2012-01-05 10:11:45Z geraintedwards $
  * @package     JEvents
- * @copyright   Copyright (C) 2008-2009 GWE Systems Ltd
+ * @copyright   Copyright (C) 2008-2015 GWE Systems Ltd
  * @license     GNU/GPLv2, see http://www.gnu.org/licenses/gpl-2.0.html
  * @link        http://www.jevents.net
  */
@@ -107,47 +107,7 @@ class JEventsDefaultView extends JEventsAbstractView
 		$this->loadHelper("DefaultViewDatecellAddEvent");
 		DefaultViewDatecellAddEvent($this,$year, $month,$day);
 	}
-/*
-	function viewNavTableBarIconic( $today_date, $this_date, $dates, $alts, $option, $task, $Itemid ){
-		$this->loadHelper("DefaultViewNavTableBarIconic");
-		$var = new DefaultViewNavTableBarIconic($this, $today_date, $this_date, $dates, $alts, $option, $task, $Itemid );
-	}
 
-	function viewNavTableBar( $today_date, $this_date, $dates, $alts, $option, $task, $Itemid ){
-		$this->loadHelper("DefaultViewNavTableBar");
-		$var = new DefaultViewNavTableBar($this, $today_date, $this_date, $dates, $alts, $option, $task, $Itemid );
-	}
-
-	function viewEventRowNew ( $row){
-		$this->loadHelper("DefaultViewEventRowNew");
-		DefaultViewEventRowNew($this, $row);
-	}
-
-	function viewEventCatRowNew ( $row){
-		$this->loadHelper("DefaultViewEventCatRowNew");
-		DefaultViewEventCatRowNew($this, $row);
-	}
-
-	function eventIcalDialog($row, $mask){
-		$this->loadHelper("DefaultEventIcalDialog");
-		DefaultEventIcalDialog($this,  $row, $mask);
-	}
-
-	function eventManagementDialog($row, $mask){
-		$this->loadHelper("DefaultEventManagementDialog");
-		return DefaultEventManagementDialog($this,  $row, $mask);
-	}
-
-	function viewEventRowAdmin($row){
-		$this->loadHelper("DefaultViewEventRowAdmin");
-		DefaultViewEventRowAdmin($this,  $row);
-	}
-
-	function viewNavCatText( $catid, $option, $task, $Itemid ){
-		$this->loadHelper("DefaultViewNavCatText");
-		DefaultViewNavCatText($this,$catid, $option, $task, $Itemid );		
-	}
-*/
 	// These don't follow argument pattern
 	function paginationForm($total, $limitstart, $limit){
 		if ($this->loadHelper("DefaultPaginationForm")){
@@ -164,7 +124,7 @@ class JEventsDefaultView extends JEventsAbstractView
 	// This handles all methods where the view is passed as the first argument
 	function __call($name, $arguments){
 		if (strpos($name,"_")===0){
-			$name="ViewHelper".ucfirst(substr($name,1));
+			$name="ViewHelper".ucfirst(JString::substr($name,1));
 		}
 		$helper = ucfirst($this->jevlayout).ucfirst($name);
 		if (!$this->loadHelper($helper)){

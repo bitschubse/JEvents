@@ -5,17 +5,18 @@
  *
  * @version     $Id: modlatest.php 1142 2010-09-08 10:10:52Z geraintedwards $
  * @package     JEvents
- * @copyright   Copyright (C) 2008-2009 GWE Systems Ltd
+ * @copyright   Copyright (C) 2008-2015 GWE Systems Ltd
  * @license     GNU/GPLv2, see http://www.gnu.org/licenses/gpl-2.0.html
  * @link        http://www.jevents.net
  */
 
 defined( 'JPATH_BASE' ) or die( 'Direct Access to this location is not allowed.' );
 
-ob_end_clean();
+@ob_end_clean();
+@ob_end_clean();
 
 // Define the file as an iCalendar file
-header('Content-Type: application/octet-stream; charset=UTF-8');
+header('Content-Type: text/calendar; charset=UTF-8');
 // Give the file a name and force download
 header('Content-Disposition: attachment; filename=calendar.ics');
 
@@ -83,11 +84,41 @@ if (!empty($this->icalEvents))
 	foreach ($this->icalEvents as $a)
 	{
 		// if event has repetitions I must find the first one to confirm the dates
-		if ($a->hasrepetition())
+		if ($a->hasrepetition()  && $this->withrepeats)
 		{
 			$a = $a->getOriginalFirstRepeat();
 		}
 		if (!$a) continue;
+
+		// Fix for end time of first repeat if its an exception
+		if (array_key_exists($a->ev_id(), $exceptiondata) && array_key_exists($a->rp_id(),$exceptiondata[$a->ev_id()]))
+		{
+			$exception = $exceptiondata[$a->ev_id()][$a->rp_id()];
+			// if its the first repeat that has had its end time changes we have not stored this data so need to determine it again
+			if ($exception->startrepeat ==  $exception->oldstartrepeat && $exception->exception_type==1) {
+				// look for repeats that are not exceptions
+				$testrepeat = $a->getFirstRepeat(false);
+				if ($testrepeat){
+					$enddatetime = $a->getUnixStartTime() + ($testrepeat->getUnixEndTime() - $testrepeat->getUnixStartTime());
+					$a->_endrepeat =  JevDate::strftime("%Y-%m-%d %H:%M:%S", $enddatetime);
+					$a->_dtend = $enddatetime;
+					$a->_unixendtime = $enddatetime;
+				}
+			}
+			// If start AND end date/times have changed
+			elseif ($exception->exception_type==1)  {
+				// look for repeats that are not exceptions
+				$testrepeat = $a->getFirstRepeat(false);
+				if ($testrepeat){
+					$oldstart = strtotime($exception->oldstartrepeat);
+					$enddatetime = $oldstart + ($testrepeat->getUnixEndTime() - $testrepeat->getUnixStartTime());
+					$a->_endrepeat =  JevDate::strftime("%Y-%m-%d %H:%M:%S", $enddatetime);
+					$a->_dtend = $enddatetime;
+					$a->_unixendtime = $enddatetime;
+				}
+			}
+		}
+
 		$html .= "BEGIN:VEVENT\r\n";
 		$html .= "UID:" . $a->uid() . "\r\n";
 		$html .= "CATEGORIES:" . $a->catname() . "\r\n";
@@ -206,12 +237,26 @@ if (!empty($this->icalEvents))
 		$html .= "DTSTAMP:" . $stamptime . "\r\n";
 		$html .= "DTSTART$tzid$alldayprefix:" . $start . "\r\n";
 		// events with no end time don't give a DTEND
-		if (!$a->noendtime())
+		if ($a->noendtime())
 		{
+			// special case for no-end time over multiple days
+			if ($a->start_date != $a->stop_date) {
+				$alldayprefix = ";VALUE=DATE";
+				$endformat = "%Y%m%d";
+				// add 10 seconds to make sure its not midnight the previous night
+				$end = JevDate::strftime($endformat, $a->getUnixEndTime() + 10);
+				$html .= "DTEND$tzid$alldayprefix:" . $end . "\r\n";
+			}
+		}
+		else {
 			$html .= "DTEND$tzid$alldayprefix:" . $end . "\r\n";
 		}
+
 		$html .= "SEQUENCE:" . $a->_sequence . "\r\n";
-		if ($a->hasrepetition())
+		$deletes = array();
+		$changed = array();
+		$changedexceptions = array();
+		if ($a->hasrepetition() && $this->withrepeats)
 		{
 			$html .= 'RRULE:';
 
@@ -260,54 +305,51 @@ if (!empty($this->icalEvents))
 					$html .= ';BYYEARDAY=' . $a->_byyearday;
 			}
 			$html .= "\r\n";
-		}
 
-		// Now handle Exceptions
-		$exceptions = array();
-		if (array_key_exists($a->ev_id(), $exceptiondata))
-		{
-			$exceptions = $exceptiondata[$a->ev_id()];
-		}
-
-		$deletes = array();
-		$changed = array();
-		$changedexceptions = array();
-		if (count($exceptions) > 0)
-		{
-			foreach ($exceptions as $exception)
+			// Now handle Exceptions
+			$exceptions = array();
+			if (array_key_exists($a->ev_id(), $exceptiondata))
 			{
-				if ($exception->exception_type == 0)
+				$exceptions = $exceptiondata[$a->ev_id()];
+			}
+
+			if (count($exceptions) > 0)
+			{
+				foreach ($exceptions as $exception)
 				{
-					$exceptiondate = JevDate::strtotime($exception->startrepeat);
-
-					// No doing true timezones!
-					if ($tzid == "" && is_callable("date_default_timezone_set"))
+					if ($exception->exception_type == 0)
 					{
+						$exceptiondate = JevDate::strtotime($exception->startrepeat);
 
-						// Change timezone to UTC
-						$current_timezone = date_default_timezone_get();
-						date_default_timezone_set("UTC");
+						// No doing true timezones!
+						if ($tzid == "" && is_callable("date_default_timezone_set"))
+						{
 
-						// Do not use JevDate version since this sets timezone to config value!
-						$deletes[] = strftime("%Y%m%dT%H%M%SZ", $exceptiondate);
+							// Change timezone to UTC
+							$current_timezone = date_default_timezone_get();
+							date_default_timezone_set("UTC");
 
-						// Change back
-						date_default_timezone_set($current_timezone);
+							// Do not use JevDate version since this sets timezone to config value!
+							$deletes[] = strftime("%Y%m%dT%H%M%SZ", $exceptiondate);
+
+							// Change back
+							date_default_timezone_set($current_timezone);
+						}
+						else
+						{
+							$deletes[] = JevDate::strftime("%Y%m%dT%H%M%S", $exceptiondate);
+						}
 					}
 					else
 					{
-						$deletes[] = JevDate::strftime("%Y%m%dT%H%M%S", $exceptiondate);
+						$changed[] = $exception->rp_id;
+						$changedexceptions[$exception->rp_id] = $exception;
 					}
 				}
-				else
+				if (count($deletes) > 0)
 				{
-					$changed[] = $exception->rp_id;
-					$changedexceptions[$exception->rp_id] = $exception;
+					$html .= "EXDATE$tzid:" . $this->wraplines(implode(",", $deletes)) . "\r\n";
 				}
-			}
-			if (count($deletes) > 0)
-			{
-				$html .= "EXDATE$tzid:" . $this->wraplines(implode(",", $deletes)) . "\r\n";
 			}
 		}
 
@@ -316,7 +358,7 @@ if (!empty($this->icalEvents))
 
 		$changedrows = array();
 		
-		if (count($changed) > 0 && $changed[0]!=0)
+		if (isset($changed) && count($changed) > 0 && $changed[0]!=0)
 		{
 			foreach ($changed as $rpid)
 			{
@@ -350,7 +392,7 @@ if (!empty($this->icalEvents))
 				if ($a->hasExtraInfo())
 					$html .= "X-EXTRAINFO:" . $this->wraplines($this->replacetags($a->_extra_info)); $html .= "\r\n";
 
-				$exception = $changedexceptions[$rpid];
+				$exception = $changedexceptions[$a->rp_id()];
 				$originalstart = JevDate::strtotime($exception->oldstartrepeat);
 				$chstart = $a->getUnixStartTime();
 				$chend = $a->getUnixEndTime();
@@ -395,7 +437,7 @@ if (!empty($this->icalEvents))
 $html .= "END:VCALENDAR";
 
 // clear out any rubbish
-ob_end_clean();
+@ob_end_clean();
 echo $html;
 
 exit();

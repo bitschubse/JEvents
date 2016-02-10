@@ -4,7 +4,7 @@
  *
  * @version     $Id: view.html.php 3257 2012-02-10 13:16:38Z geraintedwards $
  * @package     JEvents
- * @copyright   Copyright (C) 2008-2009 GWE Systems Ltd
+ * @copyright   Copyright (C) 2008-2015 GWE Systems Ltd
  * @license     GNU/GPLv2, see http://www.gnu.org/licenses/gpl-2.0.html
  * @link        http://www.jevents.net
  */
@@ -89,11 +89,11 @@ class ICalsViewIcals extends JEventsAbstractView
 		while (JString::strlen($input)>=$line_max){
 			$output .= JString::substr($input,0,$line_max-1);
 			$input = JString::substr($input,$line_max-1);
-			if (strlen($input)>0){
+			if (JString::strlen($input)>0){
 		  		 $output .= $eol." ";
 			}
 		}
-		if (strlen($input)>0){
+		if (JString::strlen($input)>0){
 			$output .= $input;
 		}
 		return $output;
@@ -122,7 +122,7 @@ class ICalsViewIcals extends JEventsAbstractView
 			  }
 			  }
 			 */
-			if ((strlen($outline) + 1) >= $line_max)
+			if ((JString::strlen($outline) + 1) >= $line_max)
 			{ // CRLF is not counted
 				$output .= $outline . $eol . $newline; // soft line break; "\r\n" is okay
 				$outline = $c;

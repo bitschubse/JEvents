@@ -1,91 +1,119 @@
 {{Message:MESSAGE}}
-<div class="adminform form-horizontal">
+<div class="adminform">
 
 	{{Tab Start:TABSTART#JEV_TAB_COMMON}}
-	<div class="control-group">
-		{{Title Label:TITLE_LBL}}
-		<div class="controls">
+	<div class="row jevtitle">
+		<div class="span2">
+			{{Title Label:TITLE_LBL}}
+		</div>
+		<div class="span10">
 			{{Title:TITLE}}
 		</div>
 	</div>
-	<div class="control-group jevpriority" {{Priority:PRIORITY# #class="jev_none"}}>
-		{{Priority Label:PRIORITY_LBL}} 	
-		{{Priority:PRIORITY#<div class="controls">%s</div>}}
+	<div {{Priority:PRIORITY# class="row jevpriority" #class="row jevpriority jev_none"}}>
+		<div class="span2">
+			{{Priority Label:PRIORITY_LBL}}
+		</div>
+		{{Priority:PRIORITY#<div class="span10">%s</div>}}
 	</div>
-	<div class="control-group jevcreator" {{Creator:CREATOR# #class="jev_none"}}>
-		{{Creator label:CREATOR_LBL}}
-		<div class="controls">
+	<div {{Creator:CREATOR# class="row jevcreator" #class="row jevcreator jev_none"}}>
+		<div class="span2">
+			{{Creator label:CREATOR_LBL}}
+		</div>
+		<div class="span10">
 			{{Creator:CREATOR}}
 		</div>
 	</div>			
-	<div class="control-group jevical"  {{Calendar:ICAL# #class="jev_none"}}>
-		{{Calendar label:ICAL_LBL}}
-		<div class="controls">
+	<div {{Calendar label:ICAL_LBL#class="row jevical" #class="row jevical jev_none"}}>
+		<div class="span2">
+			{{Calendar label:ICAL_LBL}}
+		</div>
+		<div class="span10">
 			{{Calendar:ICAL}}
 		</div>
 	</div>
-	<div class="control-group jevlock"  {{Lock Event:LOCK# #class="jev_none"}}>
-		{{Lock Event label:LOCK_LBL}}
-		<div class="controls">
+	<div {{Lock Event:LOCK#class="row jevlock" #class="row jevlock jev_none"}}>
+		<div class="span2">
+			{{Lock Event label:LOCK_LBL}}
+		</div>
+		<div class="span10">
 			{{Lock Event:LOCK}}
 		</div>
 	</div>
-	<div class="control-group jevcategory"  {{Category:CATEGORY# #class="jev_none"}}>
-		{{Category label:CATEGORY_LBL}}
-		<div class="controls">
+	<div {{Category:CATEGORY# class="row jevcategory"#class="row jevcategory jev_none"}}>
+		<div class="span2">
+			{{Category label:CATEGORY_LBL}}
+		</div>
+		<div class="span10">
 			{{Category:CATEGORY}}
 		</div>
 	</div>
-	<div class="control-group jevaccess" {{Access:ACCESS# #class="jev_none"}} >
-		{{Access label:ACCESS_LBL}}
-		<div class="controls">
+	<div {{Access:ACCESS# class="row jevaccess" #class="row jevaccess jev_none"}} >
+		<div class="span2">
+			{{Access label:ACCESS_LBL}}
+		</div>
+		<div class="span10">
 			{{Access:ACCESS}}
 		</div>
 	</div>
-	<div class="control-group jevstate" {{State:STATE# #class="jev_none"}} >
-		{{State label:STATE_LBL}}
-		<div class="controls">
+	<div {{State:STATE# class="row jevstate" #class="row jevstate jev_none"}} >
+		<div class="span2">
+			{{State label:STATE_LBL}}
+		</div>
+		<div class="span10">
 			{{State:STATE}}
 		</div>
 	</div>
-	<div class="control-group jevcolour" {{Event Colour:COLOUR# #class="jev_none"}} >
-		{{Colour label:COLOUR_LBL}}
-		<div class="controls">
+	<div {{Event Colour:COLOUR#class="row jevcolour"  #class=" row jevcolour jev_none"}} >
+		<div class="span2">
+			{{Colour label:COLOUR_LBL}}
+		</div>
+		<div class="span10">
 			{{Event Colour:COLOUR}}
 		</div>
 	</div>
 
-	<div class="control-group jev_description" id='jeveditor' >
-		{{Description label:DESC_LBL}}
-		<div class="controls">
+	<div class="row jev_description" id='jeveditor' >
+		<div class="span2">
+			{{Description label:DESCRIPTION_LBL}}
+		</div>
+		<div class="span10">
 			{{Description:DESCRIPTION}}
 		</div>
 	</div>
 
-	<div class="control-group jeveditlocation"  id="jeveditlocation">
-		{{LOCATION label:LOCN_LBL}}
-		<div class="controls">
+	<div class="row jeveditlocation"  id="jeveditlocation">
+		<div class="span2">
+			{{LOCATION label:LOCN_LBL}}
+		</div>
+		<div class="span10">
 			{{Location:LOCN}}
 		</div>
 	</div>
 
-	<div class="control-group jev_contact">
-		{{Contact label:CONTACT_LBL}}
-		<div class="controls">
+	<div class="row jev_contact">
+		<div class="span2">
+			{{Contact label:CONTACT_LBL}}
+		</div>
+		<div class="span10">
 			{{Contact:CONTACT}}
 		</div>
 	</div>
 
-	<div class="control-group jev_extrainfo">
-		{{Extra label:EXTRA_LBL}}
-		<div class="controls">
+	<div class="row jev_extrainfo">
+		<div class="span2">
+			{{Extra label:EXTRA_LBL}}
+		</div>
+		<div class="span10">
 			{{Extra:EXTRA}}
 		</div>
 	</div>
 
-	<div class="control-group">
-		Example of single custom field : {{Custom joomlauser2 label:customfield_joomlauser2_lbl}}
-		<div class="controls">
+	<div class="row">
+		<div class="span2">
+			Example of single custom field : {{Custom joomlauser2 label:customfield_joomlauser2_lbl}}
+		</div>
+		<div class="span10">
 			{{Custom joomlauser2:customfield_joomlauser2}}
 		</div>
 	</div>
@@ -102,13 +130,13 @@
 	{{Tab 2:CUSTOM_2}}
 
 	{{Tab Start:TABSTART#JEV_ATTENDANCE}}
-	{{Attendance Tab:ATTENDANCE_OPTIONS}}
+	{{Attendance Tab:JEV_ATTENDANCE}}
 
 	{{Tab Start:TABSTART#JEV_INVITATION_OPTIONS}}
-	{{Invitations Tab:INVITATION_OPTIONS}}
+	{{Invitations Tab:JEV_INVITATION_OPTIONS}}
 
 	{{Tab Start:TABSTART#JEV_REMINDER_OPTIONS}}
-	{{Reminder Tab:EMAIL_REMINDER_OPTIONS}}
+	{{Reminder Tab:JEV_REMINDER_OPTIONS}}
 
 	{{End Tabs:TABSEND}}
 </div>

@@ -4,7 +4,7 @@
  *
  * @version     $Id: overview.php 3576 2012-05-01 14:11:04Z geraintedwards $
  * @package     JEvents
- * @copyright   Copyright (C)  2008-2009 GWE Systems Ltd
+ * @copyright   Copyright (C)  2008-2015 GWE Systems Ltd
  * @license     GNU/GPLv2, see http://www.gnu.org/licenses/gpl-2.0.html
  * @link        http://www.jevents.net
  */
@@ -21,18 +21,17 @@ $this->_largeDataSet = $cfg->get('largeDataSet', 0);
 $orderdir = JFactory::getApplication()->getUserStateFromRequest("eventsorderdir", "filter_order_Dir", 'asc');
 $order = JFactory::getApplication()->getUserStateFromRequest("eventsorder", "filter_order", 'start');
 $pathIMG = JURI::root() . 'administrator/images/';
+$mainspan = 10;
+ $fullspan = 12;
 ?>
-
 <form action="index.php" method="post" name="adminForm" id="adminForm">
-	<?php if (!empty($this->sidebar)) : ?>
-		<div id="j-sidebar-container" class="span2">
+<?php if (!empty($this->sidebar)) : ?>
+<div id="j-sidebar-container" class="span2">
 	<?php echo $this->sidebar; ?>
-		</div>
-		<div id="j-main-container" class="span10">
-			<?php else : ?>
-			<div id="j-main-container">
-	<?php endif; ?>
+</div>
+ <?php endif; ?>
 
+	<div id="j-main-container" class="span<?php echo (!empty($this->sidebar)) ? $mainspan : $fullspan; ?>  ">
 			<table cellpadding="4" cellspacing="0" border="0" >
 				<tr>
 <?php if (!$this->_largeDataSet)
@@ -65,14 +64,20 @@ $pathIMG = JURI::root() . 'administrator/images/';
 			<table cellpadding="4" cellspacing="0" border="0" width="100%" class="adminlist  table table-striped">
 				<tr>
 					<th width="20" nowrap="nowrap">
-						<input type="checkbox" name="toggle" value="" onclick="<?php echo JevJoomlaVersion::isCompatible("3.0") ? "Joomla.checkAll(this)" : "checkAll(" . count($this->rows) . ")"; ?>" />
+						<input type="checkbox" name="toggle" value="" onclick=Joomla.checkAll(this);"  />
 					</th>
-					<th class="title" width="50%" nowrap="nowrap">
+					<th class="title" width="40%" nowrap="nowrap">
 						<?php echo JHTML::_('grid.sort', 'JEV_ICAL_SUMMARY', 'title', $orderdir, $order, "icalevent.list"); ?>
 					<th width="10%" nowrap="nowrap"><?php echo JText::_('REPEATS'); ?></th>
 					<th width="10%" nowrap="nowrap"><?php echo JText::_('JEV_EVENT_CREATOR'); ?></th>
+					<?php
+					if (count($this->languages)>1) {
+					?>
+					<th width="10%" nowrap="nowrap"><?php echo JText::_('JEV_EVENT_TRANSLATION'); ?></th>
+					<?php }
+					?>
 					<th width="10%" nowrap="nowrap"><?php echo JText::_('JEV_PUBLISHED'); ?></th>
-					<th width="15%" nowrap="nowrap">
+					<th width="20%" nowrap="nowrap">
 <?php echo JHTML::_('grid.sort', 'JEV_TIME_SHEET', 'starttime', $orderdir, $order, "icalevent.list"); ?>
 					</th>
 					<th width="20%" nowrap="nowrap">
@@ -103,14 +108,16 @@ $pathIMG = JURI::root() . 'administrator/images/';
 							<?php
 							if ($row->hasrepetition())
 							{
-								$img = JHTML::_('image', 'admin/featured.png', '', array('title' => ''), true);
 								?>
 								<a href="javascript: void(0);" onclick="return listItemTask('cb<?php echo $i; ?>','icalrepeat.list')" class="btn btn-micro">
-								<?php echo $img; ?>
+									<span class="icon-list"> </span>
 								</a>
 								<?php } ?>
 						</td>
 						<td align="center"><?php echo $row->creatorName(); ?></td>
+						<?php  if (count($this->languages)>1) { ?>
+						<td align="center"><?php	 echo $this->translationLinks($row); ?>	</td>
+						<?php } ?>
 						<td align="center">
 							<?php
 							if ($row->state()==1){
@@ -136,8 +143,8 @@ $pathIMG = JURI::root() . 'administrator/images/';
 							else
 							{
 								$times = '<table style="border: 1px solid #666666; width:100%;">';
-								$times .= '<tr><td>' . JText::_('JEV_FROM') . ' : ' . ($row->alldayevent() ? substr($row->publish_up(), 0, 10) : substr($row->publish_up(),0,16)) . '</td></tr>';
-								$times .= '<tr><td>' . JText::_('JEV_TO') . ' : ' . (($row->noendtime() || $row->alldayevent()) ? substr($row->publish_down(), 0, 10) : substr($row->publish_down(),0,16)) . '</td></tr>';
+								$times .= '<tr><td>' . JText::_('JEV_FROM') . ' : ' . ($row->alldayevent() ? JString::substr($row->publish_up(), 0, 10) : JString::substr($row->publish_up(),0,16)) . '</td></tr>';
+								$times .= '<tr><td>' . JText::_('JEV_TO') . ' : ' . (($row->noendtime() || $row->alldayevent()) ? JString::substr($row->publish_down(), 0, 10) : JString::substr($row->publish_down(),0,16)) . '</td></tr>';
 								$times .="</table>";
 								echo $times;
 							}

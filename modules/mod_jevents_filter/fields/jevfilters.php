@@ -5,7 +5,7 @@
  *
  * @version     $Id: jevextras.php 1785 2011-03-14 14:28:17Z geraintedwards $
  * @package     JEvents
- * @copyright   Copyright (C) 2008-2014 GWE Systems Ltd
+ * @copyright   Copyright (C) 2008-2015 GWE Systems Ltd
  * @license     GNU/GPLv2, see http://www.gnu.org/licenses/gpl-2.0.html
  * @link        http://www.jevents.net
  */
@@ -38,7 +38,7 @@ class JFormFieldJevfilters extends JFormFieldText
 			function getInput()
 	{
 		jimport('joomla.filesystem.folder');
-		
+
 		$invalue = str_replace(" ","",$this->value);
 		$invalue = explode(",",$invalue);
 
@@ -69,10 +69,10 @@ class JFormFieldJevfilters extends JFormFieldText
 			{
 				if (!array_key_exists($filtername, $filters))
 				{
-					if (strpos($filtername, "-") > 0 || strpos($filtername, ".zip") > 0 || strpos($filtername, ".php") != strlen($filtername) - 4)
+					if (strpos($filtername, "-") > 0 || strpos($filtername, ".zip") > 0 || strpos($filtername, ".php") != JString::strlen($filtername) - 4)
 						continue;
 					$filterpath = $path."/".$filtername;
-					$filtername = substr($filtername, 0, strlen($filtername) - 4);
+					$filtername = JString::substr($filtername, 0, JString::strlen($filtername) - 4);
 					// skip special function filters
 					if ($filtername=="startdate" || $filtername=="Startdate")
 						continue;
@@ -121,7 +121,12 @@ class JFormFieldJevfilters extends JFormFieldText
 		$input .= '</div></td>
 			</tr></table>';
 
-		JHTML::script('modules/mod_jevents_filter/fields/filterSelect.js' );
+        // load core and extra mootools
+        JHTML::_('behavior.framework');
+        JHtmlBehavior::framework();
+        JHtmlBehavior::framework(true);
+
+		JEVHelper::script('modules/mod_jevents_filter/fields/filterSelect.js' );
 		
 		// Initialize some field attributes.
 		$size = $this->element['size'] ? ' size="' . (int) $this->element['size'] . '"' : '';

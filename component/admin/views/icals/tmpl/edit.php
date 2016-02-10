@@ -4,7 +4,7 @@
  *
  * @version     $Id: edit.php 3229 2012-01-30 12:06:34Z geraintedwards $
  * @package     JEvents
- * @copyright   Copyright (C)  2008-2009 GWE Systems Ltd
+ * @copyright   Copyright (C)  2008-2015 GWE Systems Ltd
  * @license     GNU/GPLv2, see http://www.gnu.org/licenses/gpl-2.0.html
  * @link        http://www.jevents.net
  */
@@ -99,19 +99,19 @@ $action = JFactory::getApplication()->isAdmin() ? "index.php" : "index.php?optio
 
         <div class="control-group">
             <div class="control-label">
-                <?php echo JText::_("Select_Default_Category"); ?>
+                <?php echo JText::_('JEV_EVENT_ACCESSLEVEL'); ?>
             </div>
             <div class="controls">
-                <?php echo JEventsHTML::buildCategorySelect($catid, "", null, $this->with_unpublished_cat, true, 0, 'catid'); ?>
+                <?php echo $glist; ?>
             </div>
         </div>
 
         <div class="control-group">
             <div class="control-label">
-                <?php echo JText::_('JEV_EVENT_ACCESSLEVEL'); ?>
+                <?php echo JText::_("JEV_FALLBACK_CATEGORY"); ?>
             </div>
             <div class="controls">
-                <?php echo $glist; ?>
+                <?php echo JEventsHTML::buildCategorySelect($catid, "", null, $this->with_unpublished_cat, true, 0, 'catid'); ?>
             </div>
         </div>
 
@@ -138,13 +138,14 @@ $action = JFactory::getApplication()->isAdmin() ? "index.php" : "index.php?optio
             </div>
         </div>
 
+        <?php if ($id==0) { ?>
         <ul class="nav nav-tabs" id="myicalTabs">
             <li  class="active"><a data-toggle="tab" href="#from_scratch"><?php echo JText::_("FROM_SCRATCH"); ?></a></li>
             <li ><a data-toggle="tab" href="#from_file"><?php echo JText::_("FROM_FILE"); ?></a></li>
             <li ><a data-toggle="tab" href="#from_url"><?php echo JText::_("FROM_URL"); ?></a></li>
         </ul>
-          
         <?php
+        }
         // Tabs
         echo JHtml::_('bootstrap.startPane', 'myicalTabs', array('active' => 'from_scratch'));
 
@@ -259,7 +260,7 @@ $action = JFactory::getApplication()->isAdmin() ? "index.php" : "index.php?optio
         echo JHtml::_('bootstrap.endPane', 'myicalTabs');
         ?>
         <input type="hidden" name="icsid" id="icsid"  <?php echo $disabled; ?> value="<?php echo $id; ?>"/>
-
+	<?php echo JHtml::_('form.token'); ?>
         <input type="hidden" name="boxchecked" value="0" />
         <input type="hidden" name="task" value="icals.edit" />
         <input type="hidden" name="option" value="<?php echo JEV_COM_COMPONENT; ?>" />

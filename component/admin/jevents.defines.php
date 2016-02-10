@@ -4,7 +4,7 @@
  *
  * @version     $Id: jevents.defines.php 3091 2011-12-11 10:01:05Z geraintedwards $
  * @package     JEvents
- * @copyright   Copyright (C)  2008-2009 GWE Systems Ltd
+ * @copyright   Copyright (C)  2008-2015 GWE Systems Ltd
  * @license     GNU/GPLv2, see http://www.gnu.org/licenses/gpl-2.0.html
  * @link        http://www.jevents.net
  */
@@ -24,7 +24,6 @@ if (!defined("JEV_LIBS")){
 	define("JEV_HELPERS",JEV_ADMINPATH."helpers/");
 	define("JEV_CONFIG",JEV_ADMINPATH."config/");
 	define("JEV_FILTERS",JEV_ADMINPATH."filters/");
-	define("JEV_LAYOUTS",JEV_ADMINPATH."layouts/");
 	define("JEV_VIEWS",JEV_ADMINPATH."views");
 }
 	JLoader::register('JSite' , JPATH_SITE.'/includes/application.php');
@@ -40,6 +39,7 @@ if (!defined("JEV_LIBS")){
 	
 	JLoader::register('JEVHelper',JEV_PATH."libraries/helper.php");
 	JLoader::register('JevModuleHelper',JEV_PATH."/libraries/jevmodulehelper.php"); 
+	JLoader::register('JevHtmlBootstrap' , JEV_PATH."libraries/bootstrap.php");
 	
 	JLoader::register('JEventsAbstractView',JEV_ADMINPATH."views/abstract/abstract.php");
 	
@@ -58,7 +58,7 @@ if (!defined("JEV_LIBS")){
 	JLoader::register('iCalEventDetail',JEV_PATH."libraries/iCalEventDetail.php");
 	JLoader::register('iCalICSFile',JEV_PATH."libraries/iCalICSFile.php");
 	JLoader::register('CsvToiCal',JEV_PATH."/libraries/csvToiCal.php");
-	
+
 	// TODO replace with JDate
 	JLoader::register('JEventDate',JEV_PATH."libraries/jeventdate.php");
 	JLoader::register('JevDate',JEV_PATH."/libraries/jevdate.php");
@@ -75,7 +75,7 @@ if (!defined("JEV_LIBS")){
 	JLoader::register('JToolbarButtonJevconfirm', JEV_ADMINPATH . "libraries/jevtoolbarbuttons.php");
 
 	//Joomla 2.5
-	JLoader::register('JButtonJev', JEV_ADMINPATH . "libraries/jevbuttons.php");
-	JLoader::register('JButtonJevlink', JEV_ADMINPATH . "libraries/jevbuttons.php");
-	JLoader::register('JButtonJevconfirm', JEV_ADMINPATH . "libraries/jevbuttons.php");
-	
+	//JLoader::register('JButtonJev', JEV_ADMINPATH . "libraries/jevbuttons.php");
+	//JLoader::register('JButtonJevlink', JEV_ADMINPATH . "libraries/jevbuttons.php");
+	//JLoader::register('JButtonJevconfirm', JEV_ADMINPATH . "libraries/jevbuttons.php");
+

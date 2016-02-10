@@ -5,7 +5,7 @@
  *
  * @version     $Id: view.html.php 3543 2012-04-20 08:17:42Z geraintedwards $
  * @package     JEvents
- * @copyright   Copyright (C)  2008-2009 GWE Systems Ltd
+ * @copyright   Copyright (C)  2008-2015 GWE Systems Ltd
  * @license     GNU/GPLv2, see http://www.gnu.org/licenses/gpl-2.0.html
  * @link        http://www.jevents.net
  */
@@ -32,24 +32,45 @@ class AdminCpanelViewCpanel extends JEventsAbstractView
 		$document = JFactory::getDocument();
 		$document->setTitle(JText::_('JEVENTS') . ' :: ' . JText::_('JEVENTS'));
 
-		// Set toolbar items for the page
+        // Set toolbar items for the page
 		JToolBarHelper::title(JText::_('JEVENTS') . ' :: ' . JText::_('JEVENTS'), 'jevents');
 
 		JEventsHelper::addSubmenu();
 
 		JHTML::_('behavior.tooltip');
 
-		if (JevJoomlaVersion::isCompatible("3.0"))
-		{
-			$this->sidebar = JHtmlSidebar::render();
-		}
-		else
-		{
-			$this->setLayout("cpanel25");
-		}
+		$this->sidebar = JHtmlSidebar::render();
+
+		$this->checkForAddons();
 
 		$this->setUpdateUrls();
 
+		$this->cleanupUpdateUrls();
+	}
+
+	protected function checkForAddons () {
+
+		$params = JComponentHelper::getParams(JEV_COM_COMPONENT);
+		if ($params->get("clubcode", "") && JString::strlen($params->get("clubcode", "")>20)){
+			return;
+		}
+
+		$db = JFactory::getDbo();
+		// find list of installed addons
+		$installed = 'element="com_jevlocations"  OR element="com_jeventstags"  OR element="com_jevpeople"  OR element="com_rsvppro" ';
+		$installed .= ' OR element="extplus"  OR element="ruthin"  OR element="iconic"  OR element="flatplus"   OR element="smartphone" OR element="float"';
+		// extend this list !!!
+		$installed .= " OR element in ('agendaminutes','jevcustomfields','jevfiles','jevhiddendetail','jevlocations','jevmetatags','jevnotify','jevpeople','jevrsvppro','jevrsvp','jevtags','jevtimelimit','jevusers','jevvalidgroups') " ;
+		$sql = 'SELECT element,extension_id FROM #__extensions  where  (
+		'.$installed.'
+		)';
+		$db->setQuery($sql);
+		$installed  =  $db->loadObjectList();
+
+		if (count($installed)){
+			JFactory::getApplication()->enqueueMessage(JText::_("JEV_SET_UPDATER_CODE")."<br/><br/>".JText::_("JEV_JOOMLA_UPDATE_CLUBCODE_INFO"), "warning");
+			return;
+		}
 	}
 
 	/**
@@ -68,8 +89,12 @@ class AdminCpanelViewCpanel extends JEventsAbstractView
 			$app->registeredurlparams = new stdClass();
 		}
 
-		$cache->get($this, 'renderJEventsNewsCached');
-
+		if (!JevJoomlaVersion::isCompatible("3.0")) {
+			$cache->get($this, 'renderJEventsNewsCached25');
+		}
+		else {
+			$cache->get($this, 'renderJEventsNewsCached');
+		}
 	}
 
 	function renderJEventsNewsCached()
@@ -78,8 +103,81 @@ class AdminCpanelViewCpanel extends JEventsAbstractView
 		$output = '';
 
 		//  get RSS parsed object
+
+		try
+		{
+			$feed = new JFeedFactory;
+			$rssDoc = $feed->getFeed('https://www.jevents.net/jevnews?format=feed&type=rss');
+		}
+		catch (InvalidArgumentException $e)
+		{
+			return JText::_('MOD_FEED_ERR_FEED_NOT_RETRIEVED');
+		}
+		catch (RunTimeException $e)
+		{
+			return JText::_('MOD_FEED_ERR_FEED_NOT_RETRIEVED');
+		}
+		catch (LogicException $e)
+		{
+			return JText::_('MOD_FEED_ERR_FEED_NOT_RETRIEVED');
+		}
+
+		if (empty($rssDoc))
+		{
+			return JText::_('MOD_FEED_ERR_FEED_NOT_RETRIEVED');
+		}
+		else
+		{
+// channel header and link
+			$title = str_replace(" ", "_", $rssDoc->title);
+			$link = $rssDoc->uri;
+
+			$output = '<table class="adminlist   table table-striped">';
+			$output .= '<tr><th><a href="' . $link . '" target="_blank">' . JText::_($title) . '</th></tr>';
+
+			$items = $rssDoc;
+			$numItems = 3;
+			if ($numItems == 0)
+			{
+				$output .= '<tr><th>' . JText::_('JEV_No_news') . '</th></tr>';
+			}
+			else
+			{
+				$k = 0;
+				for ($j = 0; $j < $numItems; $j++)
+				{
+					if (!isset($items[$j])) {
+						break;
+					}
+					$item = @$items[$j];
+					$output .= '<tr><td class="row' . $k . '">';
+					$output .= '<a href="' . $item->uri . '" target="_blank">' . $item->title . '</a>';
+					if ($item->content)
+					{
+						$description = $this->limitText($item->content, 50);
+						$output .= '<br />' . $description;
+					}
+					$output .= '</td></tr>';
+					$k = 1 - $k;
+				}
+			}
+
+			$output .= '</table>';
+		}
+		// do not return the output because of differences between J15 and J17
+		echo $output;
+
+	}
+
+
+	function renderJEventsNewsCached25()
+	{
+
+		$output = '';
+
+		//  get RSS parsed object
 		$options = array();
-		$options['rssUrl'] = 'http://www.jevents.net/jevnews?format=feed&type=rss';
+		$options['rssUrl'] = 'https://www.jevents.net/jevnews?format=feed&type=rss';
 		$options['cache_time'] = 0;
 
 		error_reporting(0);
@@ -141,15 +239,7 @@ class AdminCpanelViewCpanel extends JEventsAbstractView
 
 //  get RSS parsed object
 			$options = array();
-			// point Joomla 2.5+ users towards the new versions of everything
-			if (JevJoomlaVersion::isCompatible("2.5"))
-			{
-				$rssUrl = 'http://www.jevents.net/versions30.xml';
-			}
-			else
-			{
-				$rssUrl = 'http://www.jevents.net/versions.xml';
-			}
+			$rssUrl = 'https://www.jevents.net/versions30.xml';
 			$cache_time = 86400;
 
 			error_reporting(0);
@@ -487,7 +577,7 @@ class AdminCpanelViewCpanel extends JEventsAbstractView
 		  {
 		  $output .='"' . $appname . '"=> 0,' . "\n";
 		  }
-		  $output = substr($output, 0, strlen($output) - 2) . ");\n\n";
+		  $output = JString::substr($output, 0, JString::strlen($output) - 2) . ");\n\n";
 		 */
 		$criticaldata = JFile::read('http://ubu.jev20j16.com/importantversions.txt');
 		$criticaldata = explode("\n", $criticaldata);
@@ -504,8 +594,10 @@ class AdminCpanelViewCpanel extends JEventsAbstractView
 			"layout_extplus" => 3,
 			"layout_iconic" => 3,
 			"layout_ruthin" => 3,
+			"layout_flatplus" => 3,
 			"layout_smartphone" => 3,
 			"layout_map" => 3,
+            "layout_float" => 3,
 			"plugin_acymailing_tagjevents" => 41,
 			"plugin_community_jevents" => 7,
 			"plugin_content_jevcreator" => 34,
@@ -579,7 +671,7 @@ class AdminCpanelViewCpanel extends JEventsAbstractView
 			{
 				$row->criticalversion = $criticals[$appname];
 			}
-			$row->link = array_key_exists($appname, $catmapping) ? "http://www.jevents.net/downloads/category/" . $catmapping[$appname] : "";
+			$row->link = array_key_exists($appname, $catmapping) ? "https://www.jevents.net/downloads/category/" . $catmapping[$appname] : "";
 			if ($row->link == "")
 				continue;
 			$output .= "<item>\n<title>$appname</title>\n<description><![CDATA[" . json_encode($row) . "]]></description>\n</item>\n";
@@ -610,9 +702,16 @@ class AdminCpanelViewCpanel extends JEventsAbstractView
 		$app->version = $version->getShortVersion();
 		$apps[$app->name] = $app;
 
-// components (including JEvents)
-		$xmlfiles3 = array_merge(JFolder::files(JPATH_ADMINISTRATOR . "/components", "manifest\.xml", true, true), JFolder::files(JPATH_ADMINISTRATOR . "/components", "sh404sef\.xml", true, true), JFolder::files(JPATH_ADMINISTRATOR . "/components", "virtuemart\.xml", true, true), JFolder::files(JPATH_ADMINISTRATOR . "/components", "jce\.xml", true, true), JFolder::files(JPATH_ADMINISTRATOR . "/components", "jmailalerts\.xml", true, true), JFolder::files(JPATH_ADMINISTRATOR . "/components", "hikashop\.xml", true, true), JFolder::files(JPATH_ADMINISTRATOR . "/components", "jev_latestevents\.xml", true, true)
-		);
+		// TODO :  Can we do this from the database???
+		// components (including JEvents)
+		$xmlfiles3 = array_merge(
+				JFolder::files(JPATH_ADMINISTRATOR . "/components", "manifest\.xml", true, true),
+				JFolder::files(JPATH_ADMINISTRATOR . "/components", "sh404sef\.xml", true, true),
+				JFolder::files(JPATH_ADMINISTRATOR . "/components", "virtuemart\.xml", true, true),
+				JFolder::files(JPATH_ADMINISTRATOR . "/components", "jce\.xml", true, true),
+				JFolder::files(JPATH_ADMINISTRATOR . "/components", "jmailalerts\.xml", true, true),
+				JFolder::files(JPATH_ADMINISTRATOR . "/components", "hikashop\.xml", true, true),
+				JFolder::files(JPATH_ADMINISTRATOR . "/components", "jev_latestevents\.xml", true, true));
 		foreach ($xmlfiles3 as $manifest)
 		{
 			if (!$manifestdata = $this->getValidManifestFile($manifest))
@@ -731,6 +830,22 @@ class AdminCpanelViewCpanel extends JEventsAbstractView
 		$output = "<textarea rows='40' cols='80' class='versionsinfo'>[code]\n";
 		$output .= "PHP Version : " . phpversion() . "\n";
 		$output .= "MySQL Version : " .JFactory::getDbo()->getVersion(). "\n";
+		$output .= "Server Information : " . php_uname() . "\n";
+
+		$params = JComponentHelper::getParams(JEV_COM_COMPONENT);
+		if ($params->get("fixjquery", -1)==-1){
+			$output .= "*** CONFIG NOT SAVED*** \n";
+		}
+		$output .= "Fix jQuery? : " . ($params->get("fixjquery", 1)?"Yes":"No"). "\n";
+		$output .= "Load JEvents Bootstrap CSS? : " . ($params->get("bootstrapcss", 1)?"Yes":"No"). "\n";
+		$output .= "Load JEvents Bootstrap JS? : " . ($params->get("bootstrapjs", 1)?"Yes":"No"). "\n";
+		if (ini_get("max_input_vars")>0 && ini_get("max_input_vars")<=10000){
+			$output .= "Max Input Vars ? : " . ini_get("max_input_vars"). "\n";
+		}
+		$output .= "Club code set? : ".($params->get("clubcode", false) ? "Yes": "No")."  \n";
+		$server = new JInput($_SERVER);
+		$useragent = $server->get('HTTP_USER_AGENT',false,"string");
+		$output .= $useragent ? "User Agent : ".$useragent."  \n" : "";
 		foreach ($apps as $appname => $app)
 		{
 			$output .= "$appname : $app->version\n";
@@ -808,7 +923,13 @@ class AdminCpanelViewCpanel extends JEventsAbstractView
 
 		JToolBarHelper::title(JText::_('JEVENTS') . ' :: ' . JText::_('JEVENTS'), 'jevents');
 
-		JEventsHelper::addSubmenu();
+        JToolBarHelper::apply('cpanel.custom_css');
+        JToolBarHelper::cancel('cpanel.cpanel');
+
+     //   jimport('joomla.form.form');
+
+
+        JEventsHelper::addSubmenu();
 
 		$params = JComponentHelper::getParams(JEV_COM_COMPONENT);
 
@@ -873,10 +994,23 @@ class AdminCpanelViewCpanel extends JEventsAbstractView
 			// Silver - layouts
 			array("element"=>"extplus","name"=>"extplus","type"=>"file"),
 			array("element"=>"ruthin","name"=>"ruthin","type"=>"file"),
+			array("element"=>"flatplus","name"=>"flatplus","type"=>"file"),
 			array("element"=>"iconic","name"=>"iconic","type"=>"file"),
 			array("element"=>"map","name"=>"map","type"=>"file"),
 			array("element"=>"smartphone","name"=>"smartphone","type"=>"file"),
 			array("element"=>"zim","name"=>"zim","type"=>"file"),
+            array("element"=>"float","name"=>"float","type"=>"file"),
+
+			// These have been renamed in the XML file - need to be careful doing that!!!
+			array("element"=>"JEventsExtplusLayout","name"=>"extplus","type"=>"file"),
+			array("element"=>"JEventsRuthinLayout","name"=>"ruthin","type"=>"file"),
+			array("element"=>"JEventsFlatplusLayout","name"=>"flatplus","type"=>"file"),
+			array("element"=>"JEventsIconicLayout","name"=>"iconic","type"=>"file"),
+			array("element"=>"JEventsMapLayout","name"=>"map","type"=>"file"),
+			array("element"=>"JEventsSmartphoneLayout","name"=>"smartphone","type"=>"file"),
+			array("element"=>"JEventsZimLayout","name"=>"zim","type"=>"file"),
+            array("element"=>"JEventsFloatLayout","name"=>"float","type"=>"file"),
+
 			// Silver - Jevents Categories
 			array("element"=>"mod_jevents_categories","name"=>"mod_jevents_categories","type"=>"module"),
 			// Silver - Newsletters - some TODO
@@ -918,13 +1052,23 @@ class AdminCpanelViewCpanel extends JEventsAbstractView
 		);
 		// Do the language files for Joomla
 		$db = JFactory::getDbo();
-		$db->setQuery("SELECT * FROM #__extensions where type='file' AND element LIKE '%_JEvents'");
+		$db->setQuery("SELECT * FROM #__extensions where type='file' AND element LIKE '%_JEvents' AND element NOT LIKE '%_JEvents_Addons' ");
 		$translations = $db->loadObjectList();
 		foreach ($translations  as $translation){
+			if ($translation->name==""){
+				$translation->name="JEvents Translation - ".$translation->element;
+			}
 			//	array("element"=>"ar-AA_JEvents","name"=>"Arabic translation for JEvents","type"=>"file"),
 			$updates[]= array("element"=>$translation->element,"name"=>$translation->name,"type"=>"file");
 		}
 
+		$db->setQuery("SELECT * FROM #__extensions where type='file' AND element LIKE '%_JEvents_Addons' ");
+		$translations = $db->loadObjectList();
+		foreach ($translations  as $translation){
+			//	array("element"=>"ar-AA_JEvents","name"=>"Arabic translation for JEvents","type"=>"file"),
+			$elem = str_replace("_Addons", "Addons_", $translation->element);
+			$updates[]= array("element"=>$elem,"name"=>$translation->name,"type"=>"file");
+		}
 
 		foreach ($updates as $package)
 		{
@@ -944,19 +1088,35 @@ class AdminCpanelViewCpanel extends JEventsAbstractView
 		// Process the package
 		$db = JFactory::getDbo();
 		// Do we already have a record for the update URL for the component - we should remove this in JEvents 3.0!!
-		if ($folder=="") {
+		if ($folder=="" && $package['type']!="file"  && $package['type']!="module"  && $package['type']!="plugin")  {
 			$this->removeComponentUpdate($com);
 		}
 
+		static $extensiondata = false;
+		if (!$extensiondata){
+			$db->setQuery("select *, exn.extension_id as extension_id , exn.type as extension_type, exn.element as extension_element, exn.folder as extension_folder  from #__extensions as exn
+	LEFT JOIN #__update_sites_extensions as map on map.extension_id=exn.extension_id
+	LEFT JOIN #__update_sites as us on us.update_site_id=map.update_site_id");
+			$extensiondata = $db->loadObjectList('extension_id');
+		}
+
 		// Now check and setup the package update URL
-		$db->setQuery("select *, exn.extension_id as extension_id , exn.type as extension_type from #__extensions as exn
+		/*
+		$db->setQuery("select *, exn.extension_id as extension_id , exn.type as extension_type  from #__extensions as exn
 LEFT JOIN #__update_sites_extensions as map on map.extension_id=exn.extension_id
 LEFT JOIN #__update_sites as us on us.update_site_id=map.update_site_id
 where exn.type='$type'
 and exn.element='$pkg' and exn.folder='$folder'
 ");
-
 		$pkgupdate = $db->loadObject();
+		*/
+		$pkgupdate = false;
+		foreach ($extensiondata as $ed){
+			if ($ed->extension_type==$type && $ed->extension_element==$pkg && $ed->extension_folder==$folder){
+				$pkgupdate =  $ed;
+			}
+		}
+
 		// we have a package and an update record
 		if ($pkgupdate && $pkgupdate->update_site_id)
 		{
@@ -974,6 +1134,7 @@ and exn.element='$pkg' and exn.folder='$folder'
 			// No package installed so fall back to component and set it to update using the package URL :)
 
 			// Do we already have a record for the update URL for the component - we should remove this
+			/*
 			$db->setQuery("select *, exn.extension_id as extension_id  from #__extensions as exn
 	LEFT JOIN #__update_sites_extensions as map on map.extension_id=exn.extension_id
 	LEFT JOIN #__update_sites as us on us.update_site_id=map.update_site_id
@@ -981,6 +1142,15 @@ and exn.element='$pkg' and exn.folder='$folder'
 	and exn.element='$com'
 	");
 			$cpupdate = $db->loadObject();
+			*/
+			
+			$cpupdate = false;
+			foreach ($extensiondata as $ed){
+				if ($ed->extension_type=='component'  && $ed->extension_element==$com ){
+					$cpupdate =  $ed;
+				}
+			}
+
 			if ($cpupdate && $cpupdate->update_site_id)
 			{
 				$db->setQuery("DELETE FROM #__update_sites where update_site_id=" . $cpupdate->update_site_id);
@@ -997,6 +1167,50 @@ and exn.element='$pkg' and exn.folder='$folder'
 
 	}
 
+	// remove stray entries!
+	private function cleanupUpdateUrls() {
+
+		$version = new JEventsVersion();
+		$version = $version->get('RELEASE');
+		$version = str_replace(" ","",$version);
+		$domain = "www.jevents.net";
+
+		$db = JFactory::getDbo();
+		$db->setQuery("SELECT * FROM #__update_sites where location like '%jevents.net%' and location not like '%$version%'");
+		$strays = $db->loadObjectList('update_site_id');
+		if (count($strays)>0){
+			$db->setQuery("DELETE  FROM #__update_sites_extensions where update_site_id IN (".implode(", ", array_keys($strays)).")");
+			$db->query();
+			$db->setQuery("DELETE FROM #__update_sites where location like '%jevents.net%' and location not like '%$version%'");
+			$db->query();
+		}
+
+		// remove duplicate entries created by Joomla installer that assumes the updateserver will not change
+		//$db->setQuery('SELECT * FROM #__update_sites where location like "%www.jevents.net%/%/'.$package['element'].'-update-%.xml" ');
+		$db = JFactory::getDbo();
+		$db->setQuery('SELECT * FROM #__update_sites where location like "%www.jevents.net%/%/%-update-%.xml" order by update_site_id asc');
+		$cleanupRows = $db->loadObjectList('update_site_id');
+		if (count($cleanupRows)>1){
+			$strays = array();
+			$processed = array();
+			foreach ($cleanupRows as $update_site_id => $site){
+				$pgk = substr($site->location,  strrpos($site->location, "/")+1);
+				$pgk = substr($pgk,0,strrpos($pgk, "-update-"));
+				if (in_array($pgk, $processed)){
+					$strays[$update_site_id] = $pgk;
+				}
+				$processed[] = $pgk;
+			}
+			if (count($strays)>0){
+				$db->setQuery("DELETE  FROM #__update_sites_extensions where update_site_id IN (".implode(", ", array_keys($strays)).")");
+				$db->query();
+				$db->setQuery("DELETE FROM #__update_sites where location like '%jevents.net%' and update_site_id IN (".implode(", ", array_keys($strays)).")");
+				$db->query();
+			}
+		}
+
+	}
+
 	private
 			function removeComponentUpdate($com)
 	{
@@ -1005,13 +1219,16 @@ and exn.element='$pkg' and exn.folder='$folder'
 		$release = $version->get("RELEASE");
 
 		// Do we already have a record for the update URL for the component - we should remove this in JEvents 3.0!!
-		$db->setQuery("select * from #__extensions as exn
-	LEFT JOIN #__update_sites_extensions as map on map.extension_id=exn.extension_id
-	LEFT JOIN #__update_sites as us on us.update_site_id=map.update_site_id
-	where exn.type='component'
-	and exn.element='$com'
-	");
-		$cpupdate = $db->loadObject();
+		static $comdata = false;
+		if (!$comdata){
+				$db->setQuery("select * , exn.element as element from #__extensions as exn
+			LEFT JOIN #__update_sites_extensions as map on map.extension_id=exn.extension_id
+			LEFT JOIN #__update_sites as us on us.update_site_id=map.update_site_id
+			where exn.type='component'
+			");
+			$comdata = $db->loadObjectList('element');
+		}
+		$cpupdate = isset($comdata[$com]) ? $comdata[$com] : false;
 		if ($cpupdate && $cpupdate->update_site_id)
 		{
 			$db->setQuery("DELETE FROM #__update_sites where update_site_id=" . $cpupdate->update_site_id);
@@ -1043,8 +1260,17 @@ and exn.element='$pkg' and exn.folder='$folder'
 		//$domain = "ubu.jev20j16.com";
 		$domain = "www.jevents.net";
 
-		$extension  = JTable::getInstance("Extension");
-		$extension->load($pkgupdate->extension_id);
+		//$extension  = JTable::getInstance("Extension");
+		//$extension->load($pkgupdate->extension_id);
+
+		// Save DB queries!
+		static $extensiondata = false;
+		if (!$extensiondata ) {
+			$db->setQuery("Select * from #__extensions");
+			$extensiondata  = $db->loadObjectList('extension_id');
+		}
+
+		$extension = isset($extensiondata[$pkgupdate->extension_id]) ? $extensiondata[$pkgupdate->extension_id] : null;
 
 		// Packages are installed with client_id = 0 which stops the update from taking place to we update the extension to client_id=1
 		/*
@@ -1070,16 +1296,30 @@ and exn.element='$pkg' and exn.folder='$folder'
 				}
 			}
 			*/
-			$db->setQuery("UPDATE #__update_sites set name=".$db->quote(ucwords($extension->name)).", location=".$db->quote("http://$domain/updates/$clubcode/$extensionname-update-$version.xml")." WHERE update_site_id=".$pkgupdate->update_site_id);
-			$db->query();
-			echo $db->getErrorMsg();
+			if ($pkgupdate->name != ucwords($extension->name) || $pkgupdate->location != "https://$domain/updates/$clubcode/$extensionname-update-$version.xml"  || $pkgupdate->enabled != 1) {
+				$db->setQuery("UPDATE #__update_sites set name=".$db->quote(ucwords($extension->name)).", location=".$db->quote("https://$domain/updates/$clubcode/$extensionname-update-$version.xml").", enabled = 1 WHERE update_site_id=".$pkgupdate->update_site_id);
+				$db->query();
+				echo $db->getErrorMsg();
+			}
 		}
 		else {
 			$extensionname = str_replace(" ","_",$extension->element);
 			if ($extension->folder){
 				$extensionname = "plg_".$extension->folder."_".$extensionname;
 			}
-			$db->setQuery("INSERT INTO #__update_sites (name, type, location, enabled, last_check_timestamp) VALUES (".$db->quote(ucwords($extension->name)).",'extension',".$db->quote("http://$domain/updates/$clubcode/$extensionname-update-$version.xml").",'1','0')");
+
+			// Check data integrity and clean up if necessary
+			$db->setQuery("SELECT count(update_site_id) FROM #__update_sites_extensions WHERE extension_id = $pkgupdate->extension_id");
+			if ($db->loadResult()>0){
+
+				$db->setQuery("DELETE FROM #__update_sites  WHERE update_site_id in (SELECT update_site_id FROM #__update_sites_extensions WHERE extension_id = $pkgupdate->extension_id )");
+				$db->query();
+
+				$db->setQuery("DELETE FROM #__update_sites_extensions  WHERE extension_id = $pkgupdate->extension_id ");
+				$db->query();
+			}
+
+			$db->setQuery("INSERT INTO #__update_sites (name, type, location, enabled, last_check_timestamp) VALUES (".$db->quote(ucwords($extension->name)).",'extension',".$db->quote("https://$domain/updates/$clubcode/$extensionname-update-$version.xml").",'1','0')");
 			$db->query();
 			echo $db->getErrorMsg();
 			$id = $db->insertid();

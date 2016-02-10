@@ -4,7 +4,7 @@
  *
  * @version     $Id: icalevent.php 3549 2012-04-20 09:26:21Z geraintedwards $
  * @package     JEvents
- * @copyright   Copyright (C) 2008-2009 GWE Systems Ltd
+ * @copyright   Copyright (C) 2008-2015 GWE Systems Ltd
  * @license     GNU/GPLv2, see http://www.gnu.org/licenses/gpl-2.0.html
  * @link        http://www.jevents.net
  */
@@ -40,9 +40,10 @@ class ICalEventController extends AdminIcaleventController   {
 			$uri = JURI::getInstance();
 			$link = $uri->toString();
 			$comuser= version_compare(JVERSION, '1.6.0', '>=') ? "com_users":"com_user";
-			$link = 'index.php?option='.$comsser.'&view=login&return='.base64_encode($link);
+			$link = 'index.php?option='.$comuser.'&view=login&return='.base64_encode($link);
 			$link = JRoute::_($link, false);
 			$this->setRedirect($link,JText::_('JEV_LOGIN_TO_VIEW_EVENT'));
+			$this->redirect();
 			return;
 		}
 				
@@ -67,6 +68,12 @@ class ICalEventController extends AdminIcaleventController   {
 		$uid = urldecode((JRequest::getVar( 'uid', "" )));
 		list($year,$month,$day) = JEVHelper::getYMD();
 		$Itemid	= JEVHelper::getItemid();
+
+		// seth month and year to be used by mini-calendar if needed
+		if (isset($repeat)) {
+			if (!JRequest::getVar("month",0)) JRequest::setVar("month",$repeat->mup());
+			if (!JRequest::getVar("year",0)) JRequest::setVar("year",$repeat->yup());
+		}
 
 		$document = JFactory::getDocument();
 		$viewType	= $document->getType();
@@ -114,13 +121,15 @@ class ICalEventController extends AdminIcaleventController   {
 		if (!$is_event_editor || ($user->id==0 && JRequest::getInt("evid",0)>0)){
 			if ($user->id){
 				$this->setRedirect(JURI::root(),JText::_('JEV_NOTAUTH_CREATE_EVENT'));
-				//JError::raiseError( 403, JText::_( 'ALERTNOTAUTH' ) );
+				$this->redirect();
+				//throw new Exception( JText::_('ALERTNOTAUTH'), 403);
 			}
 			else {
 				$uri = JURI::getInstance();
 				$link = $uri->toString();
 				$comuser= version_compare(JVERSION, '1.6.0', '>=') ? "com_users":"com_user";
 				$this->setRedirect(JRoute::_("index.php?option=$comuser&view=login&return=".base64_encode($link)),JText::_('JEV_NOTAUTH_CREATE_EVENT'));
+				$this->redirect();
 			}
 			return;
 		}
@@ -135,7 +144,8 @@ class ICalEventController extends AdminIcaleventController   {
 		// Must be at least an event creator to edit or create events
 		$is_event_editor = JEVHelper::isEventCreator();
 		if (!$is_event_editor){
-			JError::raiseError( 403, JText::_( 'ALERTNOTAUTH' ) );
+			throw new Exception( JText::_('ALERTNOTAUTH'), 403);
+			return false;
 		}
 		$this->editCopy = true;
 
@@ -150,7 +160,8 @@ class ICalEventController extends AdminIcaleventController   {
 		// Must be at least an event creator to save events
 		$is_event_editor = JEVHelper::isEventCreator();
 		if (!$is_event_editor){
-			JError::raiseError( 403, JText::_( 'ALERTNOTAUTH' ) );
+			throw new Exception( JText::_('ALERTNOTAUTH'), 403);
+			return false;
 		}
 		parent::save();
 	}
@@ -159,7 +170,8 @@ class ICalEventController extends AdminIcaleventController   {
 		// Must be at least an event creator to save events
 		$is_event_editor = JEVHelper::isEventCreator();
 		if (!$is_event_editor){
-			JError::raiseError( 403, JText::_( 'ALERTNOTAUTH' ) );
+			throw new Exception( JText::_('ALERTNOTAUTH'), 403);
+			return false;
 		}
 		parent::apply();
 	}

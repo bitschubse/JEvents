@@ -4,7 +4,7 @@
  *
  * @version     $Id: saveIcalEvent.php 3548 2012-04-20 09:25:43Z geraintedwards $
  * @package     JEvents
- * @copyright   Copyright (C) 2008-2009 GWE Systems Ltd, 2006-2008 JEvents Project Group
+ * @copyright   Copyright (C) 2008-2015 GWE Systems Ltd, 2006-2008 JEvents Project Group
  * @license     GNU/GPLv2, see http://www.gnu.org/licenses/gpl-2.0.html
  * @link        http://www.jevents.net
  */
@@ -162,7 +162,8 @@ class SaveIcalEvent {
 			// I should be able to do this in one operation but that can come later
 			$testevent = $queryModel->listEventsById( intval($rp_id), 1, "icaldb" );
 			if (!JEVHelper::canEditEvent($testevent)){
-				JError::raiseError( 403, JText::_( 'ALERTNOTAUTH' ) );
+				throw new Exception( JText::_('ALERTNOTAUTH'), 403);
+				return false;
 			}
 		}
 
@@ -303,6 +304,10 @@ public static function generateRRule($array){
 			
 		}
 		$rrule["INTERVAL"] = $interval;
+		$rrule["IRREGULARDATES"] =  JArrayHelper::getValue( $array,  "irregularDates",array(),"ARRAY");
+		array_walk($rrule["IRREGULARDATES"], function(& $item, $index ){
+			$item = JevDate::strtotime($item." 00:00:00");
+			});
 	}
 
 	$whichby			= JArrayHelper::getValue( $array,  "whichby","bd");
@@ -336,13 +341,13 @@ public static function generateRRule($array){
 			if (count($weeknums)==0){
 				// special case for weekly repeats which don't specify eeek of a month
 				foreach ($weekdays as $wd) {
-					if (strlen($byday)>0) $byday.=",";
+					if (JString::strlen($byday)>0) $byday.=",";
 					$byday .= $weekdayReverseMap[$wd];
 				}
 			}
 			foreach ($weeknums as $week){
 				foreach ($weekdays as $wd) {
-					if (strlen($byday)>0) $byday.=",";
+					if (JString::strlen($byday)>0) $byday.=",";
 					$byday .= $bd_direction.$week.$weekdayReverseMap[$wd];
 				}
 			}

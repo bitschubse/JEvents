@@ -4,7 +4,7 @@
  *
  * @version     $Id: csvLine.php 3285 2012-02-21 14:56:25Z geraintedwards $
  * @package     JEvents
- * @copyright   Copyright (C) 2008-2010 GWE Systems Ltd, 2006-2008 JEvents Project Group
+ * @copyright   Copyright (C) 2008-2015 GWE Systems Ltd, 2006-2008 JEvents Project Group
  * @license     GNU/GPLv2, see http://www.gnu.org/licenses/gpl-2.0.html
  * @link        http://www.jevents.net
  */
@@ -32,6 +32,7 @@ class CsvLine {
     var $timezone;
     var $rrule;
     var $noendtime;
+    var $multiday;
     var $cf;
     /**
      * default constructor with manatory parameters
@@ -111,6 +112,14 @@ class CsvLine {
         $this->noendtime = intval($noendtime);
     }
 
+    public function getMultiday() {
+        return $this->multiday;
+    }
+
+    public function setMultiday($multiday) {
+        $this->multiday = intval($multiday);
+    }
+
 	public function Customfield($cf, $col) {
         $this->cf[$col] = $cf;
     }
@@ -173,8 +182,9 @@ class CsvLine {
         $ical .= "UID:".$this->getUid()."\n"
                ."CATEGORIES:".$this->categories."\n"
                ."SUMMARY:".$this->summary."\n"
-               ."DTSTART".$this->timezoneoutput().":".$this->datetimeToIcsFormat($this->dtstart)."\n"
-               ."DTEND".$this->timezoneoutput().":".$this->datetimeToIcsFormat($this->dtend)."\n";
+               ."DTSTART".$this->timezoneoutput().":".$this->datetimeToIcsFormat($this->dtstart)."\n";
+
+	if($this->dtend != "") $ical .= "DTEND".$this->timezoneoutput().":".$this->datetimeToIcsFormat($this->dtend)."\n";
         if($this->dtstamp != "") $ical .= "DTSTAMP:".$this->datetimeToUtcIcsFormat($this->dtstamp)."\n";
         if($this->location != "") $ical .= "LOCATION:".$this->location."\n";
         if($this->description != "") $ical .= "DESCRIPTION:".$this->description."\n";
@@ -182,6 +192,7 @@ class CsvLine {
         if($this->extraInfo != "") $ical .= "X-EXTRAINFO:".$this->extraInfo."\n";
         if($this->rrule != "") $ical .= "RRULE:".$this->rrule."\n";
         if($this->noendtime!= "") $ical .= "NOENDTIME:".$this->noendtime."\n";
+        if($this->multiday!= "") $ical .= "MULTIDAY:".$this->multiday."\n";
 
 	if (count($this->cf)>0){
 		foreach($this->cf as $key => $cf){
@@ -223,8 +234,13 @@ class CsvLine {
      * @return converted datetime in iCal format
      */
     private function datetimeToIcsFormat($datetime) {
-		$datetime = JevDate::strtotime($datetime);
-        return date("Ymd", $datetime)."T".date("His", $datetime);
+		$newdatetime = JevDate::strtotime($datetime);
+		$tempdate = new JevDate($newdatetime);
+	if (JString::strlen($datetime)<=10 && $tempdate->toFormat("%H:%M:%S")=="00:00:00"){
+		// in this case we have not time element so don't set it otherwise iCal import will think a time is actually set and not process all day or no end time events correctly
+		return date("Ymd", $newdatetime);
+	}
+        return date("Ymd", $newdatetime)."T".date("His", $newdatetime);
     }
 
 	private function timezoneoutput(){

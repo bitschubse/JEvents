@@ -4,7 +4,7 @@
  *
  * @version     $Id: jevmenu.php 3157 2012-01-05 13:12:19Z geraintedwards $
  * @package     JEvents
- * @copyright   Copyright (C) 2008-2009 GWE Systems Ltd
+ * @copyright   Copyright (C) 2008-2015 GWE Systems Ltd
  * @license     GNU/GPLv2, see http://www.gnu.org/licenses/gpl-2.0.html
  * @link        http://www.jevents.net
  */
@@ -29,14 +29,12 @@ class JFormFieldJEVmenu extends JFormFieldList
 		JLoader::register('JEVHelper', JPATH_SITE . "/components/com_jevents/libraries/helper.php");
 		JEVHelper::ConditionalFields($this->element, $this->form->getName());
 
-		if (JevJoomlaVersion::isCompatible("3.0"))
-		{
-			JEVHelper::stylesheet('eventsadmin.css', 'components/' . JEV_COM_COMPONENT . '/assets/css/');
+		if (!defined("JEV_COM_COMPONENT")){
+			define("JEV_COM_COMPONENT","com_jevents");
+			define("JEV_COMPONENT",str_replace("com_","",JEV_COM_COMPONENT));
 		}
-		else
-		{
-			JEVHelper::stylesheet('eventsadmin16.css', 'components/' . JEV_COM_COMPONENT . '/assets/css/');
-		}
+
+		JEVHelper::stylesheet('eventsadmin.css', 'components/' . JEV_COM_COMPONENT . '/assets/css/');
 
 		return parent::getInput();
 	}

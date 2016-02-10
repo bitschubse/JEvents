@@ -4,7 +4,7 @@
  *
  * @version     $Id: Category.php 3542 2012-04-20 08:17:05Z geraintedwards $
  * @package     JEvents
- * @copyright   Copyright (C) 2008-2009 GWE Systems Ltd
+ * @copyright   Copyright (C) 2008-2015 GWE Systems Ltd
  * @license     GNU/GPLv2, see http://www.gnu.org/licenses/gpl-2.0.html
  * @link        http://www.jevents.net
  */
@@ -118,17 +118,41 @@ class jevCategoryFilter extends jevFilter
 		$filterList["title"]=JText::_("Select_Category");
 
 		if ($allowAutoSubmit){
-			$filterList["html"] = JEventsHTML::buildCategorySelect( $filter_value, 'onchange="if ($(\'catidsfv\')) $(\'catidsfv\').value=this.value;submit(this.form)" ',$this->allAccessibleCategories,false,false,0,$this->filterType.'_fv' );
+			$filterList["html"] = JEventsHTML::buildCategorySelect( $filter_value, 'onchange="if (document.getElementById(\'catidsfv\')) document.getElementById(\'catidsfv\').value=this.value;submit(this.form)" ',$this->allAccessibleCategories,false,false,0,$this->filterType.'_fv' );
 		}
 		else {
-			$filterList["html"] = JEventsHTML::buildCategorySelect( $filter_value, 'onchange="if ($(\'catidsfv\')) $(\'catidsfv\').value=this.value;" ',$this->allAccessibleCategories,false,false,0,$this->filterType.'_fv' );
+			$filterList["html"] = JEventsHTML::buildCategorySelect( $filter_value, 'onchange="if (document.getElementById(\'catidsfv\')) document.getElementById(\'catidsfv\').value=this.value;" ',$this->allAccessibleCategories,false,false,0,$this->filterType.'_fv' );
 		}
-		//$script = "function reset".$this->filterType."_fvs(){document.getElements('option',\$('".$this->filterType."_fv')).each(function(item){item.selected=(item.value==0)?true:false;})};\n";
-		//$script .= "try {JeventsFilters.filters.push({action:'reset".$this->filterType."_fvs()',id:'".$this->filterType."_fv',value:".$this->filterNullValue."});} catch (e) {}\n";
 		// try/catch  incase this is called without a filter module!
-		$script = "try {JeventsFilters.filters.push({id:'".$this->filterType."_fv',value:0});} catch (e) {}\n";
-		$script .= "function reset".$this->filterType."_fvs(){document.getElements('option',\$('".$this->filterType."_fv')).each(function(item){item.selected=(item.value==0)?true:false;})};\n";
-		$script .= "try {JeventsFilters.filters.push({action:'reset".$this->filterType."_fvs()',id:'".$this->filterType."_fv',value:".$this->filterNullValue."});} catch (e) {}\n";
+		$script = <<<SCRIPT
+try {
+	JeventsFilters.filters.push(
+		{
+			id:'{$this->filterType}_fv',
+			value:0
+		}
+	);
+}
+catch (e) {}
+function reset{$this->filterType}_fvs(){
+	if (document.getElementById('catidsfv')) {
+		document.getElementById('catidsfv').value=0;
+	}
+	jQuery('#{$this->filterType}_fv option').each(function(idx, item){
+		item.selected=(item.value==0)?true:false;
+	})
+};
+try {
+	JeventsFilters.filters.push(
+		{
+			action:'reset{$this->filterType}_fvs()',
+			id:'{$this->filterType}_fv',
+			value:{$this->filterNullValue}
+		}
+	);
+}
+catch (e) {}
+SCRIPT;
 		
 		$document = JFactory::getDocument();
 		$document->addScriptDeclaration($script);

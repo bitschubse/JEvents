@@ -4,7 +4,7 @@
  *
  * @version     $Id: overview.php 3548 2012-04-20 09:25:43Z geraintedwards $
  * @package     JEvents
- * @copyright   Copyright (C)  2008-2009 GWE Systems Ltd
+ * @copyright   Copyright (C)  2008-2015 GWE Systems Ltd
  * @license     GNU/GPLv2, see http://www.gnu.org/licenses/gpl-2.0.html
  * @link        http://www.jevents.net
  */
@@ -25,16 +25,17 @@ if (isset($this->message) && $this->message != null)
 	<?php
 }
 $url = JRoute::_("index.php?option=" . $option);
+$mainspan = 10;
+ $fullspan = 12;
 ?>
-<form action="<?php echo $url; ?>" method="post" name="adminForm"  id="adminForm">
-		<?php if (!empty($this->sidebar)) : ?>
-		<div id="j-sidebar-container" class="span2">
+<?php if (!empty($this->sidebar)) : ?>
+<div id="j-sidebar-container" class="span2">
 	<?php echo $this->sidebar; ?>
-		</div>
-		<div id="j-main-container" class="span10">
-			<?php else : ?>
-			<div id="j-main-container">
-<?php endif; ?>
+</div>
+ <?php endif; ?>
+
+<form action="<?php echo $url; ?>" method="post" name="adminForm"  id="adminForm">
+		<div id="j-main-container" class="span<?php echo (!empty($this->sidebar)) ? $mainspan : $fullspan; ?>  ">
 			<div id="overDiv" style="position:absolute; visibility:hidden; z-index:10000;"></div>
 			<div id="jevuser">
 
@@ -317,7 +318,7 @@ $url = JRoute::_("index.php?option=" . $option);
 			</div>
 		</div>
 </form>
-<?php JEVHelper::loadOverlib(); ?>
+
 <script  type="text/javascript">
 	function submitbutton(pressbutton) {
 		var form = document.getElementsByName ('adminForm');

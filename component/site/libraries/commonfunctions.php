@@ -4,7 +4,7 @@
  *
  * @version     $Id: commonfunctions.php 3549 2012-04-20 09:26:21Z geraintedwards $
  * @package     JEvents
- * @copyright   Copyright (C) 2008-2009 GWE Systems Ltd, 2006-2008 JEvents Project Group
+ * @copyright   Copyright (C) 2008-2015 GWE Systems Ltd, 2006-2008 JEvents Project Group
  * @license     GNU/GPLv2, see http://www.gnu.org/licenses/gpl-2.0.html
  * @link        http://www.jevents.net
  */
@@ -26,12 +26,12 @@ class JEV_CommonFunctions {
 		if (!isset($jEventsView)){
 			$cfg = JEVConfig::getInstance();
 			// priority of view setting is url, cookie, config,
-			$jEventsView = $cfg->get('com_calViewName',"geraint");
+			$jEventsView = $cfg->get('com_calViewName',"flat");
 			$jEventsView = JRequest::getString("jevents_view",$jEventsView,"cookie");
 			$jEventsView = JRequest::getString("jEV",$jEventsView);
 			// security check
 			if (!in_array($jEventsView, JEV_CommonFunctions::getJEventsViewList() )){
-				$jEventsView = "geraint";
+				$jEventsView = "flat";
 			}
 		}
 		return $jEventsView ;
@@ -128,6 +128,9 @@ class JEV_CommonFunctions {
 
 		}
 
+		if ($color==""){
+			$color="#ccc";
+		}
 		//$color = $row->useCatColor ? ( $row->catid > 0 ) ? $catData[$row->catid]->color : '#333333' : $row->color_bar;
 		return $color;
 	}
@@ -190,7 +193,7 @@ class JEV_CommonFunctions {
 	}
 
 	public static function jEventsDoLink($url="",$alt="alt",$attr=array()){
-		if (strlen($url)==0) $url="javascript:void(0)";
+		if (JString::strlen($url)==0) $url="javascript:void(0)";
 		$link = "<a href='".$url."' ";
 		if (count($attr)>0) {
 			foreach ($attr as $key=>$val){
@@ -357,6 +360,7 @@ class JEV_CommonFunctions {
 		$messagetemplate = str_replace("{TITLE}", $title,$messagetemplate);
 		$messagetemplate = str_replace("{DESCRIPTION}", $content,$messagetemplate);
 		if ($event){
+			$messagetemplate = str_replace("{CATEGORY}", $event->catname(),$messagetemplate);
 			//$messagetemplate = str_replace("{EXTRA}", $event->extra_info(),$messagetemplate);
 		}
 		$messagetemplate = str_replace("{LIVESITE}", $live_site,$messagetemplate);
@@ -381,6 +385,12 @@ class JEV_CommonFunctions {
 				$mail->addCC($jevadminuser->email);
 			}
 		}
+
+		/**
+		 *
+		 * TODO - pass message through layout template processor
+		 *
+		 */
 
 		if ($event){
 			$dispatcher     = JDispatcher::getInstance();

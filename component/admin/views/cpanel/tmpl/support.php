@@ -4,38 +4,22 @@
  *
  * @version     $Id: cpanel.php 3119 2011-12-20 14:34:33Z geraintedwards $
  * @package     JEvents
- * @copyright   Copyright (C)  2008-2009 GWE Systems Ltd
+ * @copyright   Copyright (C)  2008-2015 GWE Systems Ltd
  * @license     GNU/GPLv2, see http://www.gnu.org/licenses/gpl-2.0.html
  * @link        http://www.jevents.net
  */
 defined('_JEXEC') or die('Restricted access');
+$mainspan = 10;
+ $fullspan = 12;
 ?>
-<div id="jevents">
-	<?php if (isset($this->warning))
-	{
-		?>
-		<dl id="system-message">
-			<dt class="notice">Message</dt>
-			<dd class="notice fade">
-				<ul>
-					<li><?php echo $this->warning; ?></li>
-				</ul>
-			</dd>
-		</dl>   	
-		<?php
-	}
-	?>
-
-	<form action="index.php" method="post" name="adminForm" id="adminForm">
-			<?php if (!empty($this->sidebar)) : ?>
-			<div id="j-sidebar-container" class="span2">
+<?php if (!empty($this->sidebar)) : ?>
+<div id="j-sidebar-container" class="span2">
 	<?php echo $this->sidebar; ?>
-			</div>
-			<div id="j-main-container" class="span10">
-				<?php else : ?>
-				<div id="j-main-container">
-<?php endif; ?>
-
+</div>
+ <?php endif; ?>
+<div id="jevents">
+	<form action="index.php" method="post" name="adminForm" id="adminForm">
+		<div id="j-main-container" class="span<?php echo (!empty($this->sidebar)) ? $mainspan : $fullspan; ?>  ">
 				<table border="0" cellpadding="2" cellspacing="2" class="adminform">
 
 					<tr>

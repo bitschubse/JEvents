@@ -4,7 +4,7 @@
  *
  * @version     $Id: iCalICSFile.php 3474 2012-04-03 13:40:53Z geraintedwards $
  * @package     JEvents
- * @copyright   Copyright (C) 2008-2009 GWE Systems Ltd, 2006-2008 JEvents Project Group
+ * @copyright   Copyright (C) 2008-2015 GWE Systems Ltd, 2006-2008 JEvents Project Group
  * @license     GNU/GPLv2, see http://www.gnu.org/licenses/gpl-2.0.html
  * @link        http://www.jevents.net
  */
@@ -119,14 +119,21 @@ RAWTEXT;
 			$temp->access = intval(JEVHelper::getBaseAccess());
 		}
 		if (false !== stripos($uploadURL, 'webcal://')){
-			$headers = get_headers('https://' . $uploadURL);
-			if ($headers[0] == 'HTTP/1.1 200 OK') {
-				$uploadURL = str_replace('webcal://', 'https://', $uploadURL);
+			$headers = @get_headers( $uploadURL);
+			if ($headers && $headers[0] == 'HTTP/1.1 200 OK') {
+				$uploadURL = $uploadURL;
 			}
 			else {
-				$uploadURL = str_replace('webcal://', 'http://', $uploadURL);
+				$headers = get_headers( str_replace('webcal://', 'https://', $uploadURL));
+				if ($headers && $headers[0] == 'HTTP/1.1 200 OK') {
+					$uploadURL = str_replace('webcal://', 'https://', $uploadURL);
+				}
+				else {
+					$uploadURL = str_replace('webcal://', 'http://', $uploadURL);
+				}
 			}
-		}		
+		}
+
 		$urlParts = parse_url($uploadURL);
 		$pathParts = pathinfo($urlParts['path']);
 		/*
@@ -219,7 +226,9 @@ RAWTEXT;
 	 * @param int $catid - forced category for the underlying events
 	 */
 	function store($catid=false , $cleanup=true , $flush =true) {
-
+		@ini_set("memory_limit","256M");
+		@ini_set("max_execution_time","300");
+		
 		// clean out the cache
 		$cache = JFactory::getCache('com_jevents');
 		$cache->clean(JEV_COM_COMPONENT);
@@ -261,10 +270,10 @@ RAWTEXT;
 
 		// insert the data - this will need to deal with multiple rrule values
 		foreach ($this->_icalInfo->vevents as & $vevent) {
-			
+
 			if (!$vevent->isCancelled() && !$vevent->isRecurrence()){
 				// if existing category then use it
-				if (!$this->ignoreembedcat && strlen($vevent->_detail->categories)>0){
+				if (!$this->ignoreembedcat && JString::strlen($vevent->_detail->categories)>0){
 					$evcat = explode(",",$vevent->_detail->categories);
 					if (count($evcat)>0) {
 						include_once(JEV_ADMINLIBS."categoryClass.php");
@@ -282,7 +291,7 @@ RAWTEXT;
 							}
 						}
 						// must reset  the list of categories now
-						$sql = "SELECT * FROM #__categories WHERE extension='com_jevents'";						
+						$sql = "SELECT * FROM #__categories WHERE extension='com_jevents'";
 						$db->setQuery($sql);
 						$categories = $db->loadObjectList('title');
 
@@ -294,7 +303,7 @@ RAWTEXT;
 							}							
 						}
 						else {
-							$vevent->catid =  $categories[$evcat[0]]->id;							
+							$vevent->catid =  $categories[trim($evcat[0])]->id;
 						}
 					}
 				}
@@ -391,7 +400,7 @@ RAWTEXT;
 
 			if (!is_null($vevent) && ($vevent->isCancelled() || $vevent->isRecurrence())){
 				// if existing category then use it
-				if (strlen($vevent->_detail->categories)>0){
+				if (JString::strlen($vevent->_detail->categories)>0){
 					if (count($evcat)>0) {
 						include_once(JEV_ADMINLIBS."categoryClass.php");
 						foreach ($evcat as $ct){
@@ -473,7 +482,7 @@ RAWTEXT;
 				$db->setQuery( $query);
 				$db->query();
 
-				if (strlen($detailidstring)>0){
+				if (JString::strlen($detailidstring)>0){
 					$query = "DELETE FROM #__jevents_vevdetail WHERE evdet_id IN ($detailidstring)";
 					$db->setQuery( $query);
 					$db->query();
@@ -495,7 +504,7 @@ RAWTEXT;
 
 	// find if icsFile already imported
 	function isDuplicate(){
-		$sql = "SELECT ics_id from #__jevents_icsfile as ics WHERE ics.label = '" . addcslashes($this->label, '\'') . "'";
+		$sql = "SELECT ics_id from #__jevents_icsfile as ics WHERE ics.label = " . $this->_db->quote($this->label) ;
 		$this->_db->setQuery($sql);
 		$matches = $this->_db->loadObjectList();
 		if (count($matches)>0 && isset($matches[0]->ics_id)) {
@@ -555,7 +564,7 @@ RAWTEXT;
 				$db->setQuery( $query);
 				$db->query();
 
-				if (strlen($detailidstring)>0){
+				if (JString::strlen($detailidstring)>0){
 					$query = "DELETE FROM #__jevents_vevdetail WHERE evdet_id IN ($detailidstring)";
 					$db->setQuery( $query);
 					$db->query();
@@ -579,7 +588,7 @@ RAWTEXT;
 
 			if (!$vevent->isCancelled() && !$vevent->isRecurrence()){
 				// if existing category then use it
-				if (!$this->ignoreembedcat && strlen($vevent->_detail->categories)>0){
+				if (!$this->ignoreembedcat && JString::strlen($vevent->_detail->categories)>0){
 					$evcat = explode(",",$vevent->_detail->categories);
 					if (count($evcat)>0 && array_key_exists($evcat[0],$categories)){
 						if ($params->get("multicategory",0) && count($evcat)>1){
@@ -587,6 +596,10 @@ RAWTEXT;
 							foreach ($evcat as $ct){
 								$vevent->catid[] =  $categories[$ct]->id;
 							}							
+						}
+						if ($params->get("multicategory",0) && count($evcat)==1){
+							$vevent->catid = array();
+							$vevent->catid[] =  $categories[$evcat[0]]->id;
 						}
 						else {
 							$vevent->catid =  $categories[$evcat[0]]->id;							
@@ -665,7 +678,7 @@ RAWTEXT;
 		foreach ($this->_icalInfo->vevents as $vevent) {
 			if (!is_null($vevent) && ($vevent->isCancelled() || $vevent->isRecurrence())){
 				// if existing category then use it
-				if (strlen($vevent->_detail->categories)>0){
+				if (JString::strlen($vevent->_detail->categories)>0){
 					$evcat = explode(",",$vevent->_detail->categories);
 					if (count($evcat)>0 && array_key_exists($evcat[0],$categories)){
 						if ($params->get("multicategory",0) && count($evcat)>1){

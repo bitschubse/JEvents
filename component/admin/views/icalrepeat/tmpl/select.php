@@ -4,7 +4,7 @@
  *
  * @version     $Id: select.php 3548 2012-04-20 09:25:43Z geraintedwards $
  * @package     JEvents
- * @copyright   Copyright (C)  2008-2009 GWE Systems Ltd
+ * @copyright   Copyright (C)  2008-2015 GWE Systems Ltd
  * @license     GNU/GPLv2, see http://www.gnu.org/licenses/gpl-2.0.html
  * @link        http://www.jevents.net
  */
@@ -52,7 +52,7 @@ $function	= JRequest::getCmd('function', 'jSelectEvent');
 			?>
 			<tr class="row<?php echo $k; ?>">
 				<td width="30%">
-					<a href="#select" onclick="return window.parent.<?php echo $function;?>('<?php echo $link;?>','<?php echo addslashes(htmlspecialchars($repeat->title()));?>' , $('Itemid')?$('Itemid').value:0 , <?php echo $repeat->ev_id();?>, <?php echo $repeat->rp_id();?>)" title="<?php echo JText::_('JEV_SELECT_Repeat'); ?>"><?php echo $row->title(); ?></a>				</td>
+					<a href="#select" onclick="return window.parent.<?php echo $function;?>('<?php echo $link;?>','<?php echo addslashes(htmlspecialchars($repeat->title()));?>' , (jQuery('#Itemid').length?jQuery('#Itemid').val():0) , <?php echo $repeat->ev_id();?>, <?php echo $repeat->rp_id();?>)" title="<?php echo JText::_('JEV_SELECT_Repeat'); ?>"><?php echo $row->title(); ?></a>				</td>
 				<td width="40%">
 					<?php
 					$times = '<table style="border: 1px solid #666666; width:100%;">';

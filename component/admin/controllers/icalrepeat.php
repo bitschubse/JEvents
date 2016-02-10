@@ -4,7 +4,7 @@
  *
  * @version     $Id: icalrepeat.php 3576 2012-05-01 14:11:04Z geraintedwards $
  * @package     JEvents
- * @copyright   Copyright (C) 2008-2009 GWE Systems Ltd,2006-2008 JEvents Project Group
+ * @copyright   Copyright (C) 2008-2015 GWE Systems Ltd,2006-2008 JEvents Project Group
  * @license     GNU/GPLv2, see http://www.gnu.org/licenses/gpl-2.0.html
  * @link        http://www.jevents.net
  */
@@ -135,6 +135,13 @@ class AdminIcalrepeatController extends JControllerLegacy
 	{
 		// get the view
 		$this->view = $this->getView("icalrepeat", "html");
+ 
+                // Get/Create the model
+		if ($model = $this->getModel("icalevent", "icaleventsModel"))
+		{
+			// Push the model into the view (as default)
+			$this->view->setModel($model, true);
+		}
 
 		$db = JFactory::getDBO();
 		$cid = JRequest::getVar('cid', array(0));
@@ -146,7 +153,8 @@ class AdminIcalrepeatController extends JControllerLegacy
 
 		if (!JEVHelper::isEventCreator())
 		{
-			JError::raiseError(403, JText::_('ALERTNOTAUTH'));
+			throw new Exception( JText::_('ALERTNOTAUTH'), 403);
+			return false;
 		}
 
 		// front end passes the id as evid
@@ -177,22 +185,10 @@ class AdminIcalrepeatController extends JControllerLegacy
 
 		if (!JEVHelper::canEditEvent($row))
 		{
-			JError::raiseError(403, JText::_('ALERTNOTAUTH'));
+			throw new Exception( JText::_('ALERTNOTAUTH'), 403);
+			return false;
 		}
 
-		/*
-		  $db = JFactory::getDBO();
-		  // get list of groups
-		  $query = "SELECT id AS value, name AS text"
-		  . "\n FROM #__groups"
-		  . "\n ORDER BY id"	;
-		  $db->setQuery( $query );
-		  $groups = $db->loadObjectList();
-
-		  // build the html select list
-		  $glist = JHTML::_('select.genericlist', $groups, 'access', 'class="inputbox" size="1"',
-		  'value', 'text', intval( $row->access() ) );
-		 */
 		$glist = JEventsHTML::buildAccessSelect(intval($row->access()), 'class="inputbox" size="1"');
 
 		// For repeats don't offer choice of ical or category
@@ -253,25 +249,51 @@ class AdminIcalrepeatController extends JControllerLegacy
 		$msg = JText::_("Event_Saved", true);
 		if (JFactory::getApplication()->isAdmin())
 		{
-			$this->setRedirect('index.php?option=' . JEV_COM_COMPONENT . '&task=icalrepeat.list&cid[]=' . $rpt->eventid, "ICal rpt and new details saved");
+			$this->setRedirect('index.php?option=' . JEV_COM_COMPONENT . '&task=icalrepeat.list&cid[]=' . $rpt->eventid, "".JText::_("JEV_ICAL_RPT_DETAILS_SAVED")."");
+			$this->redirect();
 		}
 		else
 		{
+			$popupdetail = JPluginHelper::getPlugin("jevents", "jevpopupdetail");
+			if ($popupdetail) {
+				$pluginparams = new JRegistry($popupdetail->params);
+				$popupdetail = $pluginparams->get("detailinpopup",1);
+				if ($popupdetail) {
+					$popupdetail = "&pop=1&tmpl=component";
+				}
+				else {
+					$popupdetail = "";
+				}
+			}
+			else {
+				$popupdetail = "";
+			}
+                    
 			list($year, $month, $day) = JEVHelper::getYMD();
 			$params = JComponentHelper::getParams(JEV_COM_COMPONENT);
 			if ($params->get("editpopup", 0))
 			{
-				ob_end_clean();
-				?>
-				<script type="text/javascript">
-					//window.parent.SqueezeBox.close();
-					window.parent.alert("<?php echo $msg; ?>");
-					window.parent.location="<?php echo JRoute::_('index.php?option=' . JEV_COM_COMPONENT . "&task=icalrepeat.detail&evid=" . $rpt->rp_id . "&Itemid=" . JEVHelper::getItemid() . "&year=$year&month=$month&day=$day", false); ?>";
-				</script>
-				<?php
-				exit();
+                            $link = JRoute::_('index.php?option=' . JEV_COM_COMPONENT . "&task=icalrepeat.detail&evid=" . $rpt->rp_id . "&Itemid=" . JEVHelper::getItemid() . "&year=$year&month=$month&day=$day$popupdetail", false);
+                            $msg = JText::_("JEV_ICAL_RPT_UPDATED",true );    
+                            if ($popupdetail!=""){
+                                    // redirect to event detail page within popup window
+                                    $this->setRedirect($link, $msg);
+				$this->redirect();
+                                    return;
+                            }
+                            else {
+                                ob_end_clean();
+                                ?>
+                                <script type="text/javascript">
+                                        window.parent.alert("<?php echo $msg; ?>");
+                                        window.parent.location="<?php echo $link; ?>";
+                                </script>
+                                <?php
+                                exit();
+                            }
 			}
-			$this->setRedirect('index.php?option=' . JEV_COM_COMPONENT . "&task=icalrepeat.detail&evid=" . $rpt->rp_id . "&Itemid=" . JEVHelper::getItemid() . "&year=$year&month=$month&day=$day", "ICal rpt updated");
+			$this->setRedirect('index.php?option=' . JEV_COM_COMPONENT . "&task=icalrepeat.detail&evid=" . $rpt->rp_id . "&Itemid=" . JEVHelper::getItemid() . "&year=$year&month=$month&day=$day", "".JText::_("JEV_ICAL_RPT_UPDATED")."");
+			$this->redirect();
 		}
 
 	}
@@ -286,6 +308,7 @@ class AdminIcalrepeatController extends JControllerLegacy
 		if (JFactory::getApplication()->isAdmin())
 		{
 			$this->setRedirect('index.php?option=' . JEV_COM_COMPONENT . "&task=icalrepeat.edit&evid=" . $rpt->rp_id . "&Itemid=" . JEVHelper::getItemid(), $msg);
+			$this->redirect();
 		}
 		else
 		{
@@ -304,6 +327,7 @@ class AdminIcalrepeatController extends JControllerLegacy
 			}
 			// return to the event repeat
 			$this->setRedirect(JRoute::_('index.php?option=' . JEV_COM_COMPONENT . "&task=icalrepeat.edit&evid=" . $rpt->rp_id . "&year=$year&month=$month&day=$day&Itemid=" . JEVHelper::getItemid(), false), $msg);
+			$this->redirect();
 		}
 
 	}
@@ -395,7 +419,8 @@ class AdminIcalrepeatController extends JControllerLegacy
 	{
 		if (!JEVHelper::isEventCreator())
 		{
-			JError::raiseError(403, JText::_('ALERTNOTAUTH'));
+			throw new Exception( JText::_('ALERTNOTAUTH'), 403);
+			return false;
 		}
 
 		// clean out the cache
@@ -417,7 +442,8 @@ class AdminIcalrepeatController extends JControllerLegacy
 		$event = $this->queryModel->listEventsById(intval($rp_id), 1, "icaldb");
 		if (!JEVHelper::canEditEvent($event))
 		{
-			JError::raiseError(403, JText::_('ALERTNOTAUTH'));
+			throw new Exception( JText::_('ALERTNOTAUTH'), 403);
+			return false;
 		}
 
 		$db = JFactory::getDBO();
@@ -433,6 +459,9 @@ class AdminIcalrepeatController extends JControllerLegacy
 		$data["X-EXTRAINFO"] = JRequest::getVar("extra_info", "");
 		$data["LOCATION"] = JRequest::getVar("location", "");
 		$data["allDayEvent"] = JRequest::getVar("allDayEvent", "off");
+                if ($data["allDayEvent"]==1){
+                    $data["allDayEvent"] = "on";
+                }
 		$data["CONTACT"] = JRequest::getVar("contact_info", "");
 		// allow raw HTML (mask =2)
 		$data["DESCRIPTION"] = JRequest::getVar("jevcontent", "", 'request', 'html', 2);
@@ -555,11 +584,13 @@ class AdminIcalrepeatController extends JControllerLegacy
 	function savefuture()
 	{
 		// experimentaal code disabled for count (startthe time being
-		JError::raiseError(403, JText::_('ALERTNOTAUTH'));
+		throw new Exception( JText::_('ALERTNOTAUTH'), 403);
+		return false;
 
 		if (!JEVHelper::isEventCreator())
 		{
-			JError::raiseError(403, JText::_('ALERTNOTAUTH'));
+			throw new Exception( JText::_('ALERTNOTAUTH'), 403);
+			return false;
 		}
 
 		// clean out the cache
@@ -574,7 +605,7 @@ class AdminIcalrepeatController extends JControllerLegacy
 		{
 			if (strpos($key, "_") == 0)
 			{
-				$data[substr($key, 1)] = $val;
+				$data[JString::substr($key, 1)] = $val;
 			}
 		}
 		echo var_export($data, true);
@@ -644,13 +675,15 @@ class AdminIcalrepeatController extends JControllerLegacy
 
 		if (JFactory::getApplication()->isAdmin())
 		{
-			$this->setRedirect('index.php?option=' . JEV_COM_COMPONENT . '&task=icalrepeat.list&cid[]=' . $rpt->eventid, "ICal rpt and new details saved");
+			$this->setRedirect('index.php?option=' . JEV_COM_COMPONENT . '&task=icalrepeat.list&cid[]=' . $rpt->eventid, "".JText::_("JEV_ICAL_RPT_UPDATED")."");
+			$this->redirect();
 		}
 		else
 		{
 			list($year, $month, $day) = JEVHelper::getYMD();
 			$rettask = JRequest::getString("rettask", "day.listevents");
-			$this->setRedirect('index.php?option=' . JEV_COM_COMPONENT . "&task=$rettask&evid=" . $rpt->rp_id . "&Itemid=" . JEVHelper::getItemid() . "&year=$year&month=$month&day=$day", "ICal rpt updated");
+			$this->setRedirect('index.php?option=' . JEV_COM_COMPONENT . "&task=$rettask&evid=" . $rpt->rp_id . "&Itemid=" . JEVHelper::getItemid() . "&year=$year&month=$month&day=$day", "".JText::_("JEV_ICAL_RPT_UPDATED")."");
+			$this->redirect();
 		}
 
 	}
@@ -660,7 +693,14 @@ class AdminIcalrepeatController extends JControllerLegacy
 		ob_end_clean();
 		?>
 		<script type="text/javascript">
-			window.parent.SqueezeBox.close();
+			try {
+				window.parent.jQuery('#myEditModal').modal('hide');
+			}
+			catch (e){}
+			try {
+				window.parent.SqueezeBox.close();
+			}
+			catch (e){}
 			try {
 				window.parent.closedialog();
 			}
@@ -679,7 +719,8 @@ class AdminIcalrepeatController extends JControllerLegacy
 
 		if (!JEVHelper::isEventCreator())
 		{
-			JError::raiseError(403, JText::_('ALERTNOTAUTH'));
+			throw new Exception( JText::_('ALERTNOTAUTH'), 403);
+			return false;
 		}
 
 		$cid = JRequest::getVar('cid', array(0));
@@ -699,7 +740,8 @@ class AdminIcalrepeatController extends JControllerLegacy
 			$event = $this->queryModel->listEventsById(intval($id), 1, "icaldb");
 			if (!JEVHelper::canDeleteEvent($event))
 			{
-				JError::raiseError(403, JText::_('ALERTNOTAUTH'));
+				throw new Exception( JText::_('ALERTNOTAUTH'), 403);
+				return false;
 			}
 
 			// May want to send notification messages etc.
@@ -750,12 +792,14 @@ class AdminIcalrepeatController extends JControllerLegacy
 		if (JFactory::getApplication()->isAdmin())
 		{
 			$this->setRedirect("index.php?option=" . JEV_COM_COMPONENT . "&task=icalrepeat.list&cid[]=" . $data->eventid, "ICal Repeat deleted");
+			$this->redirect();
 		}
 		else
 		{
 			$Itemid = JRequest::getInt("Itemid");
 			list($year, $month, $day) = JEVHelper::getYMD();
 			$this->setRedirect(JRoute::_('index.php?option=' . JEV_COM_COMPONENT . "&task=day.listevents&year=$year&month=$month&day=$day&Itemid=$Itemid", false), "ICal Repeat deleted");
+			$this->redirect();
 		}
 
 	}
@@ -769,7 +813,8 @@ class AdminIcalrepeatController extends JControllerLegacy
 
 		if (!JEVHelper::isEventCreator())
 		{
-			JError::raiseError(403, JText::_('ALERTNOTAUTH'));
+			throw new Exception( JText::_('ALERTNOTAUTH'), 403);
+			return false;
 		}
 
 		$this->_deleteFuture();
@@ -778,12 +823,14 @@ class AdminIcalrepeatController extends JControllerLegacy
 		if (JFactory::getApplication()->isAdmin())
 		{
 			$this->setRedirect("index.php?option=" . JEV_COM_COMPONENT . "&task=icalrepeat.list&cid[]=" . $repeatdata->eventid, "ICal Repeats deleted");
+			$this->redirect();
 		}
 		else
 		{
 			$Itemid = JRequest::getInt("Itemid");
 			list($year, $month, $day) = JEVHelper::getYMD();
 			$this->setRedirect(JRoute::_('index.php?option=' . JEV_COM_COMPONENT . "&task=day.listevents&year=$year&month=$month&day=$day&Itemid=$Itemid"), "Ical Repeats Deleted");
+			$this->redirect();
 		}
 
 	}
@@ -803,7 +850,8 @@ class AdminIcalrepeatController extends JControllerLegacy
 			$event = $this->queryModel->listEventsById(intval($id), 1, "icaldb");
 			if (!JEVHelper::canDeleteEvent($event))
 			{
-				JError::raiseError(403, JText::_('ALERTNOTAUTH'));
+				throw new Exception( JText::_('ALERTNOTAUTH'), 403);
+				return false;
 			}
 
 			$query = "SELECT * FROM #__jevents_repetition WHERE rp_id=$id";
@@ -812,7 +860,7 @@ class AdminIcalrepeatController extends JControllerLegacy
 			$repeatdata = $db->loadObject();
 			if (is_null($repeatdata))
 			{
-				JError::raiseError(4777, JText::_('NO_SUCH_EVENT'));
+				throw new Exception( JText::_('NO_SUCH_EVENT'), 4777);
 				return;
 			}
 
@@ -893,7 +941,7 @@ class AdminIcalrepeatController extends JControllerLegacy
 					$exception->bind(get_object_vars($data));
 				}
 				$exception->exception_type = 0; // deleted
-				$exception->store();
+                $exception->store();
 			}
 			$query = "DELETE FROM #__jevents_repetition WHERE eventid=" . $repeatdata->eventid . " AND startrepeat>='" . $repeatdata->startrepeat . "'";
 			$db->setQuery($query);

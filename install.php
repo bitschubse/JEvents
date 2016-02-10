@@ -3,10 +3,10 @@
 /**
  * JEvents Component for Joomla 2.5.x
  *
- * @version     3.1.27
- * @releasedate June 2014
+ * @version     3.4.0
+ * @releasedate January 2015
  * @package     JEvents
- * @copyright   Copyright (C) 2008-2012 GWE Systems Ltd, 2006-2008 JEvents Project Group
+ * @copyright   Copyright (C) 2008-2015 GWE Systems Ltd, 2006-2008 JEvents Project Group
  * @license     GNU/GPLv2, see http://www.gnu.org/licenses/gpl-2.0.html
  * @link        http://www.jevents.net
  */
@@ -24,12 +24,17 @@ class Pkg_JeventsInstallerScript
 		// Joomla! broke the update call, so we have to create a workaround check.
 		$db = JFactory::getDbo();
 		$db->setQuery("SELECT enabled FROM #__extensions WHERE element = 'com_jevents'");
-                                 $is_enabled = $db->loadResult();   
+	        $is_enabled = $db->loadResult();
+
 		if (!$is_enabled){
 			$this->hasJEventsInst = 0;
 			return;
 		} else {
 			$this->hasJEventsInst = 1;
+			if (version_compare(JVERSION, '3.0', '<')){
+				Jerror::raiseWarning(null, 'This version of JEvents is desgined for Joomla 3.4.0 and later.<br/>Please update Joomla before upgrading JEvents to this version' );
+				return false;
+			}
 			return;
 		}
 	}
@@ -96,8 +101,8 @@ class Pkg_JeventsInstallerScript
 				<div class='proceed'> 
 					<ul>
 						<li><a href='index.php?option=com_jevents&task=params.edit' alt='JEvents Configuration'><img src='components/com_jevents/assets/images/jevents_config_sml.png' alt='Configuration Page' /><br/> Configuration</a><br/></li>
-						<li><a href='http://www.jevents.net/forum' alt='JEvents Forum'><img src='components/com_jevents/assets/images/support_forum.jpg' alt='JEvents Forum' /><br/>Support Forums</a><br/></li>
-						<li><a href='http://www.jevents.net/jevents-15-topmenu/documentation' alt='JEvents Documentation'><img src='components/com_jevents/assets/images/documentation.jpg' alt='JEvents Documentation' /><br/>Documentation</a></li>
+						<li><a href='https://www.jevents.net/forum' alt='JEvents Forum'><img src='components/com_jevents/assets/images/support_forum.jpg' alt='JEvents Forum' /><br/>Support Forums</a><br/></li>
+						<li><a href='https://www.jevents.net/docs/jevents' alt='JEvents Documentation'><img src='components/com_jevents/assets/images/documentation.jpg' alt='JEvents Documentation' /><br/>Documentation</a></li>
 					</ul>
 				</div>";
 
@@ -130,7 +135,45 @@ class Pkg_JeventsInstallerScript
 			$query = "UPDATE #__extensions SET enabled=1 WHERE folder='search' and type='plugin' and element='eventsearch'";
 			$db->setQuery($query);
 			$db->query();
+                        
+                        // Enable new JEvents Plugin
+                        $query = "UPDATE #__extensions SET enabled=1 WHERE folder='content' and type='plugin' and element='jevents'";
+ 			$db->setQuery($query);
+ 			$db->query();
+
+                        // Enable JSON Plugin
+                        $query = "UPDATE #__extensions SET enabled=1 WHERE folder='system' and type='plugin' and element='gwejson'";
+ 			$db->setQuery($query);
+ 			$db->query();
+
 		}
+		else {
+			jimport( 'joomla.filesystem.file' );
+			// Ok Flatplus clean up to remove helpers
+			$file1 = JPATH_SITE . '/components/com_jevents/views/flatplus/helpers/flatplusloadedfromtemplate.php';
+			$file2 = JPATH_SITE . '/components/com_jevents/views/flatplus/helpers/flatpluseventmanagementdialog.php';
+			$file3 = JPATH_SITE . '/components/com_jevents/views/flatplus/helpers/flatplusicaldialog.php';
+
+			if (JFile::exists($file1)) JFile::delete($file1);
+			if (JFile::exists($file2)) JFile::delete($file2);
+			if (JFile::exists($file3)) JFile::delete($file3);
+
+			$file4 = JPATH_SITE . '/components/com_jevents/libraries/checkconflict.php';
+			if (JFile::exists($file4)) JFile::delete($file4);
+
+			// Lets make sure our Core plugin is enabled..
+			$db = JFactory::getDbo();
+			$query = "UPDATE #__extensions SET enabled=1 WHERE folder='content' and type='plugin' and element='jevents'";
+			$db->setQuery($query);
+			$db->query();
+
+                        // Enable JSON Plugin
+                        $query = "UPDATE #__extensions SET enabled=1 WHERE folder='system' and type='plugin' and element='gwejson'";
+ 			$db->setQuery($query);
+ 			$db->query();
+
+		}
+
 		echo "</div>";
 
 	}

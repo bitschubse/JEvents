@@ -4,7 +4,7 @@
  *
  * @version     $Id: edit.php 3543 2012-04-20 08:17:42Z geraintedwards $
  * @package     JEvents
- * @copyright   Copyright (C)  2008-2009 GWE Systems Ltd
+ * @copyright   Copyright (C)  2008-2015 GWE Systems Ltd
  * @license     GNU/GPLv2, see http://www.gnu.org/licenses/gpl-2.0.html
  * @link        http://www.jevents.net
  */
@@ -17,22 +17,40 @@ define("EDITING_JEVENT", 1);
 $params = JComponentHelper::getParams(JEV_COM_COMPONENT);
 // get configuration object
 $cfg = JEVConfig::getInstance();
+$assoc = false && JLanguageAssociations::isEnabled()  && JFactory::getApplication()->isAdmin() ;
 
 // Load Bootstrap
-JHtml::_('behavior.framework', true);
-JHtml::_('bootstrap.framework');
+JevHtmlBootstrap::framework();
 JHtml::_('behavior.keepalive');
-JHtml::_('behavior.tooltip');
 JHtml::_('behavior.calendar');
 //JHtml::_('behavior.formvalidation');
 if ($params->get("bootstrapchosen", 1))
 {
 	JHtml::_('formbehavior.chosen', '#jevents select:not(.notchosen)');
+	// Use this as a basis for setting the primary category
+	/*
+	JHtml::_('jquery.ui', array("core","sortable"));
+	$script = <<< SCRIPT
+window.setTimeout(function() {
+	jQuery("#catid").chosen().change(
+		function() {
+			if (jQuery("#catid_chzn li.search-choice")) {
+				jQuery("#catid_chzn li.search-choice").on('mousedown', function() {
+					alert(this);
+					return true;
+				});
+			}
+		}
+	);
+}, 1000);
+SCRIPT;
+	JFactory::getDocument()->addScriptDeclaration($script);
+	 */
 }
 if ($params->get("bootstrapcss", 1)==1)
 {
 	// This version of bootstrap has maximum compatability with JEvents due to enhanced namespacing
-	JHTML::stylesheet("components/com_jevents/assets/css/bootstrap.css");
+	JHTML::stylesheet("com_jevents/bootstrap.css", array(), true);
 }
 else if ($params->get("bootstrapcss", 1)==2)
 {
@@ -41,9 +59,14 @@ else if ($params->get("bootstrapcss", 1)==2)
 
 // use JRoute to preseve language selection
 $action = JFactory::getApplication()->isAdmin() ? "index.php" : JRoute::_("index.php?option=" . JEV_COM_COMPONENT . "&Itemid=" . JEVHelper::getItemid());
+
+$user = JFactory::getUser();
+$accesslevels = $user->getAuthorisedViewLevels();
+$accesslevels = "jeval".implode(" jeval", array_unique($accesslevels));
+
 ?>
 <div id="jevents" <?php
-echo (!JFactory::getApplication()->isAdmin() && $params->get("darktemplate", 0)) ? "class='jeventsdark'" : "";
+echo (!JFactory::getApplication()->isAdmin() && $params->get("darktemplate", 0)) ? "class='jeventsdark $accesslevels'" : "class='$accesslevels' ";
 ?> >
 	<form action="<?php echo $action; ?>" method="post" name="adminForm" enctype='multipart/form-data' id="adminForm"   class="form-horizontal jevbootstrap" >
 		<?php
@@ -79,11 +102,27 @@ echo (!JFactory::getApplication()->isAdmin() && $params->get("darktemplate", 0))
 			?>
 		</div>
 		<?php
-		if ($params->get("checkclashes", 0) || $params->get("noclashes", 0))
+
+		if (  $params->get("checkconflicts", 0))
 		{
 			?>
 			<div id='jevoverlapwarning'>
 				<div><?php echo JText::_("JEV_OVERLAPPING_EVENTS_WARNING"); ?></div>
+				<?php
+				// event deletors get the right to override this
+				if (JEVHelper::isEventDeletor(true) && JText::_("JEV_OVERLAPPING_EVENTS_OVERRIDE")!= "JEV_OVERLAPPING_EVENTS_OVERRIDE"){
+					?>
+				<div>
+					<strong>
+						<label><?php echo  JText::_("JEV_OVERLAPPING_EVENTS_OVERRIDE"); ?>
+							<!-- not checked by default !!! //-->
+							<input type="checkbox" name="overlapoverride" value="1" />
+						</label>
+					</strong>
+				</div>
+					<?php
+				}
+				?>
 				<div id="jevoverlaps"></div>
 			</div>
 			<?php
@@ -169,11 +208,24 @@ echo (!JFactory::getApplication()->isAdmin() && $params->get("darktemplate", 0))
 					return;
 				}
 				var form = document.adminForm;
-				var editorElement = $('jevcontent');
-				if (editorElement)
+				var editorElement = jevjq('#jevcontent');
+				if (editorElement.length)
 				{
 					<?php
-					echo $this->editor->save('jevcontent');
+					$editorcontent = $this->editor->save('jevcontent');
+					if (!$editorcontent ) {
+						// These are problematic editors like JCKEditor that don't follow the Joomla coding patterns !!!
+						$editorcontent = $this->editor->getContent('jevcontent');
+						echo "var editorcontent =".$editorcontent."\n";
+						?>
+						try {
+							jevjq('#jevcontent').html(editorcontent);
+						}
+						catch (e) {
+						}
+						<?php 
+					}
+					echo $editorcontent;
 					?>
 				}
 				try {
@@ -197,11 +249,9 @@ echo (!JFactory::getApplication()->isAdmin() && $params->get("darktemplate", 0))
 				else if (form.valid_dates.value == "0") {
 					alert("<?php echo JText::_("JEV_INVALID_DATES", true); ?>");
 				}
+				 else {
 
-
- else {
-
-					if (editorElement)
+					if (editorElement.length)
 					{
 <?php
 // in case editor is toggled off - needed for TinyMCE
@@ -211,12 +261,11 @@ echo $this->editor->save('jevcontent');
 <?php
 // Do we have to check for conflicting events i.e. overlapping times etc. BUT ONLY FOR EVENTS INITIALLY
 $params = JComponentHelper::getParams(JEV_COM_COMPONENT);
-if ($params->get("checkclashes", 0) || $params->get("noclashes", 0))
+if (  $params->get("checkconflicts", 0) )
 {
 	$checkURL = JURI::root() . "components/com_jevents/libraries/checkconflict.php";
-	if (JEVHelper::getItemid()>0){
-		$checkURL .=  "?Itemid=".JEVHelper::getItemid();
-	}
+	$urlitemid = JEVHelper::getItemid()>0 ?  "&Itemid=".JEVHelper::getItemid() : "";
+	$checkURL = JRoute::_("index.php?option=com_jevents&ttoption=com_jevents&typeaheadtask=gwejson&file=checkconflict&token=". JSession::getFormToken().$urlitemid, false);
 	?>
 						// reformat start and end dates  to Y-m-d format
 						reformatStartEndDates();
@@ -251,7 +300,7 @@ else
 		$this->blanktags[] = "";
 		?>
 
-		<div class="adminform form-horizontal" >
+		<div class="adminform" >
 			<?php
 			if (!$cfg->get('com_single_pane_edit', 0))
 			{
@@ -271,11 +320,19 @@ else
 						{
 							foreach ($this->extraTabs as $extraTab)
 							{
+								if (trim($extraTab['content'])=="") {
+									continue;
+								}
 								?>
 								<li ><a data-toggle="tab" href="#<?php echo $extraTab['paneid'] ?>"><?php echo $extraTab['title']; ?></a></li>
 								<?php
 							}
 						}
+					}
+					if ($assoc){
+						?>
+						<li ><a data-toggle="tab" href="#associations"><?php echo JText::_('COM_JEVENTS_ITEM_ASSOCIATIONS_FIELDSET_LABEL', true); ?></a></li>
+						<?php
 					}
 					?>
 				</ul>
@@ -285,9 +342,11 @@ else
 				echo JHtml::_('bootstrap.addPanel', 'myEditTabs', "common");
 			}
 			?>
-			<div class="control-group jevtitle">
-				<?php echo $this->form->getLabel("title"); ?>
-				<div class="controls">
+			<div class="row jevtitle">
+				<div class="span2">
+					<?php echo $this->form->getLabel("title"); ?>
+				</div>
+				<div class="span10">
 					<?php echo str_replace("/>", " data-placeholder='xx' />", $this->form->getInput("title")); ?>
 				</div>
 			</div>
@@ -295,9 +354,11 @@ else
 			if ($this->form->getInput("priority"))
 			{
 				?>
-				<div class="control-group jevpriority">
-					<?php echo $this->form->getLabel("priority"); ?>
-					<div class="controls">
+				<div class="row jevpriority">
+					<div class="span2">
+						<?php echo $this->form->getLabel("priority"); ?>
+					</div>
+					<div class="span10">
 						<?php echo $this->form->getInput("priority"); ?>
 					</div>
 				</div>
@@ -308,33 +369,43 @@ else
 			if ($this->form->getInput("creator"))
 			{
 				?>
-				<div class="control-group jevcreator">
-					<?php echo $this->form->getLabel("creator"); ?>
-					<div class="controls">
+				<div class="row jevcreator">
+					<div class="span2">
+						<?php echo $this->form->getLabel("creator"); ?>
+					</div>
+					<div class="span10">
 						<?php echo $this->form->getInput("creator"); ?>
 					</div>
 				</div>
 				<?php
 			}
 
-			if ($this->form->getInput("ics_id"))
+			// This could be hidden!
+			if ($this->form->getLabel("ics_id"))
 			{
 				?>
-				<div class="control-group jevcalendar">
-					<?php echo $this->form->getLabel("ics_id"); ?>
-					<div class="controls">
+				<div class="row jevcalendar">
+					<div class="span2">
+						<?php echo $this->form->getLabel("ics_id"); ?>
+					</div>
+					<div class="span10">
 						<?php echo $this->form->getInput("ics_id"); ?>
 					</div>
 				</div>
 				<?php
 			}
+			else {
+				echo $this->form->getInput("ics_id");
+			}
 
 			if ($this->form->getInput("lockevent"))
 			{
 				?>
-				<div class="control-group jevlockevent">
-					<?php echo $this->form->getLabel("lockevent"); ?>
-					<div class="controls radio btn-group">
+				<div class="row jevlockevent">
+					<div class="span2">
+						<?php echo $this->form->getLabel("lockevent"); ?>
+					</div>
+					<div class="span10 radio btn-group">
 						<?php echo $this->form->getInput("lockevent"); ?>
 					</div>
 				</div>
@@ -344,14 +415,17 @@ else
 			if ($this->form->getLabel("catid"))
 			{
 				?>
-				<div class="control-group  jevcategory">
+				<div class="row  jevcategory">
 					<?php
 					if ($this->form->getLabel("catid"))
 					{
-						echo $this->form->getLabel("catid");
 						?>
-
-						<div class="controls jevcategory">
+						<div class="span2">
+							<?php
+							echo $this->form->getLabel("catid");
+							?>
+						</div>
+						<div class="span10 jevcategory">
 							<?php echo $this->form->getInput("catid"); ?>
 						</div>
 						<?php
@@ -362,13 +436,17 @@ else
 			}
 			if (  $this->form->getLabel("access") ){
 				?>
-				<div class="control-group  jevaccess">
+				<div class="row  jevaccess">
 					<?php
 					if ($this->form->getLabel("access"))
 					{
-						echo $this->form->getLabel("access");
 						?>
-						<div class="controls accesslevel ">
+						<div class="span2">
+							<?php
+							echo $this->form->getLabel("access");
+							?>
+						</div>
+						<div class="span10 accesslevel ">
 							<?php echo $this->form->getInput("access"); ?>
 						</div>
 						<?php
@@ -381,9 +459,11 @@ else
 			if ($this->form->getLabel("state"))
 			{
 				?>
-				<div class="control-group jevpublished">
-					<?php echo $this->form->getLabel("state"); ?>
-					<div class="controls">
+				<div class="row jevpublished">
+					<div class="span2">
+						<?php echo $this->form->getLabel("state"); ?>
+					</div>
+					<div class="span10">
 						<?php echo $this->form->getInput("state"); ?>
 					</div>
 				</div>
@@ -398,9 +478,11 @@ else
 			if ($this->form->getInput("color"))
 			{
 				?>
-				<div class="control-group jevcolour">
-					<?php echo $this->form->getLabel("color"); ?>
-					<div class="controls">
+				<div class="row jevcolour">
+					<div class="span2">
+						<?php echo $this->form->getLabel("color"); ?>
+					</div>
+					<div class="span10">
 						<?php echo $this->form->getInput("color"); ?>
 					</div>
 				</div>
@@ -419,27 +501,35 @@ else
 			}
 			?>
 
-			<div class="control-group jev_description">
-				<?php echo $this->form->getLabel("jevcontent"); ?>
-				<div class="controls" id='jeveditor' >
+			<div class="row jev_description">
+				<div class="span2">
+					<?php echo $this->form->getLabel("jevcontent"); ?>
+				</div>
+				<div class="span10" id='jeveditor' >
 					<?php echo $this->form->getInput("jevcontent"); ?>
 				</div>
 			</div>
-			<div class="control-group jeveditlocation" id="jeveditlocation">
-				<?php echo $this->form->getLabel("location"); ?>
-				<div class="controls" >
+			<div class="row jeveditlocation" id="jeveditlocation">
+				<div class="span2">
+					<?php echo $this->form->getLabel("location"); ?>
+				</div>
+				<div class="span10" >
 					<?php echo $this->form->getInput("location"); ?>
 				</div>
 			</div>
-			<div class="control-group jev_contact">
-				<?php echo $this->form->getLabel("contact_info"); ?>
-				<div class="controls" >
+			<div class="row jev_contact">
+				<div class="span2">
+					<?php echo $this->form->getLabel("contact_info"); ?>
+				</div>
+				<div class="span10" >
 					<?php echo $this->form->getInput("contact_info"); ?>
 				</div>
 			</div>
-			<div class="control-group jev_extrainfo">
-				<?php echo $this->form->getLabel("extra_info"); ?>
-				<div class="controls" >
+			<div class="row jev_extrainfo">
+				<div class="span2">
+					<?php echo $this->form->getLabel("extra_info"); ?>
+				</div>
+				<div class="span10" >
 					<?php echo $this->form->getInput("extra_info"); ?>
 				</div>
 			</div>
@@ -453,9 +543,11 @@ else
                                 }
                             
 				?>
-				<div class="control-group jevplugin_<?php echo $key; ?>">
-					<label class="control-label "><?php echo $this->customfields[$key]["label"]; ?></label>
-					<div class="controls" >
+				<div class="row jevplugin_<?php echo $key; ?>">
+					<div class="span2">
+						<label ><?php echo $this->customfields[$key]["label"]; ?></label>
+					</div>
+					<div class="span10" >
 						<?php echo $this->customfields[$key]["input"]; ?>
 					</div>
 				</div>
@@ -483,6 +575,10 @@ else
 			{
 				foreach ($this->extraTabs as $extraTab)
 				{
+					if (trim($extraTab['content'])=="") {
+						continue;
+					}
+
 					if (!$cfg->get('com_single_pane_edit', 0))
 					{
 						echo JHtml::_('bootstrap.endPanel');
@@ -494,9 +590,16 @@ else
 				}
 			}
 
+
 			if (!$cfg->get('com_single_pane_edit', 0))
 			{
 				echo JHtml::_('bootstrap.endPanel');
+				if ($assoc){
+					echo JHtml::_('bootstrap.addPanel', "myEditTabs", "associations");
+					echo $this->loadTemplate('associations');
+					echo JHtml::_('bootstrap.endPanel');
+				}
+
 				echo JHtml::_('bootstrap.endPane', 'myEditTabs');
 			}
 			?>
@@ -511,3 +614,13 @@ else
 
 	</form>
 </div>
+<?php
+$app = JFactory::getApplication();
+if ($app->isSite()) {
+    if ($params->get('com_edit_toolbar', 0) == 1 || $params->get('com_edit_toolbar', 0) == 2 ) {
+        //Load the toolbar at the bottom!
+        $bar = JToolBar::getInstance('toolbar');
+        $barhtml = $bar->render();
+        echo $barhtml;
+    }
+}

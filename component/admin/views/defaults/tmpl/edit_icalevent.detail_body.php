@@ -4,7 +4,7 @@
  *
  * @version     $Id: edit_icalevent.detail_body.php 3333 2012-03-12 09:36:35Z geraintedwards $
  * @package     JEvents
- * @copyright   Copyright (C)  2008-2009 GWE Systems Ltd
+ * @copyright   Copyright (C)  2008-2015 GWE Systems Ltd
  * @license     GNU/GPLv2, see http://www.gnu.org/licenses/gpl-2.0.html
  * @link        http://www.jevents.net
  */
@@ -21,9 +21,9 @@ $lang->load("mod_jevents_detail", JPATH_SITE);
 </table>
 
 <script type="text/javascript">
-defaultsEditorPlugin.node($('jevdefaults'),"<?php echo JText::_("JEV_PLUGIN_SELECT",true);?>","");
+defaultsEditorPlugin.node('#jevdefaults',"<?php echo JText::_("JEV_PLUGIN_SELECT",true);?>","");
 // built in group
-var optgroup = defaultsEditorPlugin.optgroup($('jevdefaults') , "<?php echo JText::_("JEV_CORE_DATA",true);?>");
+var optgroup = defaultsEditorPlugin.optgroup('#jevdefaults' , "<?php echo JText::_("JEV_CORE_DATA",true);?>");
 defaultsEditorPlugin.node(optgroup , "<?php echo JText::_("JEV_FIELD_TITLE",true);?>", "TITLE");
 defaultsEditorPlugin.node(optgroup , "<?php echo JText::_("JEV_FIELD_ICALBUTTON",true);?>", "ICALBUTTON");
 defaultsEditorPlugin.node(optgroup , "<?php echo JText::_("JEV_FIELD_ICALDIALOG",true);?>", "ICALDIALOG");
@@ -43,8 +43,8 @@ defaultsEditorPlugin.node(optgroup , "<?php echo JText::_("JEV_FIELD_DURATION",t
 defaultsEditorPlugin.node(optgroup , "<?php echo JText::_("JEV_FIELD_PREVIOUSNEXT",true);?>", "PREVIOUSNEXT");
 defaultsEditorPlugin.node(optgroup , "<?php echo JText::_("JEV_FIELD_FIRSTREPEAT",true);?>", "FIRSTREPEAT");
 defaultsEditorPlugin.node(optgroup , "<?php echo JText::_("JEV_FIELD_LASTREPEAT",true);?>", "LASTREPEAT");
-defaultsEditorPlugin.node(optgroup , "<?php echo JText::_("JEV_FIELD_FIRSTREPEATSTART",true);?>", "FIRSTREPEATSTART");
-defaultsEditorPlugin.node(optgroup , "<?php echo JText::_("JEV_FIELD_LASTREPEATENDß",true);?>", "LASTREPEATEND");
+defaultsEditorPlugin.node(optgroup , "<?php echo JText::_("JEV_FIRSTREPEATSTART",true);?>", "FIRSTREPEATSTART");
+defaultsEditorPlugin.node(optgroup , "<?php echo JText::_("JEV_LASTREPEATEND",true);?>", "LASTREPEATEND");
 defaultsEditorPlugin.node(optgroup , "<?php echo JText::_("JEV_FIELD_PREVIOUSNEXTEVENT",true);?>", "PREVIOUSNEXTEVENT");
 defaultsEditorPlugin.node(optgroup , "<?php echo JText::_("JEV_FIELD_CREATOR_LABEL",true);?>", "CREATOR_LABEL");
 defaultsEditorPlugin.node(optgroup , "<?php echo JText::_("JEV_FIELD_CREATOR",true);?>", "CREATOR");
@@ -62,11 +62,16 @@ defaultsEditorPlugin.node(optgroup , "<?php echo JText::_("JEV_FIELD_CATEGORY_LI
 defaultsEditorPlugin.node(optgroup , "<?php echo JText::_("JEV_FIELD_CATEGORY_IMAGE",true);?>", "CATEGORYIMG");
 defaultsEditorPlugin.node(optgroup , "<?php echo JText::_("JEV_FIELD_CATEGORY_IMAGES",true);?>", "CATEGORYIMGS");
 defaultsEditorPlugin.node(optgroup , "<?php echo JText::_("JEV_FIELD_CATEGORY_DESCRIPTION",true);?>", "CATDESC");
+defaultsEditorPlugin.node(optgroup , "<?php echo JText::_("JEV_FIELD_FGCOLOUR",true);?>", "FGCOLOUR");
+defaultsEditorPlugin.node(optgroup , "<?php echo JText::_("JEV_FIELD_COLOUR",true);?>", "COLOUR");
 defaultsEditorPlugin.node(optgroup , "<?php echo JText::_("JEV_FIELD_CALENDAR",true);?>", "CALENDAR");
 defaultsEditorPlugin.node(optgroup , "<?php echo JText::_("JEV_FIELD_CREATIONDATE",true);?>", "CREATED");
 defaultsEditorPlugin.node(optgroup , "<?php echo JText::_("JEV_ADMIN_PANEL",true);?>", "MANAGEMENT");
 defaultsEditorPlugin.node(optgroup , "<?php echo JText::_("JEV_ACCESS_LEVEL",true);?>", "ACCESS");
 defaultsEditorPlugin.node(optgroup , "<?php echo JText::_("JEV_EVENT_PRIORITY",true);?>", "PRIORITY");
+defaultsEditorPlugin.node(optgroup , "<?php echo JText::_("JEV_EVENT_STARTED",true);?>", "JEVSTARTED");
+defaultsEditorPlugin.node(optgroup , "<?php echo JText::_("JEV_EVENT_ENDED",true);?>", "JEVENDED");
+defaultsEditorPlugin.node(optgroup , "<?php echo JText::_("JEV_AGE",true);?>", "JEVAGE");
 //defaultsEditorPlugin.node(optgroup , "<?php echo JText::_("JEV_MODULE_START",true);?>", "MODULESTART#modulename");
 //defaultsEditorPlugin.node(optgroup , "<?php echo JText::_("JEV_MODULE_END",true);?>", "MODULEEND");
 
@@ -82,7 +87,7 @@ foreach ($jevplugins as $jevplugin){
 			$fieldNameArray = call_user_func(array($classname,"fieldNameArray"));
 			if (!isset($fieldNameArray['labels'])) continue;
 			?>
-			optgroup = defaultsEditorPlugin.optgroup($('jevdefaults') , '<?php echo $fieldNameArray["group"];?>');
+			optgroup = defaultsEditorPlugin.optgroup('#jevdefaults' , '<?php echo $fieldNameArray["group"];?>');
 			<?php
 			for ($i=0;$i<count($fieldNameArray['labels']);$i++) {
 				if ($fieldNameArray['labels'][$i]=="" || $fieldNameArray['labels'][$i]==" Label")  continue;

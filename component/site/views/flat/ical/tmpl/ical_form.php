@@ -8,24 +8,24 @@ $view = $this->getViewName();
 $script = <<<SCRIPT
 function clearIcalCategories(allcats){
 	if(allcats.checked){
-		document.getElements('input[name=categories[]]:checked').each (function(el){
+		jevjq('input[name="categories[]"]:checked').each (function(el){
 			if (el.value!=0){
 				el.checked=false;
 			}
 		});
-		$('othercats').style.display='none';
+		jevjq('#othercats').css('display','none');
 	}
 	else {
-		document.getElements('input[name=categories[]]').each (function(el){
+		jevjq('input[name="categories[]"]').each (function(el){
 			if (el.value!=0 && el.checked==false){
 				el.checked=true;
 			}
 		});
-		$('othercats').style.display='block';		
+		jevjq('#othercats').css('display','block');
 	}
 }
 function clearAllIcalCategories(){
-		document.getElements('input[name=categories[]]:checked').each (function(el){
+		jevjq('input[name="categories[]"]:checked').each (function(el){
 			if (el.value==0){
 				el.checked=false;
 			}
@@ -33,24 +33,24 @@ function clearAllIcalCategories(){
 }
 function clearIcalYears(allyears){
 	if(allyears.checked){
-		document.getElements('input[name=years[]]:checked').each (function(el){
+		jevjq('input[name="years[]"]:checked').each (function(el){
 			if (el.value!=0){
 				el.checked=false;
 			}
 		});
-		$('otheryears').style.display='none';		
+		jevjq('#otheryears').css('display','none');
 	}
 	else {
-		document.getElements('input[name=years[]]').each (function(el){
+		jevjq('input[name="years[]"]').each (function(el){
 			if (el.value!=0 && el.checked==false){
 				el.checked=true;
 			}
 		});
-		$('otheryears').style.display='block';				
+		jevjq('#otheryears').css('display','block');
 	}
 }
 function clearAllIcalYears(){
-		document.getElements('input[name=years[]]:checked').each (function(el){
+		jevjq('input[name="years[]"]:checked').each (function(el){
 			if (el.value==0){
 				el.checked=false;
 			}
@@ -85,8 +85,9 @@ if (JRequest::getString("submit","")!="")
 
 	//$years  = str_replace(",","|",JEVHelper::forceIntegerArray(JRequest::getVar('years','','POST'),true));
 	//$cats = implode("|",$cats);
-	$years = JEVHelper::forceIntegerArray(JRequest::getVar('years', array(0), 'POST'), true);
-	$cats = implode(",", $cats);
+        $jr_years = JRequest::getVar('years', array(0), 'POST');
+	$years = JEVHelper::forceIntegerArray($jr_years, true);
+        $cats = implode(",", $cats);
 
 	$link = JURI::root() . "index.php?option=com_jevents&task=icals.export&format=ical";
 	if (count($cats) > 0)

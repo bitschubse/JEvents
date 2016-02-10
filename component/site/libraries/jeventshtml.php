@@ -4,7 +4,7 @@
  *
  * @version     $Id: jeventshtml.php 3549 2012-04-20 09:26:21Z geraintedwards $
  * @package     JEvents
- * @copyright   Copyright (C) 2008-2009 GWE Systems Ltd, 2006-2008 JEvents Project Group
+ * @copyright   Copyright (C) 2008-2015 GWE Systems Ltd, 2006-2008 JEvents Project Group
  * @license     GNU/GPLv2, see http://www.gnu.org/licenses/gpl-2.0.html
  * @link        http://www.jevents.net
  */
@@ -225,17 +225,19 @@ class JEventsHTML
 	public static  function buildCategorySelect($catid, $args, $catidList = null, $with_unpublished = false, $require_sel = false, $catidtop = 0, $fieldname = "catid", $sectionname = JEV_COM_COMPONENT, $excludeid = false, $order = "ordering", $eventediting = false)
 	{
 		// need to declare this because of bug in Joomla JHtml::_('select.options', on content pages - it loade the WRONG CLASS!
-		if (JevJoomlaVersion::isCompatible("3.0"))
-		{
-			include_once(JPATH_SITE . "/libraries/cms/html/category.php");
-		}
-		else
-		{
-			include_once(JPATH_SITE . "/libraries/joomla/html/html/category.php");
-		}
+		include_once(JPATH_SITE . "/libraries/cms/html/category.php");
+
 		ob_start();
 		$t_first_entry = ($require_sel) ? JText::_('JEV_EVENT_CHOOSE_CATEG') : JText::_('JEV_EVENT_ALLCAT');
 		$options = JHtml::_('category.options', $sectionname);
+		/* hide second level categories
+		for ($i=0;$i<count($options);$i++){
+			if (strpos($options[$i]->text,"-")!==false){
+				unset($options[$i]);
+			}
+		}
+		$options = array_values($options);
+		 */
 		if ($catidList != null)
 		{
 			$cats = explode(',', $catidList);
@@ -249,6 +251,14 @@ class JEventsHTML
 			}
 			$options = array_values($options);
 		}
+
+		// translate where appropriate
+		$count = count($options);
+		for ($o = 0; $o < $count; $o++)
+		{
+			$options[$o]->text = strpos($options[$o]->text,"JEV_")===0 ? JText::_($options[$o]->text) : $options[$o]->text;
+		}
+
 		// Thanks to ssobada
 		// when editing events we restrict the available list!
 		$jevtask = JRequest::getString("jevtask");
@@ -329,7 +339,7 @@ class JEventsHTML
 			$dispatcher->trigger('onGetAccessibleCategoriesForEditing', array(& $cats));
 
 			// allow anon-user event creation through
-			if (isset($user->id))
+			if (isset($user->id) && $user->id>0)
 			{
 				$count = count($options);
 				for ($o = 0; $o < $count; $o++)
@@ -340,6 +350,27 @@ class JEventsHTML
 					}
 				}
 				$options = array_values($options);
+			}
+
+			// Do we disable top level categories
+			$params = JComponentHelper::getParams(JEV_COM_COMPONENT);
+			if ($params->get("blocktoplevelcategories",0)){
+				$count = count($options);
+				for ($o = 0; $o < $count; $o++)
+				{
+					if (strpos($options[$o]->text, "-")!==0)
+					{
+						// Do not block if there is a child!  This is a crude test of this
+						if (array_key_exists($o+1, $options) && strpos($options[$o+1]->text, "-")!==0 ){
+							continue;
+						}
+						// If its the last one then it also has no children
+						if (!array_key_exists($o+1, $options)){
+							continue;
+						}
+						$options[$o]->disable = true;
+					}
+				}
 			}
 		}
 		else
@@ -352,6 +383,9 @@ class JEventsHTML
 			$catid = current($options)->value;
 		}
 
+		// sort categories alphabetically
+		//usort($options, function($a, $b) { return strcmp($a->text,$b->text);});
+
 		// should we offer multi-choice categories?
 		// do not use jev_com_component incase we call this from locations etc.
 		$params = JComponentHelper::getParams(JRequest::getCmd("option"));
@@ -359,26 +393,26 @@ class JEventsHTML
 		{
 			$size = count($options) > 6 ? 6 : count($options) + 1;
 			?>
-			<select name="<?php echo $fieldname; ?>[]" <?php echo $args; ?> multiple="multiple" size="<?php echo $size; ?>" style="width:300px;">
+			<select name="<?php echo $fieldname; ?>[]"  id="<?php echo $fieldname; ?>" <?php echo $args; ?> multiple="multiple" size="<?php echo $size; ?>" style="width:300px;">
 				<?php
-			}
-			else
-			{
-				?>
-				<select name="<?php echo $fieldname; ?>" <?php echo $args; ?> >
-					<option value="0"><?php echo $t_first_entry; ?></option>
-					<?php
-				}
-				?>
-				<?php echo JHtml::_('select.options', $options, 'value', 'text', $catid); ?>
-			</select>
-			<?php
-			return ob_get_clean();
-
 		}
-
-		public static function buildWeekDaysCheck($reccurweekdays, $args, $name = "reccurweekdays")
+		else
 		{
+			?>
+			<select name="<?php echo $fieldname; ?>" <?php echo $args; ?>  id="<?php echo $fieldname; ?>" >
+				<option value="0"><?php echo $t_first_entry; ?></option>
+			<?php
+		}
+		?>
+		<?php echo JHtml::_('select.options', $options, 'value', 'text', $catid); ?>
+		</select>
+		<?php
+		return ob_get_clean();
+
+	}
+
+	public static function buildWeekDaysCheck($reccurweekdays, $args, $name = "reccurweekdays")
+	{
 
 			// get array
 			$day_name = JEVHelper::getWeekdayLetter(null, 1);
@@ -408,31 +442,16 @@ class JEventsHTML
 						$checked = ' checked="checked"';
 					}
 				}
-				if (JevJoomlaVersion::isCompatible("3.0")){
-					// bootstrap version
-					$tosend .= '' 
-							. '<input type="checkbox" id="cb_wd' . $a . '" name="' . $name . '[]" value="'
-							. $a . '" ' . $args . $checked . ' onclick="updateRepeatWarning();" class="checkbox btn" />'
-							.'<label for="cb_wd' . $a . '" class="checkbox btn">'
-							.  $day_name[$a] 
-							. '</label>' . "\n"
-					;
-				}
-				else {
-					$tosend .= '<li  class="r' . ($a % 2 + 1) . '" >'
-							. '<label for="cb_wd' . $a . '">'
-							. '<input type="checkbox" id="cb_wd' . $a . '" name="' . $name . '[]" value="'
-							. $a . '" ' . $args . $checked . ' onclick="updateRepeatWarning();" />&nbsp;' . "\n"
-							. $day_name[$a] . '</label></li>' . "\n"
-					;
-				}
+				// bootstrap version
+				$tosend .= '' 
+						.'<label for="cb_wd' . $a . '" class="checkbox btn">'
+						. '<input type="checkbox" id="cb_wd' . $a . '" name="' . $name . '[]" value="'
+						. $a . '" ' . $args . $checked . ' onclick="updateRepeatWarning();" class="checkbox " />'
+						.  $day_name[$a] 
+						. '</label>' . "\n"
+				;
 			}
-			if (JevJoomlaVersion::isCompatible("3.0")){
-				echo $tosend;
-			}
-			else {
-				echo "<ul>\n" . $tosend . "\n</ul>\n";
-			}
+			echo $tosend;
 
 		}
 
@@ -475,7 +494,7 @@ class JEventsHTML
 					}
 				}
 
-				if (JevJoomlaVersion::isCompatible("3.0")){
+				if (JevJoomlaVersion::isCompatible("3.0")   ||  JComponentHelper::getParams(JEV_COM_COMPONENT)->get("useboostrap", 1)){
 					// bootstrap version
 					$tosend .= '' 
 							. '<input type="checkbox" id="cb_wn' . $a . '" name="' . $name . '[]" value="'
@@ -493,7 +512,7 @@ class JEventsHTML
 					;
 				}
 			}
-			if (JevJoomlaVersion::isCompatible("3.0")){
+			if (JevJoomlaVersion::isCompatible("3.0")  ||  JComponentHelper::getParams(JEV_COM_COMPONENT)->get("useboostrap", 1)){
 				echo $tosend;
 			}
 			else {
@@ -568,7 +587,7 @@ class JEventsHTML
 					}
 					$arr_userids[$userid] = $contactlink;
 				}
-				return $arr_userids[$userid];
+				return  $arr_userids[$userid] ;
 			}
 			else
 			{
@@ -595,7 +614,7 @@ class JEventsHTML
 					}
 					$arr_evids[$evid] = $contactlink;
 				}
-				return $arr_evids[$evid];
+				return $arr_evids[$evid] ;
 			}
 
 			return '?';
@@ -686,9 +705,9 @@ class JEventsHTML
 						// BAR COLOR GENERATION
 						//$start_publish = JevDate::mktime (0, 0, 0, date("m"),date("d"),date("Y"));
 						//$colorgenerate = intval(($start_publish/$event_id));
-						//$bg1color = substr($colorgenerate, 5, 1);
-						//$bg2color = substr($colorgenerate, 3, 1);
-						//$bg3color = substr($colorgenerate, 7, 1);
+						//$bg1color = JString::substr($colorgenerate, 5, 1);
+						//$bg2color = JString::substr($colorgenerate, 3, 1);
+						//$bg3color = JString::substr($colorgenerate, 7, 1);
 						$bg1color = rand(0, 9);
 						$bg2color = rand(0, 9);
 						$bg3color = rand(0, 9);
@@ -958,6 +977,21 @@ class JEventsHTML
 
 		public static function buildAccessSelect($access, $attribs = 'class="inputbox" onchange="this.form.submit()"', $text = "", $fieldname = "access")
 		{
+			$assetGroups = JHtml::_('access.assetgroups');
+			// only offer access levels the user has access to
+			$user = JFactory::getUser();
+			if (!$user->get("isRoot",0)){
+				$viewlevels = $user->getAuthorisedViewLevels();
+				foreach ($assetGroups as $i => $level){
+					if (!in_array($level->value ,$viewlevels )){
+						unset($assetGroups[$i]);
+					}
+				}
+				$assetGroups = array_values($assetGroups);
+			}
+			if (count($assetGroups)==1) {
+				return "<input type='hidden' name='".$fieldname. "' value='".$assetGroups[0]->value."'/>"  ;
+			}
 			ob_start();
 			?>
 			<select name="<?php echo $fieldname; ?>" <?php echo $attribs; ?> id="<?php echo $fieldname; ?>" >
@@ -967,18 +1001,6 @@ class JEventsHTML
 					?>
 					<option value=""><?php echo $text; ?></option>
 				<?php } 
-				$assetGroups = JHtml::_('access.assetgroups');
-				// only offer access levels the user has access to
-				$user = JFactory::getUser();
-				if (!$user->get("isRoot",0)){
-					$viewlevels = $user->getAuthorisedViewLevels();
-					foreach ($assetGroups as $i => $level){
-						if (!in_array($level->value ,$viewlevels )){
-							unset($assetGroups[$i]);
-						}
-					}
-					$assetGroups = array_values($assetGroups);
-				}
 				echo JHtml::_('select.options',$assetGroups , 'value', 'text', $access); ?>
 			</select>
 			<?php

@@ -4,7 +4,7 @@
  *
  * @version     $Id: admin.php 3549 2012-04-20 09:26:21Z geraintedwards $
  * @package     JEvents
- * @copyright   Copyright (C) 2008-2009 GWE Systems Ltd
+ * @copyright   Copyright (C) 2008-2015 GWE Systems Ltd
  * @license     GNU/GPLv2, see http://www.gnu.org/licenses/gpl-2.0.html
  * @link        http://www.jevents.net
  */
@@ -40,6 +40,7 @@ class AdminController extends JControllerLegacy   {
 		if( !$is_event_editor ){
 			$returnlink = JRoute::_( 'index.php?option=' . JEV_COM_COMPONENT . '&task=month.calendar&Itemid=' . $Itemid, false );
 			$this->setRedirect( $returnlink, html_entity_decode( JText::_('JEV_NOPERMISSION') ));
+			$this->redirect();
 			return;
 		}
 

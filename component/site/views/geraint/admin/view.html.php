@@ -4,7 +4,7 @@
  *
  * @version     $Id: view.html.php 3192 2012-01-16 10:18:58Z geraintedwards $
  * @package     JEvents
- * @copyright   Copyright (C) 2008-2009 GWE Systems Ltd
+ * @copyright   Copyright (C) 2008-2015 GWE Systems Ltd
  * @license     GNU/GPLv2, see http://www.gnu.org/licenses/gpl-2.0.html
  * @link        http://www.jevents.net
  */
@@ -19,7 +19,7 @@ JLoader::register('DefaultViewAdmin',JEV_PATH."/views/default/admin/view.html.ph
  *
  * @static
  */
-class GeraintViewAdmin extends DefaultViewAdmin 
+class GeraintViewAdmin extends JEventsGeraintView
 {
 	
 	function listevents($tpl = null)

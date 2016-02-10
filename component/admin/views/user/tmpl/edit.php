@@ -4,7 +4,7 @@
  *
  * @version     $Id: edit.php 2749 2011-10-13 08:54:34Z geraintedwards $
  * @package     JEvents
- * @copyright   Copyright (C)  2008-2009 GWE Systems Ltd
+ * @copyright   Copyright (C)  2008-2015 GWE Systems Ltd
  * @license     GNU/GPLv2, see http://www.gnu.org/licenses/gpl-2.0.html
  * @link        http://www.jevents.net
  */
@@ -43,16 +43,22 @@ if (pressbutton.substr(0, 6) == 'cancel' || (pressbutton == 'user.overview')) {
 		</tr>
 		<tr>
 			<td><?php echo JText::_( 'USER_ENABLED' );?></td>
-			<td><?php 
+			<td>
+				<fieldset class="radio btn-group">
+				<?php
 			echo JHTML::_("select.booleanlist", "published", null,$this->jevuser->published);
-			?>
+				?>
+				</fieldset>
 			</td>
 		</tr>
 		<tr>
 			<td><?php echo JText::_( 'CAN_CREATE_EVENTS' );?></td>
-			<td><?php 
+			<td>
+				<fieldset class="radio btn-group">
+				<?php
 			echo JHTML::_("select.booleanlist", "cancreate", null,$this->jevuser->cancreate);
-			?>
+				?>
+				</fieldset>
 			</td>
 		</tr>
 		<tr>
@@ -63,65 +69,92 @@ if (pressbutton.substr(0, 6) == 'cancel' || (pressbutton == 'user.overview')) {
 		</tr>
 		<tr>
 			<td><?php echo JText::_( 'CAN_PUBLISH_OWN' );?></td>
-			<td><?php 
-			echo JHTML::_("select.booleanlist", "canpublishown", null,$this->jevuser->canpublishown);
-			?>
+			<td>
+				<fieldset class="radio btn-group">
+				<?php
+				echo JHTML::_("select.booleanlist", "canpublishown", null,$this->jevuser->canpublishown);
+				?>
+				</fieldset>
 			</td>
 		</tr>
 		<tr>
 			<td><?php echo JText::_( 'CAN_DELETE_OWN_EVENTS' );?></td>
-			<td><?php 
-			echo JHTML::_("select.booleanlist", "candeleteown", null,$this->jevuser->candeleteown);
-			?>
+			<td>
+				<fieldset class="radio btn-group">
+				<?php
+				echo JHTML::_("select.booleanlist", "candeleteown", null,$this->jevuser->candeleteown);
+				?>
+				</fieldset>
 			</td>
 		</tr>
 		<tr>
 			<td><?php echo JText::_( 'CAN_EDIT_EVENTS' );?></td>
-			<td><?php 
-			echo JHTML::_("select.booleanlist", "canedit", null,$this->jevuser->canedit);
-			?>
+			<td>
+				<fieldset class="radio btn-group">
+				<?php
+				echo JHTML::_("select.booleanlist", "canedit", null,$this->jevuser->canedit);
+				?>
+				</fieldset>
 			</td>
 		</tr>
 		<tr>
 			<td><?php echo JText::_( 'CAN_PUBLISH_ALL' );?></td>
-			<td><?php 
-			echo JHTML::_("select.booleanlist", "canpublishall", null,$this->jevuser->canpublishall);
-			?>
+			<td>
+				<fieldset class="radio btn-group">
+				<?php
+				echo JHTML::_("select.booleanlist", "canpublishall", null,$this->jevuser->canpublishall);
+				?>
+				</fieldset>
 			</td>
 		</tr>
 		<tr>
 			<td><?php echo JText::_( 'CAN_DELETE_ALL_EVENTS' );?></td>
-			<td><?php 
-			echo JHTML::_("select.booleanlist", "candeleteall", null,$this->jevuser->candeleteall);
-			?>
+			<td>
+				<fieldset class="radio btn-group">
+				<?php
+				echo JHTML::_("select.booleanlist", "candeleteall", null,$this->jevuser->candeleteall);
+				?>
+				</fieldset>
 			</td>
 		</tr>
 		<tr>
 			<td><?php echo JText::_( 'CAN_UPLOAD_IMAGES' );?></td>
-			<td><?php 
-			echo JHTML::_("select.booleanlist", "canuploadimages", null,$this->jevuser->canuploadimages);
-			?>
+			<td>
+				<fieldset class="radio btn-group">
+				<?php
+				echo JHTML::_("select.booleanlist", "canuploadimages", null,$this->jevuser->canuploadimages);
+				?>
+				</fieldset>
 			</td>
 		</tr>
 		<tr>
 			<td><?php echo JText::_("UPLOAD_FILES");?></td>
-			<td><?php 
-			echo JHTML::_("select.booleanlist", "canuploadmovies", null,$this->jevuser->canuploadmovies);
-			?>
+			<td>
+				<fieldset class="radio btn-group">
+				<?php
+				echo JHTML::_("select.booleanlist", "canuploadmovies", null,$this->jevuser->canuploadmovies);
+				?>
+				</fieldset>
 			</td>
 		</tr>
 		<tr>
 			<td><?php echo JText::_("CREATE_OWN_EXTRAS");?></td>
-			<td><?php 
-			echo JHTML::_("select.booleanlist", "cancreateown", null,$this->jevuser->cancreateown);
-			?>
+			<td>
+				<fieldset class="radio btn-group">
+				<?php
+				echo JHTML::_("select.booleanlist", "cancreateown", null,$this->jevuser->cancreateown);
+				?>
+				</fieldset>
 			</td>
 		</tr>
 		<tr>
 			<td><?php echo JText::_("CREATE_GLOBAL_EXTRAS");?></td>
-			<td><?php 
-			echo JHTML::_("select.booleanlist", "cancreateglobal", null,$this->jevuser->cancreateglobal);
-			?>
+			<td>
+				<fieldset class="radio btn-group">
+				<?php
+				echo JHTML::_("select.booleanlist", "cancreateglobal", null,$this->jevuser->cancreateglobal);
+				?>
+				</fieldset>
 			</td>
 		</tr>
 		<tr>

@@ -5,7 +5,7 @@
  *
  * @version     $Id: helper.php 3549 2012-04-20 09:26:21Z geraintedwards $
  * @package     JEvents
- * @copyright   Copyright (C) 2008-2009 GWE Systems Ltd, 2006-2008 JEvents Project Group
+ * @copyright   Copyright (C) 2008-2015 GWE Systems Ltd, 2006-2008 JEvents Project Group
  * @license     GNU/GPLv2, see http://www.gnu.org/licenses/gpl-2.0.html
  * @link        http://www.jevents.net
  */
@@ -13,6 +13,9 @@ defined('_JEXEC') or die('Restricted access');
 
 jimport('joomla.access.access');
 JLoader::register('JevJoomlaVersion', JPATH_ADMINISTRATOR . "/components/com_jevents/libraries/version.php");
+
+/** Should already be defined within JEvents, however it does no harm and resolves issue with pop-up details */
+include_once(JPATH_SITE . "/components/com_jevents/jevents.defines.php");
 
 /**
  * Helper class with common functions for the component and modules
@@ -22,6 +25,13 @@ JLoader::register('JevJoomlaVersion', JPATH_ADMINISTRATOR . "/components/com_jev
  */
 class JEVHelper
 {
+
+	/**
+	 * @var    array  Array containing information for loaded files
+	 * @since  3.0
+	 */
+	protected static
+			$loaded = array();
 
 	/**
 	 * load language file
@@ -74,7 +84,7 @@ class JEVHelper
 				//$inibase = JPATH_SITE . '/components/' . JEV_COM_COMPONENT;
 				//$lang->load(JEV_COM_COMPONENT, $inibase);
 				// Load Site specific language overrides
-				$lang->load(JEV_COM_COMPONENT, JPATH_THEMES . '/' . JFactory::getApplication()->getTemplate());
+				$lang->load(JEV_COM_COMPONENT, JPATH_THEMES . '/' . JFactory::getApplication('site')->getTemplate());
 
 				break;
 
@@ -137,7 +147,7 @@ class JEVHelper
 
 	/**
 	 * Returns the Max year to display from Config
-	 * 
+	 *
 	 * @static
 	 * @access public
 	 * @return	string				integer with the max year to show in the calendar
@@ -161,7 +171,7 @@ class JEVHelper
 
 	/**
 	 * Returns the Max year to display from Config
-	 * 
+	 *
 	 * @static
 	 * @access public
 	 * @return	string				integer with the max year to show in the calendar
@@ -186,7 +196,7 @@ class JEVHelper
 
 	/**
 	 * Returns the full month name
-	 * 
+	 *
 	 * @static
 	 * @access public
 	 * @param	string	$month		numeric month
@@ -216,7 +226,7 @@ class JEVHelper
 
 	/**
 	 * Return the short month name
-	 * 
+	 *
 	 * @static
 	 * @access public
 	 * @param	string	$month		numeric month
@@ -337,11 +347,11 @@ class JEVHelper
 			if ($h >= 0 && $m >= 0)
 			{
 				$time = JevDate::mktime($h, $m);
-				return JEV_CommonFunctions::jev_strftime(JText::_("TIME_FORMAT"), $time);
+				return JEV_CommonFunctions::jev_strftime(JText::_("JEV_TIME_FORMAT"), $time);
 			}
 			else
 			{
-				return JEV_CommonFunctions::jev_strftime(JText::_("TIME_FORMAT"), $date);
+				return JEV_CommonFunctions::jev_strftime(JText::_("JEV_TIME_FORMAT"), $date);
 			}
 		}
 
@@ -411,44 +421,56 @@ class JEVHelper
 	 * @param string $content - metatag value
 	 */
 	public static
-			function checkRobotsMetaTag($name = "robots", $content = "index, follow")
+			function checkRobotsMetaTag($name = "robots", $content = "index,follow")
 	{
 
 		// force robots metatag
 		$cfg = JEVConfig::getInstance();
 		$document = JFactory::getDocument();
+		// constrained in some way
 		if ($cfg->get('com_blockRobots', 0) >= 1)
-		{			
-			// Allow on content pages
+		{
+			// Allow on detail  pages - block otherwise unless crawler!
 			if ($cfg->get('com_blockRobots', 0) == 3)
 			{
 				if (strpos(JRequest::getString("jevtask", ""), ".detail") > 0)
 				{
-					$document->setMetaData($name, "nofollow");
+					$document->setMetaData($name, "index,nofollow");
 					return;
 				}
-				$document->setMetaData($name, $content);
+				if (strpos(JRequest::getString("jevtask", ""), "crawler") !== false || $content != "index,follow")
+				{
+					$document->setMetaData($name, $content);
+				}
+				else
+				{
+					$document->setMetaData($name, "noindex,nofollow");
+				}
 				return;
 			}
+			// Always block Robots
 			if ($cfg->get('com_blockRobots', 0) == 1)
 			{
-				$document->setMetaData($name, $content);
+				$document->setMetaData($name, "noindex,nofollow");
 				return;
 			}
+			// conditional on date
 			list($cyear, $cmonth, $cday) = JEVHelper::getYMD();
 			$cdate = JevDate::mktime(0, 0, 0, $cmonth, $cday, $cyear);
 			$prior = JevDate::strtotime($cfg->get('robotprior', "-1 day"));
 			if ($cdate < $prior && $cfg->get('com_blockRobots', 0))
 			{
-				$document->setMetaData($name, $content);
+				$document->setMetaData($name, "noindex,nofollow");
 				return;
 			}
 			$post = JevDate::strtotime($cfg->get('robotpost', "-1 day"));
 			if ($cdate > $post && $cfg->get('com_blockRobots', 0))
 			{
-				$document->setMetaData($name, $content);
+				$document->setMetaData($name, "noindex,nofollow");
 				return;
 			}
+			//If JEvents is not blocking robots we use menu item configuration
+			$document->setMetaData($name, $cfg->get('robots', $content));
 		}
 		//If JEvents is not blocking robots we use menu item configuration
 		else
@@ -502,11 +524,11 @@ class JEVHelper
 
 	/**
 	 * Loads all necessary files for and creats popup calendar link
-	 * 
+	 *
 	 * @static
 	 */
 	public static
-			function loadCalendar($fieldname, $fieldid, $value, $minyear, $maxyear, $onhidestart = "", $onchange = "", $format = 'Y-m-d')
+			function loadCalendar($fieldname, $fieldid, $value, $minyear, $maxyear, $onhidestart = "", $onchange = "", $format = 'Y-m-d', $attributes = array())
 	{
 		$document = JFactory::getDocument();
 		$component = "com_jevents";
@@ -514,79 +536,146 @@ class JEVHelper
 		$forcepopupcalendar = $params->get("forcepopupcalendar", 1);
 		$offset = $params->get("com_starday", 1);
 
+		if ($value == "" ) {
+			$value = strftime("%Y-%m-%d");
+		}
+
 		list ($yearpart, $monthpart, $daypart) = explode("-", $value);
 		$value = str_replace(array("Y", "m", "d"), array($yearpart, $monthpart, $daypart), $format);
 
-		$calendar = (JevJoomlaVersion::isCompatible("3.0")) ? 'calendar14.js' : 'calendar12.js';
-		JEVHelper::script($calendar, "components/" . $component . "/assets/js/", true);
-		JEVHelper::stylesheet("dashboard.css", "components/" . $component . "/assets/css/", true);
-		$script = '
-				var field' . $fieldid . '=false;
-				window.addEvent(\'domready\', function() {
-				if (field' . $fieldid . ') return;
-				field' . $fieldid . '=true;
-				new NewCalendar(
-					{ ' . $fieldid . ' :  "' . $format . '"},
-					{
-					direction:0, 
-					classes: ["dashboard"],
-					draggable:true,
-					navigation:2,
-					tweak:{x:0,y:-75},
-					offset:' . $offset . ',
-					range:{min:' . $minyear . ',max:' . $maxyear . '},
-					readonly:' . $forcepopupcalendar . ',
-					months:["' . JText::_("JEV_JANUARY") . '",
-					"' . JText::_("JEV_FEBRUARY") . '",
-					"' . JText::_("JEV_MARCH") . '",
-					"' . JText::_("JEV_APRIL") . '",
-					"' . JText::_("JEV_MAY") . '",
-					"' . JText::_("JEV_JUNE") . '",
-					"' . JText::_("JEV_JULY") . '",
-					"' . JText::_("JEV_AUGUST") . '",
-					"' . JText::_("JEV_SEPTEMBER") . '",
-					"' . JText::_("JEV_OCTOBER") . '",
-					"' . JText::_("JEV_NOVEMBER") . '",
-					"' . JText::_("JEV_DECEMBER") . '"
-					],
-					days :["' . JText::_("JEV_SUNDAY") . '",
-					"' . JText::_("JEV_MONDAY") . '",
-					"' . JText::_("JEV_TUESDAY") . '",
-					"' . JText::_("JEV_WEDNESDAY") . '",
-					"' . JText::_("JEV_THURSDAY") . '",
-					"' . JText::_("JEV_FRIDAY") . '",
-					"' . JText::_("JEV_SATURDAY") . '"
-					]
-					';
-		if ($onhidestart != "")
-		{
-			$script.=',
-					onHideStart : function () { ' . $onhidestart . '; },
-					onHideComplete :function () { ' . $onchange . '; }';
-		}
-		$script.='}
-				);
-			});';
+		// Build the attributes array.
+		empty($onchange)  ? null : $attributes['onchange'] = $onchange;
+		//$attributes['onselect']="function{this.hide();}";
+		/*
+		empty($this->size)      ? null : $attributes['size'] = $this->size;
+		empty($this->maxlength) ? null : $attributes['maxlength'] = $this->maxlength;
+		empty($this->class)     ? null : $attributes['class'] = $this->class;
+		!$this->readonly        ? null : $attributes['readonly'] = 'readonly';
+		!$this->disabled        ? null : $attributes['disabled'] = 'disabled';
+		empty($hint)            ? null : $attributes['placeholder'] = $hint;
+		$this->autocomplete     ? null : $attributes['autocomplete'] = 'off';
+		!$this->autofocus       ? null : $attributes['autofocus'] = '';
 
-		// stop same field script being loaded multiple times
-		static $processedfields = array();
-		if (!in_array($fieldname, $processedfields))
+		if ($this->required)
 		{
-			$document->addScriptDeclaration($script);
+			$attributes['required'] = '';
+			$attributes['aria-required'] = 'true';
 		}
-		$processedfields[] = $fieldname;
+*/
+		// switch back to strftime format to use Joomla calendar tool
+		$format = str_replace(array("Y","m","d"), array("%Y","%m","%d"), $format);
 
-		if ($onchange != "")
-		{
-			$onchange = 'onchange="' . $onchange . '"';
+		echo JHtml::_('calendar', $yearpart."-".$monthpart."-".$daypart, $fieldname, $fieldid, $format, $attributes);
+
+	}
+
+	/**
+	 * Loads all necessary files for and creats popup calendar link
+	 *
+	 * @static
+	 */
+	public static
+			function loadElectricCalendar($fieldname, $fieldid, $value, $minyear, $maxyear, $onhidestart = "", $onchange = "", $format = 'Y-m-d', $attribs = array())
+	{
+		$document = JFactory::getDocument();
+		$component = "com_jevents";
+		$params = JComponentHelper::getParams($component);
+		$forcepopupcalendar = $params->get("forcepopupcalendar", 1);
+		$offset = $params->get("com_starday", 1);
+
+		if ($value == "" ) {
+			$value = strftime("%Y-%m-%d");
 		}
-		echo '<input type="text" name="' . $fieldname . '" id="' . $fieldid . '" value="' . htmlspecialchars($value, ENT_COMPAT, 'UTF-8') . '" maxlength="10" ' . $onchange . ' size="12"  />';
+
+		list ($yearpart, $monthpart, $daypart) = explode("-", $value);
+		$value = str_replace(array("Y", "m", "d"), array($yearpart, $monthpart, $daypart), $format);
+
+		// Build the attributes array.
+		empty($onchange)  ? null : $attribs['onchange'] = $onchange;
+
+		// switch back to strftime format to use Joomla calendar tool
+		$format = str_replace(array("Y","m","d"), array("%Y","%m","%d"), $format);
+
+		//echo JHtml::_('calendar', $yearpart."-".$monthpart."-".$daypart, $fieldname, $fieldid, $format, $attributes);
+		//calendar($value, $name, $id, $format = '%Y-%m-%d', $attribs = null)
+		$value = $yearpart."-".$monthpart."-".$daypart;
+		$name =  $fieldname;
+		
+		static $done;
+
+		if ($done === null)
+		{
+			$done = array();
+		}
+
+		$readonly = isset($attribs['readonly']) && $attribs['readonly'] == 'readonly';
+		$disabled = isset($attribs['disabled']) && $attribs['disabled'] == 'disabled';
+
+		if (is_array($attribs))
+		{
+			$attribs['class'] = isset($attribs['class']) ? $attribs['class'] : 'input-medium';
+			$attribs['class'] = trim($attribs['class'] . ' hasTooltip');
+
+			$attribs = JArrayHelper::toString($attribs);
+		}
+
+		JHtml::_('bootstrap.tooltip');
+
+		// Format value when not nulldate ('0000-00-00 00:00:00'), otherwise blank it as it would result in 1970-01-01.
+		if ((int) $value && $value != JFactory::getDbo()->getNullDate())
+		{
+			$tz = date_default_timezone_get();
+			date_default_timezone_set('UTC');
+			$inputvalue = strftime($format, strtotime($value));
+			date_default_timezone_set($tz);
+		}
+		else
+		{
+			$inputvalue = '';
+		}
+
+		// Load the calendar behavior
+		JHtml::_('behavior.calendar');
+
+		// Only display the triggers once for each control.
+		if (!in_array($fieldid, $done))
+		{
+			$document = JFactory::getDocument();
+			$document
+				->addScriptDeclaration(
+				'jQuery(document).ready(function($) {Calendar.setup({
+			// Id of the input field
+			inputField: "' . $fieldid . '",
+			// Format of the input field
+			ifFormat: "' . $format . '",
+			// Trigger for the calendar (button ID)
+			button: "' . $fieldid . '_img",
+			// Alignment (defaults to "Bl")
+			align: "Tl",
+			// electric false means field update ONLY when a day cell is clicked
+			electric:false,
+			singleClick: true,
+			firstDay: ' . JFactory::getLanguage()->getFirstDay() . '
+			});});'
+			);
+			$done[] = $fieldid;
+		}
+
+		// Hide button using inline styles for readonly/disabled fields
+		$btn_style	= ($readonly || $disabled) ? ' style="display:none;"' : '';
+		$div_class	= (!$readonly && !$disabled) ? ' class="input-append"' : '';
+
+		echo  '<div' . $div_class . '>'
+				. '<input type="text" title="' . ($inputvalue ? JHtml::_('date', $value, null, null) : '')
+				. '" name="' . $name . '" id="' . $fieldid . '" value="' . htmlspecialchars($inputvalue, ENT_COMPAT, 'UTF-8') . '" ' . $attribs . ' />'
+				. '<button type="button" class="btn" id="' . $fieldid . '_img"' . $btn_style . '><span class="icon-calendar"></span></button>'
+			. '</div>';
 
 	}
 
 	/**
 	 * Loads all necessary files for JS Overlib tooltips
-	 * 
+	 *
 	 * @static
 	 */
 	public static
@@ -678,14 +767,19 @@ class JEVHelper
 			}
 			else
 			{
-				$jevitems = $menu->getItems("component", JEV_COM_COMPONENT);
+				$registry = JRegistry::getInstance("jevents");
+				$user = $registry->get("jevents.icaluser", false);
+				if (!$user) {
+					$user = JFactory::getUser();
+				}
+				$accesslevels = $user->getAuthorisedViewLevels();
+				$jevitems = $menu->getItems(array("component","access"),array( JEV_COM_COMPONENT, $accesslevels));
 				// TODO second level Check on enclosing categories and other constraints
 				if (count($jevitems) > 0)
 				{
-					$user = JFactory::getUser();
 					foreach ($jevitems as $jevitem)
 					{
-						if (version_compare(JVERSION, '1.6.0', '>=') ? in_array($jevitem->access, JEVHelper::getAid($user, 'array')) : JEVHelper::getAid($user) >= $jevitem->access)
+						if ( in_array($jevitem->access, JEVHelper::getAid($user, 'array')) )
 						{
 							$jevitemid[$evid] = $jevitem->id;
 
@@ -799,20 +893,20 @@ class JEVHelper
 	{
 		$datenow = JEVHelper::getNow();
 		$yearnow = $datenow->toFormat('%Y');
-		$firstpos = substr($year, 0, 1);
+		$firstpos = JString::substr($year, 0, 1);
 
 		if ($firstpos == "+")
 		{
-			$year = substr($year, 1);
+			$year = JString::substr($year, 1);
 			$year = $yearnow + $year;
 		}
 		else if ($firstpos == "-")
 		{
-			$year = substr($year, 1);
+			$year = JString::substr($year, 1);
 			$year = $yearnow - $year;
 		}
 		//If we do not get a 4 digit number and no sign we assume it's +$year
-		else if (strlen($year) < 4)
+		else if (JString::strlen($year) < 4)
 		{
 			$cuenta = count($year);
 			$year = $yearnow + $year;
@@ -915,25 +1009,39 @@ class JEVHelper
 			if (is_null($user))
 			{
 				$params = JComponentHelper::getParams(JEV_COM_COMPONENT);
+				$juser = JFactory::getUser();
 				$authorisedonly = $params->get("authorisedonly", 0);
 				if (!$authorisedonly)
 				{
-					$juser = JFactory::getUser();
-					$isEventCreator = $juser->authorise('core.create', 'com_jevents');
-					// this is too heavy on database queries - keep this in the file so that sites that want to use this approach can uncomment this block
-					if (false)
-					{
-						if (!$isEventCreator)
-						{
-							$cats = JEVHelper::getAuthorisedCategories($juser, 'com_jevents', 'core.create');
-							if (count($cats) > 0)
-							{
-								$isEventCreator = true;
+
+					if ($params->get("category_allow_deny",1)==0){
+						// this is too heavy on database queries - keep this in the file so that sites that want to use this approach can uncomment this block
+						list($usec, $sec) = explode(" ", microtime());
+						$time_start = (float) $usec + (float) $sec;
+						if ($juser->get("id")){
+							$okcats = JEVHelper::getAuthorisedCategories($juser, 'com_jevents', 'core.create');
+							$juser = JFactory::getUser();
+							if (count($okcats)){
+								$dataModel = new JEventsDataModel();
+								$dataModel->setupComponentCatids();
+
+								$allowedcats = explode(",", $dataModel->accessibleCategoryList());
+								$intersect = array_intersect($okcats, $allowedcats);
+
+								if (count($intersect) > 0)
+								{
+									$isEventCreator = true;
+								}
 							}
 						}
+						list ($usec, $sec) = explode(" ", microtime());
+						$time_end = (float) $usec + (float) $sec;
+						//echo "time taken = ". round($time_end -  $time_start, 4)."<Br/>";
+						//if ($isEventCreator) return $isEventCreator;
 					}
 					else
 					{
+						$isEventCreator = $juser->authorise('core.create', 'com_jevents');
 						if ($isEventCreator)
 						{
 							$okcats = JEVHelper::getAuthorisedCategories($juser, 'com_jevents', 'core.create');
@@ -957,6 +1065,9 @@ class JEVHelper
 							}
 						}
 					}
+				}
+				else if ($juser->id > 0 && JEVHelper::isAdminUser ($juser)) {
+					JError::raiseWarning("403", JText::_("JEV_AUTHORISED_USER_MODE_ENABLED_BUT_NO_ENTRY_FOR_SUPER_USER"));
 				}
 			}
 			else if ($user->cancreate)
@@ -1003,6 +1114,8 @@ class JEVHelper
 			$dispatcher = JDispatcher::getInstance();
 			$dispatcher->trigger('isEventCreator', array(& $isEventCreator));
 		}
+		if (is_null($isEventCreator)) $isEventCreator = false;
+
 		return $isEventCreator;
 
 	}
@@ -1029,6 +1142,23 @@ class JEVHelper
 			if ($user->authorise('core.create', 'com_jevents'))
 				return true;
 			$allowedcats = JEVHelper::getAuthorisedCategories($user, 'com_jevents', 'core.create');
+
+			// anon user event creation
+			if ($user->id == 0 && count($allowedcats)==0){
+				$jevtask = JRequest::getString("task");
+				// This allows savenew through too!
+				if (strpos($jevtask, "icalevent.save") !== false || strpos($jevtask, "icalevent.apply") !== false)
+				{
+					JRequest::setVar("task", "icalevent.edit");
+					$catids = JEVHelper::rowCatids($row)? JEVHelper::rowCatids($row) :array(intval($row->_catid));
+					$catids = implode(",", $catids);
+					$dispatcher = JDispatcher::getInstance();
+					$dispatcher->trigger('onGetAccessibleCategories', array(& $catids));
+					$allowedcats = explode(",", $catids);
+					JRequest::setVar("task", $jevtask);
+				}
+			}
+
 			if (!in_array($row->_catid, $allowedcats))
 			{
 				return false;
@@ -1173,7 +1303,7 @@ class JEVHelper
 			if ($jevuser && $jevuser->published)
 			{
 				// creator can edit their own event
-				if ($jevuser->cancreate && $row->created_by() == $user->id)
+				if ($jevuser->cancreate && $row->_created_by == $user->id)
 				{
 					return true;
 				}
@@ -1422,6 +1552,13 @@ class JEVHelper
 		{
 			if (!$jevuser)
 			{
+				// paid subs plugin may override this
+				if ($row->created_by() == $user->id && $user->id > 0)
+				{
+					$frontendPublish = JEVHelper::isEventPublisher(false);
+					return $frontendPublish;
+				}
+
 				return false;
 			}
 
@@ -1764,7 +1901,7 @@ class JEVHelper
 	 * Get user details for authorisation testing
 	 *
 	 * @param int $id Joomla user id
-	 * @return array TableUser  
+	 * @return array TableUser
 	 */
 	public static
 			function getAuthorisedUser($id = null)
@@ -1869,9 +2006,9 @@ class JEVHelper
 	}
 
 	/**
-	 * 
+	 *
 	 * Joomla 1.6 compatability functions
-	 * 
+	 *
 	 */
 	static public
 			function getGid($user = null)
@@ -1891,6 +2028,12 @@ class JEVHelper
 		{
 			$user = JFactory::getUser();
 		}
+		$registry = JRegistry::getInstance("jevents");
+		$adminuser = $registry->get("jevents.icaluser", false);
+		if ($adminuser){
+			$user = $adminuser;
+		}
+
 		$root = $user->get("isRoot");
 		if ($root)
 		{
@@ -1958,32 +2101,96 @@ class JEVHelper
 	}
 
 	static public
-			function stylesheet($file, $path)
+			function stylesheet($file, $path = "")
 	{
 		// WHY THE HELL DO THEY BREAK PUBLIC FUNCTIONS !!!
+		// JHTML::stylesheet($path . $file);
+		//stylesheet($file, $attribs = array(), $relative = false, $path_only = false, $detect_browser = true, $detect_debug = true)
+		// no need to find browser specific versions
+		$includes = JHTML::stylesheet($path . $file, array(), false, true, false);
+		if (!$includes)
+		{
+			return;
+		}
+		if (!is_array($includes))
+		{
+			$includes = array($includes);
+		}
 
-		JHTML::stylesheet($path . $file);
+		$version = JEventsVersion::getInstance();
+		$release = $version->get("RELEASE", "1.0.0");
 
+		$document = JFactory::getDocument();
+
+		foreach ($includes as $include)
+		{
+			if (JevJoomlaVersion::isCompatible("3.3"))
+			{
+				$document->addStyleSheetVersion($include, $release, 'text/css', null, array());
+			}
+			else
+			{
+				$document->addStyleSheet($include . "?" . $release, 'text/css', null, array());
+			}
+		}
+
+	}
+	/*
+	 * Load JEvents Custom CSS file if any
+	 */
+	static public
+			function loadCustomCSS()
+	{
+		//Check for JEvents Custom CSS file
+		if (JFile::exists(JPATH_SITE . "/components/com_jevents/assets/css/jevcustom.css"))
+		{
+			JEVHelper::stylesheet('jevcustom.css', 'components/' . JEV_COM_COMPONENT . '/assets/css/');
+		}
 	}
 
 	static public
-			function script($file, $path)
+			function script($file, $path = "", $framework = false, $relative = false, $path_only = false, $detect_browser = true, $detect_debug = true)
 	{
-
-		if (JComponentHelper::getParams(JEV_COM_COMPONENT)->get("usejquery",0)) {
-			// load jQuery versions
-			if (strpos($file, "JQ.js")==false) {
-				$file = str_replace(".js", "JQ.js", $file);
-				// WHY THE HELL DO THEY BREAK PUBLIC FUNCTIONS !!!
-				JHTML::script($path . $file);
+		$includes = null;
+		// load jQuery versions if present
+		if (strpos($file, "JQ.js") == false)
+		{
+			$jqfile = str_replace(".js", "JQ.js", $file);
+			if (JHTML::script($path . $jqfile, false, false, true))
+			{
+				$file = $jqfile;
 			}
 		}
-		else {
-			// Include mootools framework
-			JHtml::_('behavior.framework', true);
 
-			// WHY THE HELL DO THEY BREAK PUBLIC FUNCTIONS !!!
-			JHTML::script($path . $file);
+		// WHY THE HELL DO THEY BREAK PUBLIC FUNCTIONS !!!
+		//JHTML::script($path . $file);
+		//public static function script($file, $framework = false, $relative = false, $path_only = false, $detect_browser = true, $detect_debug = true)
+		// no need to find browser specific versions
+		$includes = JHTML::script($path . $file, $framework, $relative, true, $detect_browser);
+		if (!$includes)
+		{
+			return;
+		}
+		if (!is_array($includes))
+		{
+			$includes = array($includes);
+		}
+
+		$version = JEventsVersion::getInstance();
+		$release = $version->get("RELEASE", "1.0.0");
+
+		$document = JFactory::getDocument();
+
+		foreach ($includes as $include)
+		{
+			if (JevJoomlaVersion::isCompatible("3.3"))
+			{
+				$document->addScriptVersion($include, $release);
+			}
+			else
+			{
+				$document->addScript($include . "?" . $release);
+			}
 		}
 
 	}
@@ -2106,7 +2313,7 @@ class JEVHelper
 		}
 		$user = JFactory::getUser();
 		$params = JComponentHelper::getParams(JEV_COM_COMPONENT);
-		// only unlogged in users and not logged in OR all visitors grouped by access level 
+		// only unlogged in users and not logged in OR all visitors grouped by access level
 		if (($params->get("com_cache", 1) == 1 && $user->id == 0) || $params->get("com_cache", 1) == 2)
 		{
 
@@ -2166,7 +2373,7 @@ class JEVHelper
 			}
 			//list ($usec, $sec) = explode(" ", microtime());
 			//$time_end = (float) $usec + (float) $sec;
-			//echo  "onDisplayCustomFieldsMultiRow  = ".round($time_end - $starttime, 4)."<br/>";		
+			//echo  "onDisplayCustomFieldsMultiRow  = ".round($time_end - $starttime, 4)."<br/>";
 
 			$cachecontroller->cache->setCaching($oldcaching);
 		}
@@ -2197,7 +2404,7 @@ class JEVHelper
 		{
 			$conditional = "evlocation";
 		}
-		if (strpos("@", $conditional) >= 0)
+		if (strpos("@", $conditional) !== false)
 		{
 			$conditional = str_replace("@", "_", $conditional);
 		}
@@ -2228,131 +2435,12 @@ class JEVHelper
 		$condarray = "'" . (string) implode("','", $conditionarray) . "'";
 		$fielddefaultarray = "'" . (string) str_replace(",", "','", $fielddefault) . "'";
 
-		$script = <<<SCRIPT
-			var jevConditional = {
-					setupJevConditions: function(conditional,fielddefault,condlabel ,condparam, conditions, fieldparam,condarray,fielddefaultarray) {
-						var condition = $(condparam+ conditions);
-						var radioElements = condition.getElements('input[type=radio]');
-						if (radioElements.length > 0) {
-							for (var i = 0; i < radioElements.length; i++) {
-								// Need both for Chosen replacements
-								radioElements[i].addEvent("click", function() {
-									jevConditional.jevCondition(conditional,fielddefault,condlabel ,condparam, conditions, fieldparam,condarray,fielddefaultarray)
-								});
-								radioElements[i].addEvent("change", function() {
-									jevConditional.jevCondition(conditional,fielddefault,condlabel ,condparam, conditions, fieldparam,condarray,fielddefaultarray)
-								});
-							}
-						}
-						else if (condition.tagName == "SELECT") {
-							if ($(condition.id + "_chzn")) {
-								var condition_chzn = $(condition.id + "_chzn");
-								for (var i = 0; i < condition_chzn.childNodes.length; i++) {
-									condition_chzn.childNodes[i].addEvent("click", function() {
-										jevConditional.jevCondition(conditional,fielddefault,condlabel ,condparam, conditions, fieldparam,condarray,fielddefaultarray)
-									});
-								}
-							}
-							else
-								condition.addEvent("change", function() {
-									jevConditional.jevCondition(conditional,fielddefault,condlabel ,condparam, conditions, fieldparam,condarray,fielddefaultarray)
-								});
-						}
-						else {
-							condition.addEvent("change", function() {
-								jevConditional.jevCondition(conditional,fielddefault,condlabel ,condparam, conditions, fieldparam,condarray,fielddefaultarray)
-							});
-						}
-						jevConditional.jevCondition(conditional,fielddefault,condlabel ,condparam, conditions, fieldparam,condarray,fielddefaultarray)
-					},
-					jevCondition: function(conditional,fielddefault,condlabel ,condparam, conditions, fieldparam,condarray,fielddefaultarray) {
-						var condition = $(condparam + conditions);
-						var eventsno = $(fieldparam+conditional);
-						if (!condition || !eventsno){
-							return;
-						}
-						// Joomla 3.x named element is inside control and also control-group elements
-						var hiddencontrol = eventsno.parentNode.parentNode;
-						// Joomla 2.5
-						if (hiddencontrol.tagName=="UL"){
-							hiddencontrol = eventsno.parentNode;
-						}
-						var conditionsarray = new Array(condarray);
-						if (condition.type == "checkbox") {
-							condition.value = condition.checked;
-						}
-						var radioElements = condition.getElements('input[type=radio]');
-						if (radioElements.length>0) {
-							for (var i = 0; i < radioElements.length; i++) {
-								if (radioElements[i].checked)
-									condition.value = radioElements[i].value;
-							}
-						}
-						if (condition.multiple && condition.tagName == "SELECT") {
-							for (var i = 0; i < condition.options.length; i++) {
-								if (condition.options[i].selected && conditionsarray.indexOf(condition.options[i].value) >= 0)
-									conditionsarray[0] = condition.value;
-							}
-						}
-						
-						var checkboxElements = condition.type=="checkbox"? new Array(condition) : condition.getElements('input[type=checkbox]');				
-						if (checkboxElements.length>0) {
-							condition.value = new Array();
-							for (var i = 0; i < checkboxElements.length; i++) {
-								if (checkboxElements[i].checked && conditionsarray.indexOf(checkboxElements[i].value) >= 0) {
-									condition.value = conditionsarray[0];
-								}
-							}
-						}
-						// If condition is valid then show the row
-						if (conditionsarray.indexOf(condition.value) >= 0) {
-							if (hiddencontrol.tagName == "TR") {
-								hiddencontrol.style.display = "table-row";
-							}
-							else if (hiddencontrol.tagName == "SPAN"){
-								hiddencontrol.style.display = "inline";
-							}
-							else
-								hiddencontrol.style.display = "block";
-						}
-						// else hide the row and revert the value to its default
-						else {
-							// Is the dependent field is a select list, or radio list
-							if (eventsno && eventsno.options){
-								var defaultarray = new Array(fielddefaultarray);
-								for (var i = 0; i < eventsno.options.length; i++) {
-									if (defaultarray.indexOf(eventsno.options[i].value) >= 0) {
-										eventsno.options[i].selected = true;
-									}
-									else
-										eventsno.options[i].selected = false;
-								}
-							}
-							else {
-								eventsno.value = fielddefault;
-							}
-							hiddencontrol.style.display = "none";
-						}
-						try {
-							jQuery(eventsno).trigger("liszt:updated");
-						}
-						catch (e) {
-						}
-					}
-				}
-SCRIPT;
-		$document = JFactory::getDocument();
-		static $loadedScript = false;
-		if (!$loadedScript)
-		{
-			$document->addScriptDeclaration($script);
-			$loadedScript = true;
-		}
+		JHTML::script('components/' . JEV_COM_COMPONENT . '/assets/js/conditionalfields.js');
 
 		$script = <<<SCRIPT
-				window.addEvent('load', function() {
-					jevConditional.setupJevConditions('$conditional','$fielddefault', '$condlabel' ,'$condparam', '$conditions', '$fieldparam', $condarray, $fielddefaultarray);
-				});
+	jQuery(document).on('ready', function() {
+		jevConditional.setupJevConditions('$conditional','$fielddefault', '$condlabel' ,'$condparam', '$conditions', '$fieldparam', Array($condarray), Array($fielddefaultarray));
+	});
 SCRIPT;
 
 		$document = JFactory::getDocument();
@@ -2412,7 +2500,8 @@ SCRIPT;
 			{
 
 				$filtervars = json_decode($filter->filters);
-				if (is_object($filtervars)){
+				if (is_object($filtervars))
+				{
 					$filtervars = get_object_vars($filtervars);
 				}
 				var_dump($filtervars);
@@ -2422,15 +2511,14 @@ SCRIPT;
 					{
 						if (strpos($fvk, "_fv") > 0)
 						{
-							JRequest::setVar($fvk , $fvv);
+							JRequest::setVar($fvk, $fvv);
 						}
 					}
 				}
-
 			}
 		}
-
-		else {
+		else
+		{
 			JEVHelper::setFilterValues();
 		}
 
@@ -2459,7 +2547,8 @@ SCRIPT;
 			}
 		}
 
-		if (count($filtervars)>0){
+		if (count($filtervars) > 0)
+		{
 			ksort($filtervars);
 			var_dump($filtervars);
 			$filtervars = json_encode($filtervars);
@@ -2469,10 +2558,11 @@ SCRIPT;
 			$md5 = md5($filtervars);
 
 			$db->setQuery("SELECT fid, filters  FROM #__jevents_filtermap where md5 = " . $db->quote($md5));
-			$filters = $db->loadAssocList("fid","filters");
+			$filters = $db->loadAssocList("fid", "filters");
 
-			if (!in_array($filtervars, $filters)){
-				$db->setQuery("INSERT INTO #__jevents_filtermap (filters, md5) VALUES (" . $db->quote($filtervars).",".$db->quote($md5).")");
+			if (!in_array($filtervars, $filters))
+			{
+				$db->setQuery("INSERT INTO #__jevents_filtermap (filters, md5) VALUES (" . $db->quote($filtervars) . "," . $db->quote($md5) . ")");
 				$db->query();
 			}
 		}
@@ -2483,12 +2573,12 @@ SCRIPT;
 			function parameteriseJoomlaCache()
 	{
 
-// If Joomla caching is enabled then we have to manage progressive caching and ensure that session data is taken into account.
+// If Joomla! caching is enabled then we have to manage progressive caching and ensure that session data is taken into account.
 		$conf = JFactory::getConfig();
 		if ($conf->get('caching', 1))
 		{
 			// Joomla  3.0 safe cache parameters
-			$safeurlparams = array('catids' => 'STRING', 'Itemid' => 'STRING', 'task' => 'STRING', 'jevtask' => 'STRING', 'jevcmd' => 'STRING', 'view' => 'STRING', 'layout' => 'STRING', 'evid' => 'INT', 'modid' => 'INT', 'year' => 'INT', 'month' => 'INT', 'day' => 'INT', 'limit' => 'UINT', 'limitstart' => 'UINT', 'jfilter' => 'STRING');
+			$safeurlparams = array('catids' => 'STRING', 'Itemid' => 'STRING', 'task' => 'STRING', 'jevtask' => 'STRING', 'jevcmd' => 'STRING', 'view' => 'STRING', 'layout' => 'STRING', 'evid' => 'INT', 'modid' => 'INT', 'year' => 'INT', 'month' => 'INT', 'day' => 'INT', 'limit' => 'UINT', 'limitstart' => 'UINT', 'jfilter' => 'STRING', 'em' => 'STRING', 'em2' => 'STRING');
 			$app = JFactory::getApplication();
 
 			$filtervars = JRequest::get();
@@ -2532,18 +2622,62 @@ SCRIPT;
 					$sessionArrayData = array();
 				}
 			}
-			if ($sessionArrayData > 0)
+			if (count($sessionArrayData) > 0)
 			{
 				$safeurlparams["sessionArray"] = "STRING";
 				//var_dump($sessionArrayData);
 				JRequest::setVar("sessionArray", md5(serialize($sessionArrayData)));
 
-				// if we have session data then stock progressive caching
+				// if we have session data then stop progressive caching
 				if ($conf->get('caching', 1) == 2)
 				{
 					$conf->set('caching', 1);
 				}
+
+				// If we have session data then need to block page caching too!!
+				// JCache::getInstance('page', $options); doesn't give an instance its always a NEW copy
+				$cache_plg = JPluginHelper::getPlugin('system', 'cache');
+				$dispatcher = JDispatcher::getInstance();
+				$observers = @$dispatcher->get("_observers");
+				if ($observers && is_array($observers))
+				{
+					foreach ($observers as $observer)
+					{
+						if (is_object($observer) && get_class($observer) == "plgSystemCache")
+						{
+							$pagecache = @$observer->get("_cache");
+							if ($pagecache)
+							{
+								$pagecache->setCaching(false);
+							}
+							break;
+						}
+					}
+				}
 			}
+
+			 if (JRequest::getCmd("em") || JRequest::getCmd("em2")){
+				// If we have RSVP PRo data then need to block page caching too!!
+				// JCache::getInstance('page', $options); doesn't give an instance its always a NEW copy
+				$cache_plg = JPluginHelper::getPlugin('system', 'cache');
+				$dispatcher = JDispatcher::getInstance();
+				$observers = @$dispatcher->get("_observers");
+				if ($observers && is_array($observers))
+				{
+					foreach ($observers as $observer)
+					{
+						if (is_object($observer) && get_class($observer) == "plgSystemCache")
+						{
+							$pagecache = @$observer->get("_cache");
+							if ($pagecache)
+							{
+								$pagecache->setCaching(false);
+							}
+							break;
+						}
+					}
+				}
+			 }
 
 			if (!empty($app->registeredurlparams))
 			{
@@ -2569,7 +2703,7 @@ SCRIPT;
 	 * Get an user object.
 	 *
 	 * JEvents version that doesn't throw error message when user doesn't exist
-	 * 
+	 *
 	 * Returns the global {@link JUser} object, only creating it if it doesn't already exist.
 	 *
 	 * @param   integer  $id  The user to load - Can be an integer or string - If string, it is converted to ID automatically.
@@ -2579,16 +2713,19 @@ SCRIPT;
 	 * @see     JUser
 	 * @since   11.1
 	 */
-	public static function getUser($id = null)
+	public static
+			function getUser($id = null)
 	{
-		if (is_null($id) || $id==0)
+		if (is_null($id) || $id == 0)
 		{
-			return JFactory::getUser($id);
+			// CB sometimes messes up with the session data when logging out - so this is a safe workaround!
+			return JUser::getInstance();
 		}
 		else
 		{
 			static $tested = array();
-			if (!isset($tested[$id])){
+			if (!isset($tested[$id]))
+			{
 				// Initialise some variables
 				$db = JFactory::getDbo();
 				$query = $db->getQuery(true);
@@ -2598,57 +2735,62 @@ SCRIPT;
 				$db->setQuery($query, 0, 1);
 				$tested[$id] = $db->loadResult();
 			}
-			if (!$tested[$id]) {
+			if (!$tested[$id])
+			{
 				return false;
 			}
 			return JFactory::getUser($id);
 		}
 
 	}
-        // We use this for RSVP Pro Invites with iCal mail and New & Event change notifcations at present to avoid code duplication.
-        public static function iCalMailGenerator($row, $params, $dataModel ) {
-               			//Check if Freq is more than none, if not rename to Daily for single event.
-			$icalEvents = array($row);
-			if (ob_get_contents()) ob_end_clean();
-			$html = "";
-                        $params = JComponentHelper::getParams("com_jevents");
-			if ($params->get('outlook2003icalexport'))
-				$html .= "BEGIN:VCALENDAR\r\nPRODID:JEvents 3.1 for Joomla//EN\r\n";
-			else
-				$html .= "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:JEvents 3.1 for Joomla//EN\r\n";
 
-			$html .= "CALSCALE:GREGORIAN\r\nMETHOD:PUBLISH\r\n";
-			if (!empty($icalEvents))
+	// We use this for RSVP Pro Invites with iCal mail and New & Event change notifications at present to avoid code duplication.
+	public static
+			function iCalMailGenerator($row, $n_extras, $ics_method = "PUBLISH")
+	{
+
+		$m_ev = $n_extras["m_ev"];
+
+		if ($ics_method == "CANCEL")
+		{
+			$status = "CANCELLED";
+		}
+		if (JFile::exists(JPATH_SITE . "/plugins/jevents/jevnotify/"))
+		{
+			//If using JEvents notify plugin we need to load it for the processing of data.
+			JLoader::register('JEVNotifyHelper', JPATH_SITE . "/plugins/jevents/jevnotify/helper.php");
+		}
+
+		$icalEvents = array($row);
+		if (ob_get_contents())
+			ob_end_clean();
+		$html = "";
+		$params = JComponentHelper::getParams("com_jevents");
+
+		if ($params->get('outlook2003icalexport'))
+			$html .= "BEGIN:VCALENDAR\r\nPRODID:JEvents 3.1 for Joomla//EN\r\n";
+		else
+			$html .= "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:JEvents 3.1 for Joomla//EN\r\n";
+
+		$html .= "CALSCALE:GREGORIAN\r\nMETHOD:" . $ics_method . "\r\n";
+		if (isset($status))
+		{
+			$html .= "STATUS:" . $status . "\r\n";
+		}
+		if (!empty($icalEvents))
+		{
+
+			ob_start();
+			$tzid = self::vtimezone($icalEvents);
+			$html .= ob_get_clean();
+
+			// Build Exceptions dataset - all done in big batches to save multiple queries
+			$exceptiondata = array();
+			$ids = array();
+			foreach ($icalEvents as $a)
 			{
-
-				ob_start();
-				$tzid = self::vtimezone($icalEvents);
-				$html .= ob_get_clean();
-
-				// Build Exceptions dataset - all done in big batches to save multiple queries
-				$exceptiondata = array();
-				$ids = array();
-				foreach ($icalEvents as $a)
-				{
-					$ids[] = $a->ev_id();
-					if (count($ids) > 100)
-					{
-						$db = JFactory::getDBO();
-						$db->setQuery("SELECT * FROM #__jevents_exception where eventid IN (" . implode(",", $ids) . ")");
-						$rows = $db->loadObjectList();
-						foreach ($rows as $row)
-						{
-							if (!isset($exceptiondata[$row->eventid]))
-							{
-								$exceptiondata[$row->eventid] = array();
-							}
-							$exceptiondata[$row->eventid][$row->rp_id] = $row;
-						}
-						$ids = array();
-					}
-				}
-				// mop up the last ones
-				if (count($ids) > 0)
+				$ids[] = $a->ev_id();
+				if (count($ids) > 100)
 				{
 					$db = JFactory::getDBO();
 					$db->setQuery("SELECT * FROM #__jevents_exception where eventid IN (" . implode(",", $ids) . ")");
@@ -2661,77 +2803,102 @@ SCRIPT;
 						}
 						$exceptiondata[$row->eventid][$row->rp_id] = $row;
 					}
+					$ids = array();
 				}
-
-				// make sure the array is now reindexed for the sake of the plugins!
-				$icalEvents = array_values($icalEvents);
-
-				// Call plugin on each event
-				$dispatcher =  JDispatcher::getInstance();
-				ob_start();
-				JEVHelper::onDisplayCustomFieldsMultiRow($icalEvents);
-				ob_end_clean();
-
-				foreach ($icalEvents as $a)
+			}
+			// mop up the last ones
+			if (count($ids) > 0)
+			{
+				$db = JFactory::getDBO();
+				$db->setQuery("SELECT * FROM #__jevents_exception where eventid IN (" . implode(",", $ids) . ")");
+				$rows = $db->loadObjectList();
+				foreach ($rows as $row)
 				{
-					// if event has repetitions I must find the first one to confirm the dates
-					if ($a->hasrepetition())
+					if (!isset($exceptiondata[$row->eventid]))
 					{
-						$a = $a->getOriginalFirstRepeat();
+						$exceptiondata[$row->eventid] = array();
 					}
-					if (!$a)
-						continue;
+					$exceptiondata[$row->eventid][$row->rp_id] = $row;
+				}
+			}
+
+			// make sure the array is now reindexed for the sake of the plugins!
+			$icalEvents = array_values($icalEvents);
+
+			// Call plugin on each event
+			$dispatcher = JDispatcher::getInstance();
+			ob_start();
+			JEVHelper::onDisplayCustomFieldsMultiRow($icalEvents);
+			ob_end_clean();
+
+			foreach ($icalEvents as $a)
+			{
+				//See if we are a master event?
+				// if event has repetitions I must find the first one to confirm the dates
+				if ($a->hasrepetition())
+				{
+					$a = $a->getOriginalFirstRepeat();
+				}
+				if (!$a)
+					continue;
+				if ($m_ev != 0)
+				{
+					if (!isset($row->uid))
+					{
+						$row = $a;
+					}
+
 					$html .= "BEGIN:VEVENT\r\n";
-					$html .= "UID:" . $a->uid() . "\r\n";
-					$html .= "CATEGORIES:" . $a->catname() . "\r\n";
-					if (!empty($a->_class))
-						$html .= "CLASS:" . $a->_class . "\r\n";
-					$html .= "SUMMARY:" . $a->title() . "\r\n";
+					$html .= "UID:" . $row->uid() . "\r\n";
+					$html .= "CATEGORIES:" . $row->catname() . "\r\n";
+					if (!empty($row->_class))
+						$html .= "CLASS:" . $row->_class . "\r\n";
+					$html .= "SUMMARY:" . $row->title() . "\r\n";
 					if ($a->location() != "")
 					{
-						if (!is_numeric($a->location()))
+						if (!is_numeric($row->location()))
 						{
-							$html .= "LOCATION:" . self::wraplines(self::replacetags($a->location())) . "\r\n";
+							$html .= "LOCATION:" . self::wraplines(self::replacetags($row->location())) . "\r\n";
 						}
-						else if (isset($a->_loc_title))
+						else if (isset($row->_loc_title))
 						{
-							$html .= "LOCATION:" . self::wraplines(self::replacetags($a->_loc_title)) . "\r\n";
+							$html .= "LOCATION:" . self::wraplines(self::replacetags($row->_loc_title)) . "\r\n";
 						}
 						else
 						{
-							$html .= "LOCATION:" . self::wraplines(self::replacetags($a->location())) . "\r\n";
+							$html .= "LOCATION:" . self::wraplines(self::replacetags($row->location())) . "\r\n";
 						}
 					}
 					// We Need to wrap this according to the specs
 					/* $html .= "DESCRIPTION:".preg_replace("'<[\/\!]*?[^<>]*?>'si","",preg_replace("/\n|\r\n|\r$/","",$a->content()))."\n"; */
-					$html .= self::setDescription(strip_tags($a->content())) . "\r\n";
+					$html .= self::setDescription(strip_tags($row->content())) . "\r\n";
 
 					if ($a->hasContactInfo())
-						$html .= "CONTACT:" . self::replacetags($a->contact_info()) . "\r\n";
+						$html .= "CONTACT:" . self::replacetags($row->contact_info()) . "\r\n";
 					if ($a->hasExtraInfo())
-						$html .= "X-EXTRAINFO:" . self::wraplines(self::replacetags($a->_extra_info)) . "\r\n";
-                                        $user = JFactory::getUser($a->created_by());
-                                                        
-                                        $html .= "ORGANIZER;CN=" . $user->name . ":MAILTO:" . $user->email . "\r\n";
+						$html .= "X-EXTRAINFO:" . self::wraplines(self::replacetags($row->_extra_info)) . "\r\n";
+					$user = JFactory::getUser($row->created_by());
+
+					$html .= "ORGANIZER;CN=" . $user->name . ":MAILTO:" . $user->email . "\r\n";
 					$alldayprefix = "";
 					// No doing true timezones!
 					if ($tzid == "" && is_callable("date_default_timezone_set"))
 					{
 						// UTC!
-						$start = $a->getUnixStartTime();
-						$end = $a->getUnixEndTime();
+						$start = $row->getUnixStartTime();
+						$end = $row->getUnixEndTime();
 
 						// in case the first repeat has been changed
-						if (array_key_exists($a->_eventid, $exceptiondata) && array_key_exists($a->rp_id(), $exceptiondata[$a->_eventid]))
+						if (array_key_exists($row->_eventid, $exceptiondata) && array_key_exists($row->rp_id(), $exceptiondata[$row->_eventid]))
 						{
-							$start = JevDate::strtotime($exceptiondata[$a->_eventid][$a->rp_id()]->oldstartrepeat);
+							$start = JevDate::strtotime($exceptiondata[$row->_eventid][$a->rp_id()]->oldstartrepeat);
 						}
 
 						// Change timezone to UTC
 						$current_timezone = date_default_timezone_get();
 
 						// If all day event then don't show the start time or end time either
-						if ($a->alldayevent())
+						if ($row->alldayevent())
 						{
 							$alldayprefix = ";VALUE=DATE";
 							$startformat = "%Y%m%d";
@@ -2760,11 +2927,11 @@ SCRIPT;
 					}
 					else
 					{
-						$start = $a->getUnixStartTime();
-						$end = $a->getUnixEndTime();
+						$start = $row->getUnixStartTime();
+						$end = $row->getUnixEndTime();
 
 						// If all day event then don't show the start time or end time either
-						if ($a->alldayevent())
+						if ($row->alldayevent())
 						{
 							$alldayprefix = ";VALUE=DATE";
 							$startformat = "%Y%m%d";
@@ -2796,208 +2963,322 @@ SCRIPT;
 						}
 
 						// in case the first repeat is changed
-						if (array_key_exists($a->_eventid, $exceptiondata) && array_key_exists($a->rp_id(), $exceptiondata[$a->_eventid]))
+						if (array_key_exists($row->_eventid, $exceptiondata) && array_key_exists($row->rp_id(), $exceptiondata[$a->_eventid]))
 						{
 							$start = JevDate::strftime($startformat, JevDate::strtotime($exceptiondata[$a->_eventid][$a->rp_id()]->oldstartrepeat));
 						}
 					}
 
 					$html .= "DTSTAMP:" . $stamptime . "\r\n";
-					$html .= "DTSTART$tzid$alldayprefix:" . $start . "\r\n";
+					if ($row->alldayevent()) {
+						$html .= "DTSTART$alldayprefix:" . $start . "\r\n";
+					}
+					else {
+						$html .= "DTSTART$tzid$alldayprefix:" . $start . "\r\n";
+					}
 					// events with no end time don't give a DTEND
 					if (!$a->noendtime())
 					{
 						$html .= "DTEND$tzid$alldayprefix:" . $end . "\r\n";
 					}
-					$html .= "SEQUENCE:" . $a->_sequence . "\r\n";
-					if ($a->hasrepetition())
+					$html .= "SEQUENCE:" . $row->_sequence . "\r\n";
+					if ($row->hasrepetition())
 					{
 						$html .= 'RRULE:';
 
+
 						// TODO MAKE SURE COMPAIBLE COMBINATIONS
-						$html .= 'FREQ=' . $a->_freq;
-						if ($a->_until != "" && $a->_until != 0)
+						$html .= 'FREQ=' . $row->_freq;
+						if ($row->_until != "" && $row->_until != 0)
 						{
 							// Do not use JevDate version since this sets timezone to config value!
 							// GOOGLE HAS A PROBLEM WITH 235959!!!
 							//$html .= ';UNTIL=' . strftime("%Y%m%dT235959Z", $a->_until);
 							$html .= ';UNTIL=' . strftime("%Y%m%dT000000Z", $a->_until + 86400);
 						}
-						else if ($a->_count != "")
+						else if ($row->_count != "")
 						{
-							$html .= ';COUNT=' . $a->_count;
+							$html .= ';COUNT=' . $row->_count;
 						}
-						if ($a->_rinterval != "")
-							$html .= ';INTERVAL=' . $a->_rinterval;
-						if ($a->_freq == "DAILY")
+						if ($row->_rinterval != "")
+							$html .= ';INTERVAL=' . $row->_rinterval;
+						if ($row->_freq == "DAILY")
 						{
-
+							
 						}
-						else if ($a->_freq == "WEEKLY")
+						else if ($row->_freq == "WEEKLY")
 						{
-							if ($a->_byday != "")
-								$html .= ';BYDAY=' . $a->_byday;
-						}
-						else if ($a->_freq == "MONTHLY")
+							if ($row->_byday != "")
+								$html .= ';BYDAY=' . $row->_byday;
+						} else if ($row->_freq == "MONTHLY")
 						{
-							if ($a->_bymonthday != "")
+							if ($row->_bymonthday != "")
 							{
-								$html .= ';BYMONTHDAY=' . $a->_bymonthday;
-								if ($a->_byweekno != "")
-									$html .= ';BYWEEKNO=' . $a->_byweekno;
-							}
-							else if ($a->_byday != "")
+								$html .= ';BYMONTHDAY=' . $row->_bymonthday;
+								if ($row->_byweekno != "")
+									$html .= ';BYWEEKNO=' . $row->_byweekno;
+							} else if ($row->_byday != "")
 							{
-								$html .= ';BYDAY=' . $a->_byday;
-								if ($a->_byweekno != "")
-									$html .= ';BYWEEKNO=' . $a->_byweekno;
+								$html .= ';BYDAY=' . $row->_byday;
+								if ($row->_byweekno != "")
+									$html .= ';BYWEEKNO=' . $row->_byweekno;
 							}
-						}
-						else if ($a->_freq == "YEARLY")
+						} else if ($row->_freq == "YEARLY")
 						{
-							if ($a->_byyearday != "")
-								$html .= ';BYYEARDAY=' . $a->_byyearday;
+							if ($row->_byyearday != "")
+								$html .= ';BYYEARDAY=' . $row->_byyearday;
 						}
 						$html .= "\r\n";
 					}
+				}
+				// Now handle Exceptions
+				$exceptions = array();
+				if (array_key_exists($a->ev_id(), $exceptiondata))
+				{
+					$exceptions = $exceptiondata[$a->ev_id()];
+				}
 
-					// Now handle Exceptions
-					$exceptions = array();
-					if (array_key_exists($a->ev_id(), $exceptiondata))
+				$deletes = array();
+				$changed = array();
+				$changedexceptions = array();
+				if (count($exceptions) > 0)
+				{
+					foreach ($exceptions as $exception)
 					{
-						$exceptions = $exceptiondata[$a->ev_id()];
-					}
-
-					$deletes = array();
-					$changed = array();
-					$changedexceptions = array();
-					if (count($exceptions) > 0)
-					{
-						foreach ($exceptions as $exception)
+						if ($exception->exception_type == 0)
 						{
-							if ($exception->exception_type == 0)
-							{
-								$exceptiondate = JevDate::strtotime($exception->startrepeat);
-
-								// No doing true timezones!
-								if ($tzid == "" && is_callable("date_default_timezone_set"))
-								{
-
-									// Change timezone to UTC
-									$current_timezone = date_default_timezone_get();
-									date_default_timezone_set("UTC");
-
-									// Do not use JevDate version since this sets timezone to config value!
-									$deletes[] = strftime("%Y%m%dT%H%M%SZ", $exceptiondate);
-
-									// Change back
-									date_default_timezone_set($current_timezone);
-								}
-								else
-								{
-									$deletes[] = JevDate::strftime("%Y%m%dT%H%M%S", $exceptiondate);
-								}
-							}
-							else
-							{
-								$changed[] = $exception->rp_id;
-								$changedexceptions[$exception->rp_id] = $exception;
-							}
-						}
-						if (count($deletes) > 0)
-						{
-							$html .= "EXDATE$tzid:" . self::wraplines(implode(",", $deletes)) . "\r\n";
-						}
-					}
-
-					$html .= "TRANSP:OPAQUE\r\n";
-					$html .= "END:VEVENT\r\n";
-
-					$changedrows = array();
-
-					if (count($changed) > 0 && $changed[0] != 0)
-					{
-						foreach ($changed as $rpid)
-						{
-							$a = $dataModel->getEventData($rpid, "icaldb", 0, 0, 0);
-
-							if ($a && isset($a["row"]))
-							{
-								$a = $a["row"];
-								$changedrows[] = $a;
-							}
-						}
-
-						ob_start();
-						$dispatcher->trigger('onDisplayCustomFieldsMultiRow', array(&$changedrows));
-						ob_end_clean();
-
-						foreach ($changedrows as $a)
-						{
-							$html .= "BEGIN:VEVENT\r\n";
-							$html .= "UID:" . $a->uid() . "\r\n";
-							$html .= "CATEGORIES:" . $a->catname() . "\r\n";
-							if (!empty($a->_class))
-								$html .= "CLASS:" . $a->_class . "\r\n";
-							$html .= "SUMMARY:" . $a->title() . "\r\n";
-							if ($a->location() != "")
-								$html .= "LOCATION:" . self::wraplines(self::replacetags($a->location())) . "\r\n";
-							// We Need to wrap this according to the specs
-							$html .= self::setDescription(strip_tags($a->content())) . "\r\n";
-
-							if ($a->hasContactInfo())
-								$html .= "CONTACT:" . self::replacetags($a->contact_info()) . "\r\n";
-                                                                
-							if ($a->hasExtraInfo())
-								$html .= "X-EXTRAINFO:" . self::wraplines(self::replacetags($a->_extra_info)); $html .= "\r\n";
-                                                        $user = JFactory::getUser($a->created_by());
-                                                        
-                                                        $html .= "ORGANIZER;CN=" . $user->name . ":MAILTO:" . $user->email . "\r\n";
-							$exception = $changedexceptions[$rpid];
-							$originalstart = JevDate::strtotime($exception->oldstartrepeat);
-							$chstart = $a->getUnixStartTime();
-							$chend = $a->getUnixEndTime();
+							$exceptiondate = JevDate::strtotime($exception->startrepeat);
 
 							// No doing true timezones!
 							if ($tzid == "" && is_callable("date_default_timezone_set"))
 							{
-								// UTC!
+
 								// Change timezone to UTC
 								$current_timezone = date_default_timezone_get();
 								date_default_timezone_set("UTC");
 
 								// Do not use JevDate version since this sets timezone to config value!
-								$chstart = strftime("%Y%m%dT%H%M%SZ", $chstart);
-								$chend = strftime("%Y%m%dT%H%M%SZ", $chend);
-								$stamptime = strftime("%Y%m%dT%H%M%SZ", time());
-								$originalstart = strftime("%Y%m%dT%H%M%SZ", $originalstart);
+								$deletes[] = strftime("%Y%m%dT%H%M%SZ", $exceptiondate);
+
 								// Change back
 								date_default_timezone_set($current_timezone);
 							}
 							else
 							{
-								$chstart = JevDate::strftime("%Y%m%dT%H%M%S", $chstart);
-								$chend = JevDate::strftime("%Y%m%dT%H%M%S", $chend);
-								$stamptime = JevDate::strftime("%Y%m%dT%H%M%S", time());
-								$originalstart = JevDate::strftime("%Y%m%dT%H%M%S", $originalstart);
+								$deletes[] = JevDate::strftime("%Y%m%dT%H%M%S", $exceptiondate);
 							}
-							$html .= "DTSTAMP$tzid:" . $stamptime . "\r\n";
-							$html .= "DTSTART$tzid:" . $chstart . "\r\n";
-							$html .= "DTEND$tzid:" . $chend . "\r\n";
-							$html .= "RECURRENCE-ID$tzid:" . $originalstart . "\r\n";
-							$html .= "SEQUENCE:" . $a->_sequence . "\r\n";
-							$html .= "TRANSP:OPAQUE\r\n";
-							$html .= "END:VEVENT\r\n";
+						}
+						else
+						{
+							$changed[] = $exception->rp_id;
+							$changedexceptions[$exception->rp_id] = $exception;
 						}
 					}
+					if (count($deletes) > 0)
+					{
+						$html .= "EXDATE$tzid:" . self::wraplines(implode(",", $deletes)) . "\r\n";
+					}
+				}
+
+				// Ok if it's a request and not the master event then it's a change. No need the include the master event for the iCal emails Let see about removing it:
+				if (($ics_method == "REQUEST" || $ics_method == "CANCEL") && ($a->hasrepetition() && $m_ev == 0))
+				{
+					// Simple lets, clear her.
+					$html = "";
+					//Now re-add standard params.
+					if ($params->get('outlook2003icalexport'))
+					{
+						$html .= "BEGIN:VCALENDAR\r\nPRODID:JEvents 3.1 for Joomla//EN\r\n";
+					}
+					else
+					{
+						$html .= "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:JEvents 3.1 for Joomla//EN\r\n";
+					}
+
+					$html .= "CALSCALE:GREGORIAN\r\nMETHOD:" . $ics_method . "\r\n";
+
+					if (isset($status))
+					{
+						$html .= "STATUS:" . $status . "\r\n";
+					}
+				}
+				//Lets get the changes
+				$changedrows = array();
+
+				if (count($changed) > 0 && $changed[0] != 0 && $ics_method != "CANCEL")
+				{
+					foreach ($changed as $rpid)
+					{
+						$helper = new JEVNotifyHelper;
+						if (JPATH_SITE . "/plugins/jevents/jevnotify/")
+						{
+							$a = $helper->getEventData($rpid, "icaldb", 0, 0, 0, $a->uid());
+						}
+						else
+						{
+							// No usage yet.
+							// Likely to update helper function when moving over RSVP Pro Generated iCals.
+							$a = $helper->getEventData($rpid, "icaldb", 0, 0, 0, $a->uid());
+						}
+
+						if ($a && isset($a["row"]))
+						{
+							$a = $a["row"];
+							$changedrows[] = $a;
+						}
+					}
+
+
+					ob_start();
+					$dispatcher->trigger('onDisplayCustomFieldsMultiRow', array(&$changedrows));
+					ob_end_clean();
+
+					// TODO look at removing events as array as we will only handle ONE event in mail generation.
+					$changedevent = $icalEvents[0]->rp_id();
+
+					foreach ($changedrows as $a)
+					{
+						//Ok we only need to get the repeat for the one event. So lets just continue past the repeats that don't match up.
+						if (($ics_method == "REQUEST" || $ics_method == "CANCEL") && ($a->hasrepetition() && $m_ev == 0 && $a->rp_id() != $changedevent))
+						{
+							continue;
+						}
+
+						$html .= "BEGIN:VEVENT\r\n";
+						$html .= "UID:" . $a->uid() . "\r\n";
+						$html .= "CATEGORIES:" . $a->catname() . "\r\n";
+						if (!empty($a->_class))
+							$html .= "CLASS:" . $a->_class . "\r\n";
+						$html .= "SUMMARY:" . $a->title() . "\r\n";
+						if ($a->location() != "")
+							$html .= "LOCATION:" . self::wraplines(self::replacetags($a->location())) . "\r\n";
+						// We Need to wrap this according to the specs
+						$html .= self::setDescription(strip_tags($a->content())) . "\r\n";
+
+						if ($a->hasContactInfo())
+							$html .= "CONTACT:" . self::replacetags($a->contact_info()) . "\r\n";
+
+						if ($a->hasExtraInfo())
+							$html .= "X-EXTRAINFO:" . self::wraplines(self::replacetags($a->_extra_info));
+						$html .= "\r\n";
+						$user = JFactory::getUser($a->created_by());
+
+						$html .= "ORGANIZER;CN=" . $user->name . ":MAILTO:" . $user->email . "\r\n";
+						$exception = $changedexceptions[$rpid];
+						$originalstart = JevDate::strtotime($exception->oldstartrepeat);
+						$chstart = $a->getUnixStartTime();
+						$chend = $a->getUnixEndTime();
+
+						// No doing true timezones!
+						if ($tzid == "" && is_callable("date_default_timezone_set"))
+						{
+							// UTC!
+							// Change timezone to UTC
+							$current_timezone = date_default_timezone_get();
+							date_default_timezone_set("UTC");
+
+							// Do not use JevDate version since this sets timezone to config value!
+							$chstart = strftime("%Y%m%dT%H%M%SZ", $chstart);
+							$chend = strftime("%Y%m%dT%H%M%SZ", $chend);
+							$stamptime = strftime("%Y%m%dT%H%M%SZ", time());
+							$originalstart = strftime("%Y%m%dT%H%M%SZ", $originalstart);
+							// Change back
+							date_default_timezone_set($current_timezone);
+						}
+						else
+						{
+							$chstart = JevDate::strftime("%Y%m%dT%H%M%S", $chstart);
+							$chend = JevDate::strftime("%Y%m%dT%H%M%S", $chend);
+							$stamptime = JevDate::strftime("%Y%m%dT%H%M%S", time());
+							$originalstart = JevDate::strftime("%Y%m%dT%H%M%S", $originalstart);
+						}
+						$html .= "DTSTAMP$tzid:" . $stamptime . "\r\n";
+						$html .= "DTSTART$tzid:" . $chstart . "\r\n";
+						$html .= "DTEND$tzid:" . $chend . "\r\n";
+						$html .= "RECURRENCE-ID$tzid:" . $originalstart . "\r\n";
+						$html .= "SEQUENCE:" . $a->_sequence . "\r\n";
+						$html .= "TRANSP:OPAQUE\r\n";
+						$html .= "END:VEVENT\r\n";
+					}
+				}
+				else if ($m_ev == 0 && $ics_method == "CANCEL")
+				{
+
+					//Crud and means duplicating Code
+					//TODO create a new universal iCalMailer. Ideally, one which stores the emails and run's it's own loop finding iCAL events as MS is a bugger and requires individual mails.
+
+					$a = $icalEvents[0];
+					//Lets get the repeat data now
+					$html .= "BEGIN:VEVENT\r\n";
+					$html .= "UID:" . $a->uid() . "\r\n";
+					$html .= "CATEGORIES:" . $a->catname() . "\r\n";
+					if (!empty($a->_class))
+						$html .= "CLASS:" . $a->_class . "\r\n";
+					$html .= "SUMMARY:" . $a->title() . "\r\n";
+					if ($a->location() != "")
+						$html .= "LOCATION:" . self::wraplines(self::replacetags($a->location())) . "\r\n";
+					// We Need to wrap this according to the specs
+					$html .= self::setDescription(strip_tags($a->content())) . "\r\n";
+
+					if ($a->hasContactInfo())
+						$html .= "CONTACT:" . self::replacetags($a->contact_info()) . "\r\n";
+
+					if ($a->hasExtraInfo())
+						$html .= "X-EXTRAINFO:" . self::wraplines(self::replacetags($a->_extra_info));
+					$html .= "\r\n";
+					$user = JFactory::getUser($a->created_by());
+
+					$html .= "ORGANIZER;CN=" . $user->name . ":MAILTO:" . $user->email . "\r\n";
+					$originalstart = JevDate::strtotime($a->_startrepeat);
+					$chstart = $a->getUnixStartTime();
+					$chend = $a->getUnixEndTime();
+
+					// No doing true timezones!
+					if ($tzid == "" && is_callable("date_default_timezone_set"))
+					{
+						// UTC!
+						// Change timezone to UTC
+						$current_timezone = date_default_timezone_get();
+						date_default_timezone_set("UTC");
+
+						// Do not use JevDate version since this sets timezone to config value!
+						$chstart = strftime("%Y%m%dT%H%M%SZ", $chstart);
+						$chend = strftime("%Y%m%dT%H%M%SZ", $chend);
+						$stamptime = strftime("%Y%m%dT%H%M%SZ", time());
+						$originalstart = strftime("%Y%m%dT%H%M%SZ", $originalstart);
+						// Change back
+						date_default_timezone_set($current_timezone);
+					}
+					else
+					{
+						$chstart = JevDate::strftime("%Y%m%dT%H%M%S", $chstart);
+						$chend = JevDate::strftime("%Y%m%dT%H%M%S", $chend);
+						$stamptime = JevDate::strftime("%Y%m%dT%H%M%S", time());
+						$originalstart = JevDate::strftime("%Y%m%dT%H%M%S", $originalstart);
+					}
+					$html .= "DTSTAMP$tzid:" . $stamptime . "\r\n";
+					$html .= "DTSTART$tzid:" . $chstart . "\r\n";
+					$html .= "DTEND$tzid:" . $chend . "\r\n";
+					$html .= "RECURRENCE-ID$tzid:" . $originalstart . "\r\n";
+					$html .= "SEQUENCE:" . $a->_sequence . "\r\n";
+					$html .= "TRANSP:OPAQUE\r\n";
+					$html .= "END:VEVENT\r\n";
+				}
+				else
+				{
+					$html .= "TRANSP:OPAQUE\r\n";
+					$html .= "END:VEVENT\r\n";
 				}
 			}
+		}
 
+		$html .= "END:VCALENDAR\r\n";
+		return $html;
 
-			$html .= "END:VCALENDAR\r\n";
-                        return $html;
-        }
-        protected function vtimezone($icalEvents)
+	}
+
+	protected static
+			function vtimezone($icalEvents)
 	{
 		$params = JComponentHelper::getParams(JEV_COM_COMPONENT);
 		$tzid = "";
@@ -3116,8 +3397,10 @@ SCRIPT;
 		return $tzid;
 
 	}
-        // Special methods ONLY user for iCal invitations
-	protected function setDescription($desc)
+
+	// Special methods ONLY user for iCal invitations
+	protected static
+			function setDescription($desc)
 	{
 		// TODO - run this through plugins first ?
 
@@ -3128,7 +3411,7 @@ SCRIPT;
 			$description = $desc;
 
 		// wraplines	from vCard class
-		$cfg =  JEVConfig::getInstance();
+		$cfg = JEVConfig::getInstance();
 		if ($cfg->get("outlook2003icalexport", 0))
 		{
 			return "DESCRIPTION:" . self::wraplines($description, 76, false);
@@ -3136,27 +3419,31 @@ SCRIPT;
 		else
 		{
 			return "DESCRIPTION;ENCODING=QUOTED-PRINTABLE:" . self::wraplines($description);
+		}
 
 	}
-	}
-        	protected function wraplines($input, $line_max = 76, $quotedprintable = false)
+
+	protected static
+			function wraplines($input, $line_max = 76, $quotedprintable = false)
 	{
 		$hex = array('0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F');
-		$eol 		= "\r\n";
+		$eol = "\r\n";
 
 		$input = str_replace($eol, "", $input);
 
 		// new version
-
 		$output = '';
-		while (JString::strlen($input)>=$line_max){
-			$output .= JString::substr($input,0,$line_max-1);
-			$input = JString::substr($input,$line_max-1);
-			if (strlen($input)>0){
-		  		 $output .= $eol." ";
+		while (JString::strlen($input) >= $line_max)
+		{
+			$output .= JString::substr($input, 0, $line_max - 1);
+			$input = JString::substr($input, $line_max - 1);
+			if (JString::strlen($input) > 0)
+			{
+				$output .= $eol . " ";
 			}
 		}
-		if (strlen($input)>0){
+		if (JString::strlen($input) > 0)
+		{
 			$output .= $input;
 		}
 		return $output;
@@ -3174,7 +3461,7 @@ SCRIPT;
 			$c = JString::substr($input, $i, 1);
 
 			/*
-			$dec = ord($c);
+			  $dec = ord($c);
 			  if (!$quotedprintable) {
 			  if (($dec == 32) && ($i == ($linlen - 1))) { // convert space at eol only
 			  $c = '=20';
@@ -3185,7 +3472,7 @@ SCRIPT;
 			  }
 			  }
 			 */
-			if ((strlen($outline) + 1) >= $line_max)
+			if ((JString::strlen($outline) + 1) >= $line_max)
 			{ // CRLF is not counted
 				$output .= $outline . $eol . $newline; // soft line break; "\r\n" is okay
 				$outline = $c;
@@ -3201,7 +3488,9 @@ SCRIPT;
 		return trim($output);
 
 	}
-        protected function replacetags($description)
+
+	protected static
+			function replacetags($description)
 	{
 		$description = str_replace('<p>', '\n\n', $description);
 		$description = str_replace('<P>', '\n\n', $description);
@@ -3224,113 +3513,25 @@ SCRIPT;
 
 	}
 
+	/**
+	 * DEPRECATED use JevHtmlBootstrap::modal instead
+	 */
+	public static
+			function modal($selector = 'a.modal', $params = array())
+	{
+		
+		if (version_compare(JVERSION, "3.0", "ge"))
+		{
+			// Load the code Joomla version
+		//	JHtml::_('jquery.framework');
+		//	JHtml::_('bootstrap.modal');
+		//	return;
+		}
+
+		JHtml::_('behavior.modal', $selector, $params);
+		return;
+
+		return;
+	}
 
 }
-
-/* Keep this - just in case */
-/*
- 				var jevConditional_$conditional = {
-					setupJevConditions: function() {
-						var condition = $("$condparam$conditions");
-						if (condition.className.indexOf("radio") >= 0) {
-							for (var i = 0; i < condition.childNodes.length; i++) {
-								if (condition.childNodes[i].type == "radio") {
-									condition.childNodes[i].addEvent("click", function() {
-										jevConditional_$conditional.jevCondition()
-									});
-								}
-							}
-						}
-						else if (condition.tagName == "SELECT") {
-							if ($(condition.id + "_chzn")) {
-								var condition_chzn = $(condition.id + "_chzn");
-								for (var i = 0; i < condition_chzn.childNodes.length; i++) {
-									condition_chzn.childNodes[i].addEvent("click", function() {
-										jevConditional_$conditional.jevCondition()
-									});
-								}
-							}
-							else
-								condition.addEvent("change", function() {
-									jevConditional_$conditional.jevCondition()
-								});
-						}
-						else {
-							condition.addEvent("change", function() {
-								jevConditional_$conditional.jevCondition()
-							});
-						}
-						jevConditional_$conditional.jevCondition();
-					},
-					jevCondition: function() {
-						var condition = $("$condparam$conditions");
-						var eventsno = $("$fieldparam$conditional");
-						var hiddencontrol = eventsno.parentNode.parentNode;
-						var conditionsarray = new Array($condarray);
-						if (condition.type == "checkbox")
-							condition.value = condition.checked;
-						if (condition.childNodes[0] && condition.childNodes[0].type == "radio") {
-							for (var i = 0; i < condition.childNodes.length; i++) {
-								if (condition.childNodes[i].checked)
-									condition.value = condition.childNodes[i].value;
-							}
-						}
-						if (condition.multiple && condition.tagName == "SELECT") {
-							for (var i = 0; i < condition.options.length; i++) {
-								if (condition.options[i].selected && conditionsarray.indexOf(condition.options[i].value) >= 0)
-									conditionsarray[0] = condition.value;
-							}
-						}
-						if (condition.childNodes[0] && condition.childNodes[0].childNodes[0] && condition.childNodes[0].childNodes[0].childNodes[0] && condition.childNodes[0].childNodes[0].childNodes[0].type == "checkbox") {
-							condition.value = new Array();
-							for (var i = 0; i < condition.childNodes[0].childNodes.length; i++) {
-								if (condition.childNodes[0].childNodes[i].childNodes[0].checked && conditionsarray.indexOf(condition.childNodes[0].childNodes[i].childNodes[0].value) >= 0) {
-									condition.value = conditionsarray[0];
-								}
-							}
-						}
-						// If condition is valid then show the row
-						if (conditionsarray.indexOf(condition.value) >= 0) {
-							if (hiddencontrol.tagName == "TR") {
-								hiddencontrol.style.display = "table-row";
-							}
-							else if (hiddencontrol.tagName == "SPAN"){
-								hiddencontrol.style.display = "inline";
-							}
-							else
-								hiddencontrol.style.display = "block";
-						}
-						// else hide the row and revert the value to its default
-						else {
-							// Is the dependent field is a select list, or radio list
-							if (eventsno && eventsno.options){
-								var defaultarray = new Array($fielddefaultarray);
-								for (var i = 0; i < eventsno.options.length; i++) {
-									if (defaultarray.indexOf(eventsno.options[i].value) >= 0) {
-										eventsno.options[i].selected = true;
-									}
-									else
-										eventsno.options[i].selected = false;
-								}
-							}
-							// this should be not dependent on language!
-							else if ("$condlabel" == "Specified Person?" || "$condlabel" == "Specified Location?")
-								$conditional.Delete();
-							else {
-								eventsno.value = "$fielddefault";
-							}
-							hiddencontrol.style.display = "none";
-						}
-						try {
-							jQuery(eventsno).trigger("liszt:updated");
-						}
-						catch (e) {
-						}
-					}
-				}
-				window.addEvent('load', function() {
-					jevConditional_$conditional.setupJevConditions();
-				});
-
- */
-

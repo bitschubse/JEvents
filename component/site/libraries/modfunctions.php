@@ -4,7 +4,7 @@
  *
  * @version     $Id: modfunctions.php 3549 2012-04-20 09:26:21Z geraintedwards $
  * @package     JEvents
- * @copyright   Copyright (C) 2008-2009 GWE Systems Ltd, 2006-2008 JEvents Project Group
+ * @copyright   Copyright (C) 2008-2015 GWE Systems Ltd, 2006-2008 JEvents Project Group
  * @license     GNU/GPLv2, see http://www.gnu.org/licenses/gpl-2.0.html
  * @link        http://www.jevents.net
  */
@@ -99,7 +99,7 @@ function findAppropriateMenuID (&$catidsOut, &$modcatids, &$catidList, $modparam
 		foreach ($newcats as $newcat){
 			if ( !in_array( $newcat,$modcatids )){
 				$modcatids[]=$newcat;
-				$catidList .= (strlen($catidList)>0?",":"").$newcat;
+				$catidList .= (JString::strlen($catidList)>0?",":"").$newcat;
 			}
 		}				
 	}
@@ -110,7 +110,7 @@ function findAppropriateMenuID (&$catidsOut, &$modcatids, &$catidList, $modparam
 			if (!isset($modparams->$nextCID)) break;
 			if ($modparams->$nextCID>0 && !in_array($modparams->$nextCID,$modcatids)){
 				$modcatids[]=$modparams->$nextCID;
-				$catidList .= (strlen($catidList)>0?",":"").$modparams->$nextCID;
+				$catidList .= (JString::strlen($catidList)>0?",":"").$modparams->$nextCID;
 			}
 		}
 	}
@@ -129,7 +129,7 @@ function findAppropriateMenuID (&$catidsOut, &$modcatids, &$catidList, $modparam
 	// if ignoring catid filter then force to blank
 	if ($ignorecatfilter) $catidsin = "";
 	
-	if (strlen($catidsin)>0){
+	if (JString::strlen($catidsin)>0){
 		$catidsin = explode("|",$catidsin);
 		JArrayHelper::toInteger($catidsin);
 	}

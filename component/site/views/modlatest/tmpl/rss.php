@@ -4,7 +4,7 @@
  *
  * @version     $Id: rss.php 3575 2012-05-01 14:06:28Z geraintedwards $
  * @package     JEvents
- * @copyright   Copyright (C) 2008-2009 GWE Systems Ltd
+ * @copyright   Copyright (C) 2008-2015 GWE Systems Ltd
  * @license     GNU/GPLv2, see http://www.gnu.org/licenses/gpl-2.0.html
  * @link        http://www.jevents.net
  */
@@ -35,8 +35,18 @@ foreach ($this->eventsByRelDay as $relDay => $ebrd) {
 
 		// url link to article
 		$startDate = $row->publish_up();
-		//$eventDate = JevDate::mktime(substr($startDate,11,2),substr($startDate,14,2), substr($startDate,17,2),$this->jeventCalObject->now_m,$this->jeventCalObject->now_d + $relDay,$this->jeventCalObject->now_Y);
+		//$eventDate = JevDate::mktime(JString::substr($startDate,11,2),JString::substr($startDate,14,2), JString::substr($startDate,17,2),$this->jeventCalObject->now_m,$this->jeventCalObject->now_d + $relDay,$this->jeventCalObject->now_Y);
 		$eventDate = JevDate::strtotime($startDate);
+		$datenow = JEVHelper::getNow();
+		if ($relDay > 0)
+		{
+			$eventDate = JevDate::strtotime($datenow->toFormat('%Y-%m-%d ') . JevDate::strftime('%H:%M', $eventDate) . " +$relDay days");
+		}
+		else
+		{
+			$eventDate = JevDate::strtotime($datenow->toFormat('%Y-%m-%d ') . JevDate::strftime('%H:%M', $eventDate) . " $relDay days");
+		}
+
 
 		$targetid = $this->modparams->get("target_itemid",0);
 		$link = $row->viewDetailLink(date("Y", $eventDate),date("m", $eventDate),date("d", $eventDate),false,$targetid);

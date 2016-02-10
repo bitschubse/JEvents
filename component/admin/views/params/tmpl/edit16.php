@@ -4,7 +4,7 @@
  *
  * @version     $Id: edit16.php 2983 2011-11-10 14:02:23Z geraintedwards $
  * @package     JEvents
- * @copyright   Copyright (C)  2008-2009 GWE Systems Ltd
+ * @copyright   Copyright (C)  2008-2015 GWE Systems Ltd
  * @license     GNU/GPLv2, see http://www.gnu.org/licenses/gpl-2.0.html
  * @link        http://www.jevents.net
  */
@@ -80,7 +80,7 @@ $version = JEventsVersion::getInstance();
 
 				$class = isset($field->class) ? $field->class : "";
 
-				if (strlen($class) > 0)
+				if (JString::strlen($class) > 0)
 				{
 					$class = " class='$class'";
 				}
@@ -105,7 +105,7 @@ $version = JEventsVersion::getInstance();
 				{
 					$class = isset($field->class) ? $field->class : "";
 
-					if (strlen($class) > 0)
+					if (JString::strlen($class) > 0)
 					{
 						$class = " class='$class'";
 					}
@@ -145,7 +145,6 @@ $version = JEventsVersion::getInstance();
 					$layoutname = (string) $xml->name;
 					$langfile = 'files_' . str_replace('files_', '', strtolower(JFilterInput::getInstance()->clean((string) $layoutname, 'cmd')));
 					$lang = JFactory::getLanguage();
-					$source = $path;
 					 $lang->load($langfile , JPATH_SITE, null, false, true);
 				}
 
@@ -181,7 +180,7 @@ $version = JEventsVersion::getInstance();
 
 						$class = isset($field->class) ? $field->class : "";
 
-						if (strlen($class) > 0)
+						if (JString::strlen($class) > 0)
 						{
 							$class = " class='$class'";
 						}

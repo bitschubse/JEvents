@@ -4,7 +4,7 @@
  *
  * @version     $Id: view.html.php 3012 2011-11-16 10:29:35Z geraintedwards $
  * @package     JEvents
- * @copyright   Copyright (C) 2008-2009 GWE Systems Ltd
+ * @copyright   Copyright (C) 2008-2015 GWE Systems Ltd
  * @license     GNU/GPLv2, see http://www.gnu.org/licenses/gpl-2.0.html
  * @link        http://www.jevents.net
  */
@@ -39,9 +39,9 @@ class IcalrepeatViewIcalrepeat extends AdminIcalrepeatViewIcalrepeat
 		include(JEV_ADMINLIBS."/editStrings.php");		
 		$document->addScriptDeclaration($editStrings);
 
-		JEVHelper::script('editical.js',  'components/'.JEV_COM_COMPONENT.'/assets/js/');  
-		JEVHelper::script('view_detail.js', 'components/'.JEV_COM_COMPONENT.'/assets/js/');
-                  JEVHelper::script('JevStdRequiredFields.js', 'components/' . JEV_COM_COMPONENT . '/assets/js/');
+		JEVHelper::script('editicalJQ.js',  'components/'.JEV_COM_COMPONENT.'/assets/js/');  
+		JEVHelper::script('view_detailJQ.js', 'components/'.JEV_COM_COMPONENT.'/assets/js/');
+                  JEVHelper::script('JevStdRequiredFieldsJQ.js', 'components/' . JEV_COM_COMPONENT . '/assets/js/');
 		
 		$document->setTitle(JText::_( 'EDIT_ICAL_REPEAT' ));
 		
@@ -49,12 +49,13 @@ class IcalrepeatViewIcalrepeat extends AdminIcalrepeatViewIcalrepeat
 		JToolBarHelper::title( JText::_( 'EDIT_ICAL_REPEAT' ), 'jevents' );
 	
 		$bar =  JToolBar::getInstance('toolbar');
-		$this->toolbarConfirmButton("icalrepeat.save", JText::_("save_icalevent_warning"), 'save', 'save', 'Save', false);
-		if (JEVHelper::isEventEditor())
-			$this->toolbarConfirmButton("icalrepeat.apply", JText::_("save_icalevent_warning"), 'apply', 'apply', 'jev_Apply', false);
+		if (JEVHelper::isEventEditor()) {
+			JToolBarHelper::apply('icalrepeat.apply', "JEV_SAVE");
+		}
+		JToolBarHelper::apply('icalrepeat.save', "JEV_SAVE_CLOSE");
 
 		$params = JComponentHelper::getParams(JEV_COM_COMPONENT);
-		if ($params->get("editpopup", 0))
+		if ($params->get("editpopup",0) && JEVHelper::isEventCreator())
 		{
 			$document->addStyleDeclaration("div#toolbar-box{margin:10px 10px 0px 10px;} div#jevents {margin:0px 10px 10px 10px;} ");
 			$this->toolbarButton("icalevent.close", 'cancel', 'cancel', 'Cancel', false);
@@ -74,14 +75,9 @@ class IcalrepeatViewIcalrepeat extends AdminIcalrepeatViewIcalrepeat
 		
 		$this->_adminStart();		
 
-		if (JevJoomlaVersion::isCompatible("3.0"))
-		{
-			$this->setLayout("edit");
-		}
-		else
-		{
-			$this->setLayout("edit16");
-		}
+		// load Joomla javascript classes
+		JHTML::_('behavior.core');
+		$this->setLayout("edit");
 
 		$this->setupEditForm();
 
@@ -207,7 +203,7 @@ class IcalrepeatViewIcalrepeat extends AdminIcalrepeatViewIcalrepeat
 	// This handles all methods where the view is passed as the first argument
 	function __call($name, $arguments){
 		if (strpos($name,"_")===0){
-			$name="ViewHelper".ucfirst(substr($name,1));
+			$name="ViewHelper".ucfirst(JString::substr($name,1));
 		}
 		$helper = ucfirst($this->jevlayout).ucfirst($name);
 		if (!$this->loadHelper($helper)){
@@ -255,16 +251,6 @@ class IcalrepeatViewIcalrepeat extends AdminIcalrepeatViewIcalrepeat
 		$bar->appendButton('Jevlink', $icon, $alt, $task, false);
 
 	}
-
-	function toolbarConfirmButton($task = '', $msg = '', $icon = '', $iconOver = '', $alt = '', $listSelect = true)
-	{
-		$bar =  JToolBar::getInstance('toolbar');
-
-		// Add a standard button - never need to check for cancelled exceptions when editing a repeat!
-		$bar->appendButton('Jevconfirm', $msg, $icon, $alt, $task, $listSelect, false, 0);
-
-	}
-
 	
 	protected function CreateClass($className, $params) {
 		switch (count($params)) {

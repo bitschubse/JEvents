@@ -4,7 +4,7 @@
  *
  * @version     $Id: edit.php 3229 2012-01-30 12:06:34Z geraintedwards $
  * @package     JEvents
- * @copyright   Copyright (C)  2008-2009 GWE Systems Ltd
+ * @copyright   Copyright (C)  2008-2015 GWE Systems Ltd
  * @license     GNU/GPLv2, see http://www.gnu.org/licenses/gpl-2.0.html
  * @link        http://www.jevents.net
  */
@@ -88,7 +88,7 @@ echo JEventsHTML::buildScriptTag('end');
         <td><?php echo $this->users;?>        </td>
 	</tr>
 	<tr>
-    	<td style="font-weight:bold" >        <?php echo JText::_("Select_Default_Category");?></td>
+    	<td style="font-weight:bold" >        <?php echo JText::_("JEV_FALLBACK_CATEGORY");?></td>
         <td><?php echo JEventsHTML::buildCategorySelect($catid ,"", null, $this->with_unpublished_cat, true,0,'catid'); ?>        </td>
 	</tr>
 	<tr>
@@ -210,6 +210,7 @@ echo JEventsHTML::buildScriptTag('end');
 </table>
 <input type="hidden" name="boxchecked" value="0" />
 <input type="hidden" name="task" value="icals.edit" />
+<?php echo JHtml::_('form.token'); ?>
 <input type="hidden" name="option" value="<?php echo JEV_COM_COMPONENT;?>" />
 </form>
 </div>

@@ -4,7 +4,7 @@
  *
  * @version     $Id: colorMap.php 941 2010-05-20 13:21:57Z geraintedwards $
  * @package     JEvents
- * @copyright   Copyright (C)  2008-2009 GWE Systems Ltd, 2006-2008 JEvents Project Group
+ * @copyright   Copyright (C)  2008-2015 GWE Systems Ltd, 2006-2008 JEvents Project Group
  * @license     GNU/GPLv2, see http://www.gnu.org/licenses/gpl-2.0.html
  * @link        http://www.jevents.net
  */
@@ -93,6 +93,14 @@ function JevMapColor($background) {
 	$colorMap['#330033'] = '#FFFFFF' ;
 
 	if (array_key_exists($background,$colorMap)) return $colorMap[$background];
-	else return '#000000';
+
+	// see http://24ways.org/2010/calculating-color-contrast/
+	$hexcolor = str_replace("#", "", $background);
+	$r = hexdec(JString::substr($hexcolor,0,2));
+	$g = hexdec(JString::substr($hexcolor,2,2));
+	$b = hexdec(JString::substr($hexcolor,4,2));
+	$yiq = (($r*299)+($g*587)+($b*114))/1000;
+	return ($yiq >= 128) ? '#000':'#fff';
+
 }
 ?>

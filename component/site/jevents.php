@@ -5,7 +5,7 @@
  *
  * @version     $Id: jevents.php 3551 2012-04-20 09:41:37Z geraintedwards $
  * @package     JEvents
- * @copyright   Copyright (C) 2008-2009 GWE Systems Ltd
+ * @copyright   Copyright (C) 2008-2015 GWE Systems Ltd
  * @license     GNU/GPLv2, see http://www.gnu.org/licenses/gpl-2.0.html
  * @link        http://www.jevents.net
  */
@@ -32,34 +32,27 @@ $browser = JBrowser::getInstance();
 $registry = JRegistry::getInstance("jevents");
 // In Joomla 1.6 JComponentHelper::getParams(JEV_COM_COMPONENT) is a clone so the menu params do not propagate so we force this here!
 
-if (JevJoomlaVersion::isCompatible("3.0")){
-	JHtml::_('jquery.framework');
-	JHtml::_('behavior.framework', true);
-	JHtml::_('bootstrap.framework');
-	if ( JComponentHelper::getParams(JEV_COM_COMPONENT)->get("fixjquery",1)){
-		JHTML::script("components/com_jevents/assets/js/jQnc.js");
-		// this script should come after all the URL based scripts in Joomla so should be a safe place to know that noConflict has been set
-		JFactory::getDocument()->addScriptDeclaration( "checkJQ();");
-	}
+// Load Joomla Core scripts for sites that don't load MooTools;
+JHtml::_('behavior.core', true);
+
+// This loads jQuery too!
+JevHtmlBootstrap::framework();
+
+// jQnc not only fixes noConflict it creates the jQuery alias we use in JEvents "jevqc" so we always need it
+	JEVHelper::script("components/com_jevents/assets/js/jQnc.js");
+if ( JComponentHelper::getParams(JEV_COM_COMPONENT)->get("fixjquery",1)){
+	// this script should come after all the URL based scripts in Joomla so should be a safe place to know that noConflict has been set
+	JFactory::getDocument()->addScriptDeclaration( "checkJQ();");
 }
-else if ( JComponentHelper::getParams(JEV_COM_COMPONENT)->get("fixjquery",1)){
-	// Make loading this conditional on config option
-	JFactory::getDocument()->addScript("//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js");
-        //JFactory::getDocument()->addScript("//www.google.com/jsapi");
-	JHTML::script("components/com_jevents/assets/js/jQnc.js");
-	//JHTML::script("components/com_jevents/assets/js/bootstrap.min.js");
-	//JHTML::stylesheet("components/com_jevents/assets/css/bootstrap.css");
-        // this script should come after all the URL based scripts in Joomla so should be a safe place to know that noConflict has been set
-        JFactory::getDocument()->addScriptDeclaration( "checkJQ();");
+
+if (JComponentHelper::getParams(JEV_COM_COMPONENT)->get("bootstrapcss", 1)==1)
+{
+	// This version of bootstrap has maximum compatibility with JEvents due to enhanced namespacing
+	JHTML::stylesheet("com_jevents/bootstrap.css", array(), true);
+	// Responsive version of bootstrap with maximum compatibility with JEvents due to enhanced namespacing
+	JHTML::stylesheet("com_jevents/bootstrap-responsive.css", array(), true);
 }
- /*
- * include_once JPATH_ROOT . '/media/akeeba_strapper/strapper.php';
-$jevversion = JEventsVersion::getInstance();
-AkeebaStrapper::$tag = $jevversion->getShortVersion();
-AkeebaStrapper::bootstrap();
-AkeebaStrapper::jQueryUI();
- * 
- */
+
 
 $newparams = JFactory::getApplication('site')->getParams();
 // Because the application sets a default page title,
@@ -299,3 +292,33 @@ if (JRequest::getCmd("format")!="feed"){
 
 // Redirect if set by the controller
 $controller->redirect();
+
+/*
+ // Experimental code for capturing out of memory problems
+ini_set('display_errors', false);
+error_reporting(-1);
+
+register_shutdown_function(function() {
+	$error = error_get_last();
+	if (null !== $error)
+	{
+		if (isset($error["message"]) && strpos($error["message"], "bytes exhausted") > 0)
+		{
+			echo "ran out of memory";
+		}
+		else
+		{
+			echo 'Caught at shutdown';
+		}
+	}
+	else
+		echo "normal shutdown";
+});
+
+	// Simulate memory overload
+   // while(true)
+    //{
+     //   $data .= str_repeat('#', PHP_INT_MAX);
+   // }
+
+*/

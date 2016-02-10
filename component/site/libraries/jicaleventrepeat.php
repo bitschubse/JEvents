@@ -5,7 +5,7 @@
  *
  * @version     $Id: jicaleventrepeat.php 2992 2011-11-10 15:15:22Z geraintedwards $
  * @package     JEvents
- * @copyright   Copyright (C) 2008-2009 GWE Systems Ltd, 2006-2008 JEvents Project Group
+ * @copyright   Copyright (C) 2008-2015 GWE Systems Ltd, 2006-2008 JEvents Project Group
  * @license     GNU/GPLv2, see http://www.gnu.org/licenses/gpl-2.0.html
  * @link        http://www.jevents.net
  */
@@ -41,7 +41,7 @@ class jIcalEventRepeat extends jIcalEventDB
 
 	/*
 	  function dtstart($val=""){
-	  if (strlen($val)==0) return $this->getUnixStartTime();
+	  if (JString::strlen($val)==0) return $this->getUnixStartTime();
 	  else {
 	  $this->_dtstart=$val;
 	  $this->_unixstarttime=$val;
@@ -50,7 +50,7 @@ class jIcalEventRepeat extends jIcalEventDB
 	  }
 
 	  function dtend($val=""){
-	  if (strlen($val)==0) return $this->getUnixEndTime();
+	  if (JString::strlen($val)==0) return $this->getUnixEndTime();
 	  else {
 	  $this->_dtend=$val;
 	  $this->_unixendtime=$val;
@@ -95,24 +95,25 @@ class jIcalEventRepeat extends jIcalEventDB
 		if (!isset($this->_startday))
 		{
 			$this->_startday = JevDate::mktime(0, 0, 0, $this->mup(), $this->dup(), $this->yup());
+			$this->_startday_plus1 = JevDate::mktime(0, 0, 0, $this->mup(), $this->dup()+1, $this->yup());
 			$this->_endday = JevDate::mktime(0, 0, 0, $this->mdn(), $this->ddn(), $this->ydn());
 			// if ends on midnight then testing day should ignore the second day since no one wants this event to show
 			if ($this->hdn() + $this->mindn() + $this->sdn() == 0 && $this->_startday != $this->_endday)
 			{
-				$this->_endday -= 86400;
+				$this->_endday = JevDate::mktime(0, 0, 0, $this->mdn(), $this->ddn()-1, $this->ydn());
 			}
 		}
 		if ($this->_startday <= $testDate && $this->_endday >= $testDate)
 		{
 			// if only show on first day
-			if ($multidayTreatment == 2 && $testDate >= ($this->_startday + 86400))
+			if ($multidayTreatment == 2 && $testDate >= $this->_startday_plus1)
 			{
 				return false;
 			}
 			// don't show multiday suppressed events after the first day if multiday is not true
 			if ($multidayTreatment == 0)
 			{
-				if (!$this->_multiday && $testDate >= ($this->_startday + 86400))
+				if (!$this->_multiday && $testDate >= $this->_startday_plus1)
 				{
 					return false;
 				}
@@ -163,6 +164,7 @@ class jIcalEventRepeat extends jIcalEventDB
 		list($year, $month, $day) = JEVHelper::getYMD();
 		$link = "index.php?option=" . JEV_COM_COMPONENT . "&task=" . parent::editTask() . '&evid=' . parent::id() . '&Itemid=' . $Itemid . '&rp_id=' . $this->rp_id() . "&year=$year&month=$month&day=$day";
 		//$link = $sef?JRoute::_( $link ,true ):$link;
+		$link .= JRequest::getInt("pop",0)?"&tmpl=component&pop=1":"";
 		$link = JRoute::_($link, true);
 		return $link;
 
@@ -177,6 +179,7 @@ class jIcalEventRepeat extends jIcalEventDB
 		list($year, $month, $day) = JEVHelper::getYMD();
 		$link = "index.php?option=" . JEV_COM_COMPONENT . "&task=" . parent::editCopyTask() . '&evid=' . parent::id() . '&Itemid=' . $Itemid . '&rp_id=' . $this->rp_id() . "&year=$year&month=$month&day=$day";
 		//$link = $sef?JRoute::_( $link ,true ):$link;
+		$link .= JRequest::getInt("pop",0)?"&tmpl=component&pop=1":"";
 		$link = JRoute::_($link, true);
 		return $link;
 
@@ -189,6 +192,7 @@ class jIcalEventRepeat extends jIcalEventDB
 		$link = "index.php?option=" . JEV_COM_COMPONENT . "&task=" . $this->editTask() . '&evid=' . $this->id() . '&Itemid=' . $Itemid
 				. "&year=$year&month=$month&day=$day";
 		//$link = $sef?JRoute::_( $link ,true ):$link;
+		$link .= JRequest::getInt("pop",0)?"&tmpl=component&pop=1":"";
 		$link = JRoute::_($link, true);
 		return $link;
 
@@ -234,10 +238,16 @@ class jIcalEventRepeat extends jIcalEventDB
 	{
 		$Itemid = $Itemid > 0 ? $Itemid : JEVHelper::getItemid($this);
 		// uid = event series unique id i.e. the actual event
-		$title = JFilterOutput::stringURLSafe($this->title());
-		$link = "index.php?option=" . JEV_COM_COMPONENT . "&task=" . $this->detailTask() . "&evid=" . $this->rp_id() . '&Itemid=' . $Itemid
+		$title = JApplication::stringURLSafe($this->title());
+                if ($this->rp_id()){
+                    $link = "index.php?option=" . JEV_COM_COMPONENT . "&task=" . $this->detailTask() . "&evid=" . $this->rp_id() . '&Itemid=' . $Itemid
 				. "&year=$year&month=$month&day=$day&title=" . $title . "&uid=" . urlencode($this->uid());
-		if (JRequest::getCmd("tmpl", "") == "component" && JRequest::getCmd('task', 'selectfunction') != 'icalevent.select' && JRequest::getCmd("option", "") != "com_acymailing" && JRequest::getCmd("option", "") != "com_jnews" && JRequest::getCmd("jevtask", "") != "crawler.listevents")
+                }
+                else {
+                    $link = "index.php?option=" . JEV_COM_COMPONENT . "&task=icalevent.detail&evid=" . $this->ev_id() . '&Itemid=' . $Itemid
+				. "&year=$year&month=$month&day=$day&title=" . $title . "&uid=" . urlencode($this->uid());
+                }
+		if (JRequest::getCmd("tmpl", "") == "component" && JRequest::getCmd('task', 'selectfunction') != 'icalevent.select' && JRequest::getCmd("option", "") != "com_acymailing" && JRequest::getCmd("option", "") != "com_jnews" && JRequest::getCmd("option", "") != "com_search" && JRequest::getCmd("jevtask", "") != "crawler.listevents")
 		{
 			$link .= "&tmpl=component";
 		}
@@ -381,7 +391,7 @@ class jIcalEventRepeat extends jIcalEventDB
 		if (!is_null($prior))
 		{
 			$link = "index.php?option=" . JEV_COM_COMPONENT . "&task=" . $this->detailTask() . "&evid=" . $prior->rp_id . '&Itemid=' . $Itemid
-					. "&year=$prior->yup&month=$prior->mup&day=$prior->dup&uid=" . urlencode($this->uid()) . "&title=" . JFilterOutput::stringURLSafe($prior->title);
+					. "&year=$prior->yup&month=$prior->mup&day=$prior->dup&uid=" . urlencode($this->uid()) . "&title=" . JApplication::stringURLSafe($prior->title);
 			$link = JRoute::_($link);
 			$this->_prevRepeat = $link;
 		}
@@ -397,7 +407,7 @@ class jIcalEventRepeat extends jIcalEventDB
 		if (!is_null($post))
 		{
 			$link = "index.php?option=" . JEV_COM_COMPONENT . "&task=" . $this->detailTask() . "&evid=" . $post->rp_id . '&Itemid=' . $Itemid
-					. "&year=$post->yup&month=$post->mup&day=$post->dup&uid=" . urlencode($this->uid()) . "&title=" . JFilterOutput::stringURLSafe($post->title);
+					. "&year=$post->yup&month=$post->mup&day=$post->dup&uid=" . urlencode($this->uid()) . "&title=" . JApplication::stringURLSafe($post->title);
 			$link = JRoute::_($link);
 			$this->_nextRepeat = $link;
 		}
@@ -501,7 +511,7 @@ class jIcalEventRepeat extends jIcalEventDB
 		if (!is_null($prior))
 		{
 			$link = "index.php?option=" . JEV_COM_COMPONENT . "&task=" . $this->detailTask() . "&evid=" . $prior->_rp_id . '&Itemid=' . $Itemid
-					. "&year=" . $prior->_yup . "&month=" . $prior->_mup . "&day=" . $prior->_dup . "&uid=" . urlencode($prior->_uid) . "&title=" . JFilterOutput::stringURLSafe($prior->_title);
+					. "&year=" . $prior->_yup . "&month=" . $prior->_mup . "&day=" . $prior->_dup . "&uid=" . urlencode($prior->_uid) . "&title=" . JApplication::stringURLSafe($prior->_title);
 			$link = JRoute::_($link);
 			$this->_prevEvent = $link;
 		}
@@ -539,7 +549,7 @@ class jIcalEventRepeat extends jIcalEventDB
 		if (!is_null($post))
 		{
 			$link = "index.php?option=" . JEV_COM_COMPONENT . "&task=" . $this->detailTask() . "&evid=" . $post->rp_id . '&Itemid=' . $Itemid
-					. "&year=$post->yup&month=$post->mup&day=$post->dup&uid=" . urlencode($this->uid()) . "&title=" . JFilterOutput::stringURLSafe($post->title);
+					. "&year=$post->yup&month=$post->mup&day=$post->dup&uid=" . urlencode($this->uid()) . "&title=" . JApplication::stringURLSafe($post->title);
 			$link = JRoute::_($link);
 			$this->_nextEvent = $link;
 		}

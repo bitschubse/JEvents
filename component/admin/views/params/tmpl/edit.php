@@ -4,7 +4,7 @@
  *
  * @version     $Id: edit16.php 2983 2011-11-10 14:02:23Z geraintedwards $
  * @package     JEvents
- * @copyright   Copyright (C)  2008-2009 GWE Systems Ltd
+ * @copyright   Copyright (C)  2008-2015 GWE Systems Ltd
  * @license     GNU/GPLv2, see http://www.gnu.org/licenses/gpl-2.0.html
  * @link        http://www.jevents.net
  */
@@ -12,6 +12,8 @@ defined('_JEXEC') or die('Restricted access');
 
 jimport('joomla.html.html.bootstrap');
 // We need to get the params first
+
+//JHtml::_('formbehavior.chosen', '#adminForm select:not(.notchosen)');
 
 $version = JEventsVersion::getInstance();
 
@@ -184,7 +186,7 @@ foreach (JEV_CommonFunctions::getJEventsViewList() as $viewfile)
 					$difficultyClass .= " hiddenDifficulty";
 				}
 
-				if (strlen($class) > 0)
+				if (JString::strlen($class) > 0)
 				{
 					$class = " class='$class $difficultyClass'";
 				}
@@ -214,7 +216,7 @@ foreach (JEV_CommonFunctions::getJEventsViewList() as $viewfile)
 				{
 					$class = isset($field->class) ? $field->class : "";
 
-					if (strlen($class) > 0)
+					if (JString::strlen($class) > 0)
 					{
 						$class = " class='$class'";
 					}
@@ -318,7 +320,7 @@ foreach (JEV_CommonFunctions::getJEventsViewList() as $viewfile)
 							$hasconfig = true;
 							$class = isset($field->class) ? $field->class : "";
 
-							if (strlen($class) > 0)
+							if (JString::strlen($class) > 0)
 							{
 								$class = " class='$class'";
 							}

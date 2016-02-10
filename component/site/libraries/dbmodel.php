@@ -5,7 +5,7 @@
  *
  * @version     $Id: dbmodel.php 3575 2012-05-01 14:06:28Z geraintedwards $
  * @package     JEvents
- * @copyright   Copyright (C) 2008-2009 GWE Systems Ltd, 2006-2008 JEvents Project Group
+ * @copyright   Copyright (C) 2008-2015 GWE Systems Ltd, 2006-2008 JEvents Project Group
  * @license     GNU/GPLv2, see http://www.gnu.org/licenses/gpl-2.0.html
  * @link        http://www.jevents.net
  */
@@ -110,7 +110,7 @@ class JEventsDBModel
 				$isedit = true;
 			}
 
-			$query = "SELECT c.id"
+			/*$query = "SELECT c.id"
 				. "\n FROM #__categories AS c"
 				. "\n WHERE c.access  " . (version_compare(JVERSION, '1.6.0', '>=') ? ' IN (' . $aid . ')' : ' <=  ' . $aid)
 				. $q_published
@@ -120,9 +120,9 @@ class JEventsDBModel
 				. "\n " . $where
 				. "\n ORDER BY c.lft asc"  ;
 
-			$db->setQuery($query);
+			$db->setQuery($query);*/
 			/* This was a fix for Lanternfish/Joomfish - but it really buggers stuff up!! - you don't just get the id back !!!! */
-			/*
+
 			$whereQuery = "c.access  " . (version_compare(JVERSION, '1.6.0', '>=') ? ' IN (' . $aid . ')' : ' <=  ' . $aid)
 					. $q_published
 					// language filter only applies when not editing
@@ -135,7 +135,9 @@ class JEventsDBModel
 			->from('#__categories AS c')
 			->where($whereQuery)
 			->order('c.lft asc');
-			 */
+
+			$db->setQuery($query);
+
 			$catlist = $db->loadColumn();
 
 			$instances[$index] = implode(',', array_merge(array(-1), $catlist));
@@ -182,7 +184,7 @@ class JEventsDBModel
 
 		if (!array_key_exists($index, $instances))
 		{
-			if (count($catids) > 0 && $catidList != "0" && strlen($catidList) != "")
+			if (count($catids) > 0 && $catidList != "0" && JString::strlen($catidList) != "")
 			{
 				$where = ' AND c.id IN (' . $catidList . ') ';
 			}
@@ -236,7 +238,7 @@ class JEventsDBModel
 
 		if (!array_key_exists($index, $instances))
 		{
-			if (count($catids) > 0 && $catidList != "0" && strlen($catidList) != "")
+			if (count($catids) > 0 && $catidList != "0" && JString::strlen($catidList) != "")
 			{
 				$where = ' AND (p.id IN (' . $catidList . ') ' . ($levels > 1 ? ' OR gp.id IN (' . $catidList . ')' : '') . ($levels > 2 ? ' OR ggp.id IN (' . $catidList . ')' : '') . ')';
 			}
@@ -280,6 +282,15 @@ class JEventsDBModel
 		{
 			$startdate = JevDate::strftime('%Y-%m-%d 00:00:00', $startdate);
 			$enddate = JevDate::strftime('%Y-%m-%d 23:59:59', $enddate);
+		}
+
+		// Use alternative data source
+		$rows = array();
+		$skipJEvents=false;
+		$dispatcher = JDispatcher::getInstance();
+		$dispatcher->trigger('fetchListRecentIcalEvents', array(&$skipJEvents, &$rows, $startdate, $enddate, $limit , $noRepeats));
+		if ($skipJEvents) {
+			return $rows;
 		}
 
 		// process the new plugins
@@ -385,15 +396,25 @@ class JEventsDBModel
 		$rows = $cache->call(array($this,'_cachedlistIcalEvents'), $query, $langtag);
 
 		// make sure we have the first repeat in each instance
-		foreach ($rows as &$row){
+		// do not use foreach incase time limit plugin removes one of the repeats
+		for ($i=0;$i<count($rows); $i++) {
+			$row = $rows[$i];
 			if (strtolower($row->freq())!="none" && $noRepeats){
 				$repeat = $row->getFirstRepeat();
 				if ($repeat->rp_id() != $row->rp_id()){
 					$row = $this->listEventsById($repeat->rp_id());
+					if (is_null($row)){
+						unset($rows[$i]);
+					}
+					else {
+						$rows[$i] = $row;
+					}
 				}
 			}
 		}
-		unset($row);
+		$rows = array_values($rows);
+
+		JEventsDBModel::translateEvents($rows);
 
 		$dispatcher = JDispatcher::getInstance();
 		$dispatcher->trigger('onDisplayCustomFieldsMultiRowUncached', array(&$rows));
@@ -417,6 +438,15 @@ class JEventsDBModel
 		{
 			$startdate = strftime('%Y-%m-%d 00:00:00', $startdate);
 			$enddate = strftime('%Y-%m-%d 23:59:59', $enddate);
+		}
+
+		// Use alternative data source
+		$rows = array();
+		$skipJEvents=false;
+		$dispatcher = JDispatcher::getInstance();
+		$dispatcher->trigger('fetchListPopularIcalEvents', array(&$skipJEvents, &$rows, $startdate, $enddate, $limit , $noRepeats));
+		if ($skipJEvents) {
+			return $rows;
 		}
 
 		// process the new plugins
@@ -560,6 +590,15 @@ class JEventsDBModel
 		{
 			$startdate = JevDate::strftime('%Y-%m-%d 00:00:00', $startdate);
 			$enddate = JevDate::strftime('%Y-%m-%d 23:59:59', $enddate);
+		}
+
+		// Use alternative data source
+		$rows = array();
+		$skipJEvents=false;
+		$dispatcher = JDispatcher::getInstance();
+		$dispatcher->trigger('fetchListLatestIcalEvents', array(&$skipJEvents, &$rows, $startdate, $enddate, $limit, $noRepeats, $multidayTreatment ));
+		if ($skipJEvents) {
+			return $rows;
 		}
 
 		// process the new plugins
@@ -1136,6 +1175,8 @@ class JEventsDBModel
 		}
 		//echo "count rows = ".count($rows)."<Br/>";
 
+		JEventsDBModel::translateEvents($rows);
+
 		$dispatcher = JDispatcher::getInstance();
 		$dispatcher->trigger('onDisplayCustomFieldsMultiRowUncached', array(&$rows));
 		
@@ -1160,6 +1201,15 @@ class JEventsDBModel
 		{
 			$startdate = JevDate::strftime('%Y-%m-%d 00:00:00', $startdate);
 			$enddate = JevDate::strftime('%Y-%m-%d 23:59:59', $enddate);
+		}
+
+		// Use alternative data source
+		$rows = array();
+		$skipJEvents=false;
+		$dispatcher = JDispatcher::getInstance();
+		$dispatcher->trigger('fetchListRandomIcalEvents', array(&$skipJEvents, &$rows, $startdate, $enddate, $limit , $noRepeats,$multidayTreatment));
+		if ($skipJEvents) {
+			return $rows;
 		}
 
 		// process the new plugins
@@ -1892,6 +1942,15 @@ class JEventsDBModel
 			$enddate = JevDate::strftime('%Y-%m-%d 23:59:59', $enddate);
 		}
 
+		// Use alternative data source
+		$rows = array();
+		$skipJEvents=false;
+		$dispatcher = JDispatcher::getInstance();
+		$dispatcher->trigger('fetchListIcalEvents', array(&$skipJEvents, &$rows, $startdate, $enddate, $order, $filters, $extrafields, $extratables, $limit));
+		if ($skipJEvents) {
+			return $rows;
+		}
+
 		// process the new plugins
 		// get extra data and conditionality from plugins
 		$extrawhere = array();
@@ -2095,7 +2154,8 @@ class JEventsDBModel
 					// convert rows to jIcalEvents
 					$rows[$i] = new jIcalEventRepeat($rows[$i]);
 				}
-				
+
+				JEventsDBModel::translateEvents($rows);
 			}
 			else {
 
@@ -2169,6 +2229,8 @@ class JEventsDBModel
 		if (!$valid)
 			return $icalrows;
 
+		JEventsDBModel::translateEvents($icalrows);
+
 		JEVHelper::onDisplayCustomFieldsMultiRow($icalrows);
 
 		if ($debuginfo){
@@ -2179,6 +2241,54 @@ class JEventsDBModel
 		
 		return $icalrows;
 
+	}
+
+	public static function translateEvents(&$icalrows) {
+		$is_array = true;
+		if (!is_array($icalrows)){
+			$is_array = false;
+			$icalrows = array($icalrows);
+		}
+		$icalcount = count($icalrows);
+		// Do we need to translate this data
+		$languages = JLanguageHelper::getLanguages('lang_code');
+		$translationids = array();
+		if (count($languages)>1){
+			$lang = JFactory::getLanguage();
+			$langtag = $lang->getTag();
+			for ($i = 0; $i < $icalcount; $i++)
+			{
+				$translationids[] = $icalrows[$i]->_evdet_id;
+			}
+		}
+		if (count($translationids)>0){
+			$db = JFactory::getDbo();
+			$translationids = implode(",",$translationids);
+			if (trim($translationids) != ""){
+				$db->setQuery("SELECT *, summary as title, description as content FROM #__jevents_translation WHERE evdet_id IN(".$translationids. ") AND language=".$db->quote($langtag) );
+				$translations = $db->loadObjectList("evdet_id");
+			}
+			else {
+				$translations = false;
+			}
+
+			if ($translations) {
+				for ($i = 0; $i < $icalcount; $i++)
+				{
+					if (array_key_exists($icalrows[$i]->_evdet_id, $translations)){
+						foreach (get_object_vars($translations[$icalrows[$i]->_evdet_id]) as $k=>$v){
+							$k = "_".$k;
+							if ($v !="" && isset($icalrows[$i]->$k)){
+								$icalrows[$i]->$k = $v;
+							}
+						}
+					}
+				}
+			}
+		}
+		if (!$is_array) {
+			$icalrows = $icalrows[0];
+		}
 	}
 
 	function listIcalEventsByDay($targetdate)
@@ -2353,9 +2463,9 @@ class JEventsDBModel
 
 		$startdate = JevDate::strftime('%Y-%m-%d', $startdate);
 
-		if (strlen($startdate) == 10)
+		if (JString::strlen($startdate) == 10)
 			$startdate.= " 00:00:00";
-		if (strlen($enddate) == 10)
+		if (JString::strlen($enddate) == 10)
 			$enddate.= " 23:59:59";
 
 		// This code is used by the iCals code with a spoofed user so check if this is what is happening
@@ -2516,6 +2626,17 @@ class JEventsDBModel
 
 	function listEventsById($rpid, $includeUnpublished = 0, $jevtype = "icaldb")
 	{
+		// special case where the event is outside of JEvents - handled by a plugin
+		if ($rpid<0){
+			$rows = array();
+			$dispatcher = JDispatcher::getInstance();
+			$dispatcher->trigger('onDisplayCustomFieldsMultiRowUncached', array(&$rows));
+			if (count($rows)==1) {
+				return $rows[0];
+			}
+			return array();
+		}
+
 		$user = JFactory::getUser();
 		$db = JFactory::getDBO();
 		$frontendPublish = JEVHelper::isEventPublisher();
@@ -2614,6 +2735,9 @@ class JEventsDBModel
 			{
 				$row = new jEventCal($rows[0]);
 			}
+
+			JEventsDBModel::translateEvents($row);
+
 		}
 		else
 		{
@@ -2736,6 +2860,9 @@ class JEventsDBModel
 			{
 				$row = new jEventCal($rows[0]);
 			}
+
+			JEventsDBModel::translateEvents($row);
+
 		}
 		else
 		{
@@ -2853,14 +2980,27 @@ class JEventsDBModel
 		for ($i = 0; $i < $icalcount; $i++)
 		{
 			// convert rows to jIcalEvents
-			$icalrows[$i] = new jIcalEventDB($icalrows[$i]);
+			$icalrows[$i] = new jIcalEventRepeat($icalrows[$i]);
 		}
+		
+		JEVHelper::onDisplayCustomFieldsMultiRow($icalrows);
+
 		return $icalrows;
 
 	}
 
 	function listIcalEventRepeatsByCreator($creator_id, $limitstart, $limit, $orderby = "rpt.startrepeat")
 	{
+
+		// Use alternative data source
+		$rows = array();
+		$skipJEvents=false;
+		$dispatcher = JDispatcher::getInstance();
+		$dispatcher->trigger('fetchListIcalEventRepeatsByCreator', array(&$skipJEvents, &$rows, $creator_id, $limitstart, $limit, $orderby ));
+		if ($skipJEvents) {
+			return $rows;
+		}
+
 		$user = JFactory::getUser();
 		$db = JFactory::getDBO();
 
@@ -3041,6 +3181,11 @@ class JEventsDBModel
 			// convert rows to jIcalEvents
 			$icalrows[$i] = new jIcalEventRepeat($icalrows[$i]);
 		}
+
+		JEventsDBModel::translateEvents($icalrows);
+
+		JEVHelper::onDisplayCustomFieldsMultiRow($icalrows);
+
 		return $icalrows;
 
 	}
@@ -3475,6 +3620,7 @@ class JEventsDBModel
 
 	}
 
+	// NB $order is no longer used
 	function listEventsByKeyword($keyword, $order, &$limit, &$limitstart, &$total, $useRegX = false)
 	{
 		$user = JFactory::getUser();
@@ -3482,6 +3628,15 @@ class JEventsDBModel
 		$db = JFactory::getDBO();
 		
 		$keyword = $db->escape($keyword, true) ;
+
+		// Use alternative data source
+		$rows = array();
+		$skipJEvents=false;
+		$dispatcher = JDispatcher::getInstance();
+		$dispatcher->trigger('fetchListEventsByKeyword', array(&$skipJEvents, &$rows, $keyword, $order, &$limit, &$limitstart, &$total, $useRegX));
+		if ($skipJEvents) {
+			return $rows;
+		}
 
 		$rows_per_page = $limit;
 		if (empty($limitstart) || !$limitstart)
@@ -3502,23 +3657,6 @@ class JEventsDBModel
 			$datenow = JevDate::getDate("-12 hours");
 			$having = " AND rpt.endrepeat>'" . $datenow->toSql() . "'";
 		}
-
-		if (!$order)
-		{
-			$order = 'publish_up asc, rpt.endrepeat asc ';
-		}
-
-		$order = preg_replace("/[\t ]+/", '', $order);
-		$orders = explode(",", $order);
-
-		// this function adds #__events. to the beginning of each ordering field
-		function app_db($strng)
-		{
-			return '#__events.' . $strng;
-
-		}
-
-		$order = implode(',', array_map('app_db', $orders));
 
 		$total = 0;
 
@@ -3561,9 +3699,11 @@ class JEventsDBModel
 
 		$extrajoin = ( count($extrajoin) ? " \n LEFT JOIN " . implode(" \n LEFT JOIN ", $extrajoin) : '' );
 		$extrawhere = ( count($extrawhere) ? ' AND ' . implode(' AND ', $extrawhere) : '' );
-
+                
+                // NB extrajoin is a string from now on
 		$extrasearchfields = array();
 		$dispatcher->trigger('onSearchEvents', array(& $extrasearchfields, & $extrajoin, & $needsgroup));
+
 
 		if (count($extrasearchfields) > 0)
 		{
@@ -3667,6 +3807,8 @@ class JEventsDBModel
 			// convert rows to jevents
 			$icalrows[$i] = new jIcalEventRepeat($icalrows[$i]);
 		}
+
+		JEventsDBModel::translateEvents($icalrows);
 
 		JEVHelper::onDisplayCustomFieldsMultiRow($icalrows);
 

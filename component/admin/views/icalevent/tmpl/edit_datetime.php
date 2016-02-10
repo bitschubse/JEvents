@@ -4,7 +4,7 @@
  *
  * @version     $Id: edit_datetime.php 3576 2012-05-01 14:11:04Z geraintedwards $
  * @package     JEvents
- * @copyright   Copyright (C)  2008-2009 GWE Systems Ltd
+ * @copyright   Copyright (C)  2008-2015 GWE Systems Ltd
  * @license     GNU/GPLv2, see http://www.gnu.org/licenses/gpl-2.0.html
  * @link        http://www.jevents.net
  */
@@ -30,45 +30,56 @@ if ($params->get("disablerepeats", 0) && !JEVHelper::isEventEditor())
 ?>
 <div style="clear:both;" class="jevdatetime">
 	<fieldset class="jev_sed"><legend><?php echo JText::_("Start_End_Duration"); ?></legend>
-		<div  class="control-group form-inline allDayEvent">
-			<?php echo $this->form->getLabel("allDayEvent"); ?>
-			<span>
-				<?php echo $this->form->getInput("allDayEvent"); ?>
-			</span>
-
-			<span style="margin-left:20px" class='checkbox12h'>
-				<?php echo $this->form->getLabel("view12Hour"); ?>
-				<?php echo $this->form->getInput("view12Hour"); ?>
-			</span>
+		<div  class=" allDayEvent">
+			<div class='alldayinput' style="margin:10px 20px 0px 0px ;display:inline-block;" >
+				<div style="display:inline-block;" >
+					<?php echo $this->form->getLabel("allDayEvent"); ?>
+				</div>
+				<div style="display:inline-block;" >
+					<?php echo $this->form->getInput("allDayEvent"); ?>
+				</div>
+			</div>
+			<div class='checkbox12h' style="margin:10px 0px 0px 0px ;display:inline-block;">
+				<div style="display:inline-block;" >
+					<?php echo $this->form->getLabel("view12Hour"); ?>
+				</div>
+				<div style="display:inline-block;" >
+					<?php echo $this->form->getInput("view12Hour"); ?>
+				</div>
+			</div>
 		</div>
 
-		<div  class="control-group  form-inline">
-			<span class="jevstartdate">
+		<div style="margin:0px">
+			<div class="jevstartdate" style="margin:10px 20px 0px 0px ;display:inline-block;">
 				<?php echo $this->form->getLabel("publish_up"); ?>
 				<?php echo $this->form->getInput("publish_up"); ?>
-			</span>
+			</div>
 
-			<span style="margin-left:20px" class='jevstarttime'>
+			<div class='jevstarttime' style="margin:10px 0px 0px 0px ;display:inline-block;">
 				<?php echo $this->form->getLabel("start_time"); ?>
 				<?php echo $this->form->getInput("start_time"); ?>
-			</span>
+			</div>
 		</div>
 
-		<div  class="control-group  form-inline">
-			<span class="jevenddate">
+		<div style="margin:0px">
+			<div class="jevenddate" style="margin:10px 20px 0px 0px ;display:inline-block;">
 				<?php echo $this->form->getLabel("publish_down"); ?>
 				<?php echo $this->form->getInput("publish_down"); ?>
-			</span>
+			</div>
 
-			<span style="margin-left:20px" class='jevendtime'>
+			<div class='jevendtime' style="margin:10px 20px 0px 0px ;display:inline-block;">
 				<?php echo $this->form->getLabel("end_time"); ?>
 				<?php echo $this->form->getInput("end_time"); ?>
-			</span>
+			</div>
 
-			<span style="margin-left:20px" class='jevnoendtime'>
-				<?php echo $this->form->getLabel("noendtime"); ?>
-				<?php echo $this->form->getInput("noendtime"); ?>
-			</span>
+			<div class='jevnoeendtime' style="margin:10px 0px 0px 0px ;display:inline-block;">
+				<div style="display:inline-block;" >
+					<?php echo $this->form->getLabel("noendtime"); ?>
+				</div>
+				<div style="display:inline-block;" >
+					<?php echo $this->form->getInput("noendtime"); ?>
+				</div>
+			</div>
 
 		</div>
 		
@@ -76,8 +87,8 @@ if ($params->get("disablerepeats", 0) && !JEVHelper::isEventEditor())
 		<div id="jevmultiday" style="display:<?php echo $this->row->endDate() > $this->row->startDate() ? "block" : "none"; ?>">
 
 			<label style="font-weight:bold;" ><?php echo JText::_('JEV_EVENT_MULTIDAY'); ?></label><br/>
-			<div style="float:left;"><?php echo JText::_('JEV_EVENT_MULTIDAY_LONG') . "&nbsp;"; ?></div>
-			<div class="radio btn-group" style="float:left;margin-left:20px!important;">
+			<div style="float:left;margin-right:20px!important;"><?php echo JText::_('JEV_EVENT_MULTIDAY_LONG') . "&nbsp;"; ?></div>
+			<div class="radio btn-group" style="float:left;">
 				<label for="yes"  class="radio btn">
 				<input type="radio" id="yes" name="multiday" value="1" <?php echo $this->row->multiday() ? 'checked="checked"' : ''; ?>  onclick="updateRepeatWarning();" />
 					<?php echo JText::_("JEV_YES"); ?>
@@ -147,7 +158,7 @@ if ($params->get("disablerepeats", 0) && !JEVHelper::isEventEditor())
 				$minyear = JEVHelper::getMinYear();
 				$maxyear = JEVHelper::getMaxYear();
 				$inputdateformat = $params->get("com_editdateformat", "d.m.Y");
-				JEVHelper::loadCalendar("until", "until", JevDate::strftime("%Y-%m-%d", $this->row->until()), $minyear, $maxyear, 'updateRepeatWarning();', "checkUntil();updateRepeatWarning();", $inputdateformat);
+				JEVHelper::loadElectricCalendar("until", "until", JevDate::strftime("%Y-%m-%d", $this->row->until()), $minyear, $maxyear, 'updateRepeatWarning();', "checkUntil();updateRepeatWarning();", $inputdateformat);
 				?>
 				<input type="hidden"  name="until2" id="until2" value="" />
 
@@ -159,7 +170,7 @@ if ($params->get("disablerepeats", 0) && !JEVHelper::isEventEditor())
 			<fieldset><legend><input type="radio" name="whichby" id="jevbyd" value="byd"  onclick="toggleWhichBy('byyearday');" /><?php echo JText::_('BY_YEAR_DAY'); ?></legend>
 				<div>					
 					<?php echo JText::_('COMMA_SEPARATED_LIST'); ?>
-					<input class="inputbox" type="text" name="byyearday" size="20" maxlength="50" value="<?php echo $this->row->byyearday(); ?>" onchange="checkInterval();" />
+					<input class="inputbox" type="text" name="byyearday" size="20" maxlength="100" value="<?php echo $this->row->byyearday(); ?>" onchange="checkInterval();" />
 				</div>
 				<div class="countback">
 					<?php echo JText::_('COUNT_BACK_YEAR'); ?>
@@ -213,6 +224,35 @@ if ($params->get("disablerepeats", 0) && !JEVHelper::isEventEditor())
 				</div>
 			</fieldset>
 		</div>
+		<div id="byirregular">
+			<fieldset >
+				<legend><?php echo JText::_('JEV_SELECT_REPEAT_DATES'); ?></legend>
+				<div class="irregularDateSelector">
+				<?php
+					$params = JComponentHelper::getParams(JEV_COM_COMPONENT);
+					$minyear = JEVHelper::getMinYear();
+					$maxyear = JEVHelper::getMaxYear();
+					$inputdateformat = $params->get("com_editdateformat", "d.m.Y");
+					$inputdateformat2 = str_replace(array("Y","m", "d"), array("%Y","%m", "%d"),$inputdateformat);
+					JEVHelper::loadElectricCalendar("irregular", "irregular", "", $minyear, $maxyear, '', "selectIrregularDate();updateRepeatWarning();", $inputdateformat, array("style"=>"display:none;"));
+				?>
+				</div>
+				<select  id="irregularDates" name="irregularDates[]" multiple="multiple" size="5" onchange="updateRepeatWarning()">
+					<?php 
+					sort($this->row->_irregulardates);
+					array_unique($this->row->_irregulardates);
+					foreach ($this->row->_irregulardates as $irregulardate){
+						 $irregulardateval = JevDate::strftime('%Y-%m-%d',$irregulardate);
+						 $irregulardatetext = JevDate::strftime($inputdateformat2,$irregulardate);
+						?>
+					<option value="<?php echo$irregulardateval;?>" selected="selected"><?php echo $irregulardatetext;?></option>
+						<?php
+					}
+					?>
+				</select>
+				<strong><?php echo JText::_("JEV_IRREGULAR_REPEATS_CANNOT_BE_EXPORTED_AT_PRESENT");?></strong>
+			</fieldset>
+		</div>
 		<div  class="jev_none" id="bysetpos">
 			<fieldset><legend><?php echo "NOT YET SUPPORTED" ?></legend>
 			</fieldset>
@@ -223,7 +263,7 @@ if ($params->get("disablerepeats", 0) && !JEVHelper::isEventEditor())
 <script type="text/javascript" >
 	// make the correct frequency visible
 	function setupRepeats(){	
-	hideEmptyJevTabs()
+	hideEmptyJevTabs();
 <?php
 if ($this->row->id() != 0 && $this->row->freq())
 {
@@ -271,10 +311,15 @@ if ($this->row->id() != 0 && $this->row->freq())
 
 				// Now reset the repeats warning so we can track any changes
 				document.adminForm.updaterepeats.value = 0;
+				// Now sort out the count back!
+				fixRepeatDates(true);
+				// Finally release the check on changed repeats
+				setupRepeatsRun = true;
+
 	<?php
 }
 ?>
-		setupJEventsBootstrap();
+				setupJEventsBootstrap();
 	}
 	//if (window.attachEvent) window.attachEvent("onload",setupRepeats);
 	//else window.onload=setupRepeats;
@@ -300,7 +345,12 @@ if ($this->row->id() != 0 && $this->row->freq())
 				var input = $('#' + label.attr('for'));
 				if (!input.prop('checked') && !input.prop('disabled')) {
 					label.closest('.btn-group').find("label").removeClass('active btn-success btn-danger btn-primary');
-					label.addClass('active btn-success');
+					if (input.prop('value')!=0){
+						label.addClass('active btn-success');
+					}
+					else {
+						label.addClass('active btn-danger');
+					}
 					input.prop('checked', true);
 				}
 			});
@@ -331,7 +381,12 @@ if ($this->row->id() != 0 && $this->row->freq())
 					return;
 				}
 				if (!input.prop('checked')) {
-					label.addClass('active btn-success');
+					if (input.prop('value')!=0){
+						label.addClass('active btn-success');
+					}
+					else {
+						label.addClass('active btn-danger');
+					}
 				}
 				else {
 					label.removeClass('active btn-success btn-danger btn-primary');
@@ -345,15 +400,20 @@ if ($this->row->id() != 0 && $this->row->freq())
 				input.css('display','none');
 			});		
 		})(jQuery);
-		
+
 		initialiseBootstrapButtons();
 	}
 	
 	function initialiseBootstrapButtons(){
-		(function($){	
+		(function($){
 			// this doesn't seem to find just the checked ones!'
 			//$(".btn-group input[checked=checked]").each(function() {
-			$(".btn-group input").each(function() {
+			var clickelems = $(".btn-group input[type=checkbox] , .btn-group input[type=radio]");
+
+			clickelems.each(function(idx, val) {
+				if (!$(this).attr('id')){
+					return;
+				}
 				var label = $("label[for=" + $(this).attr('id') + "]");
 				var elem = $(this);
 				if (elem.prop('disabled')) {
@@ -366,7 +426,13 @@ if ($this->row->id() != 0 && $this->row->freq())
 					label.removeClass('active btn-success btn-danger btn-primary');
 					return;
 				}
-				label.addClass('active btn-success');
+				if (elem.val()!=0){
+					label.addClass('active btn-success');
+				}
+				else {
+					label.addClass('active btn-danger');
+				}
+
 			});
 			
 		})(jQuery);

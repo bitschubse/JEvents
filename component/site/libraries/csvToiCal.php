@@ -5,7 +5,7 @@
  *
  * @version     $Id: csvToiCal.php 3285 2012-02-21 14:56:25Z geraintedwards $
  * @package     JEvents
- * @copyright   Copyright (C) 2008-2010 GWE Systems Ltd, 2006-2008 JEvents Project Group
+ * @copyright   Copyright (C) 2008-2015 GWE Systems Ltd, 2006-2008 JEvents Project Group
  * @license     GNU/GPLv2, see http://www.gnu.org/licenses/gpl-2.0.html
  * @link        http://www.jevents.net
  */
@@ -84,7 +84,7 @@ class CsvToiCal
 	 */
 	public function getConvertedTempFile()
 	{
-		$file = array("name" => substr($this->tmpFileName, strrpos($this->tmpFileName, DIRECTORY_SEPARATOR) + 1),
+		$file = array("name" => JString::substr($this->tmpFileName, strrpos($this->tmpFileName, DIRECTORY_SEPARATOR) + 1),
 			"tmp_name" => $this->tmpFileName);
 		return $file;
 
@@ -120,11 +120,12 @@ class CsvToiCal
 		$this->colsNum = count($headers);
 		for ($i = 0; $i < $this->colsNum; $i++)
 		{
+			// -------- remove the utf-8 BOM ----
+			 $headers[$i] = str_replace("\xEF\xBB\xBF",'', $headers[$i]);
 			$this->colsOrder[str_replace('"', '', trim($headers[$i]))] = $i;
 			// some people let white space at the end of text, so better to trim
 			// CSV has often begining and ending " - replace it
 		}
-
 	}
 
 	/**
@@ -181,6 +182,9 @@ class CsvToiCal
 				case "NOENDTIME":
 					$dataLine->setNoendtime($data[$order]);					
 					break;
+				case "MULTIDAY":
+					$dataLine->setMultiday($data[$order]);
+					break;
 				default:
 					$dataLine->customField($data[$order], $col);
 					break;
@@ -197,11 +201,11 @@ class CsvToiCal
 	 */
 	private function detectHeadersValidity()
 	{
-		if (isSet($this->colsOrder["CATEGORIES"]) &&
-				isSet($this->colsOrder["SUMMARY"]) &&
-				isSet($this->colsOrder["DTSTART"]) &&
-				isSet($this->colsOrder["DTEND"]) &&
-				isSet($this->colsOrder["TIMEZONE"]))
+		if (isset($this->colsOrder["CATEGORIES"]) &&
+				isset($this->colsOrder["SUMMARY"]) &&
+				isset($this->colsOrder["DTSTART"]) &&
+				isset($this->colsOrder["DTEND"]) &&
+				isset($this->colsOrder["TIMEZONE"]))
 			return true;
 		else{	
 			return false;

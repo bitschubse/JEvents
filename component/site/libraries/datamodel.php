@@ -4,7 +4,7 @@
  *
  * @version     $Id: datamodel.php 3553 2012-04-20 10:18:59Z geraintedwards $
  * @package     JEvents
- * @copyright   Copyright (C) 2008-2009 GWE Systems Ltd, 2006-2008 JEvents Project Group
+ * @copyright   Copyright (C) 2008-2015 GWE Systems Ltd, 2006-2008 JEvents Project Group
  * @license     GNU/GPLv2, see http://www.gnu.org/licenses/gpl-2.0.html
  * @link        http://www.jevents.net
  */
@@ -238,7 +238,7 @@ class JEventsDataModel {
 		}
 		$rowcount = count( $rows );
 
-		if (strlen($this->catidsOut)>0) {
+		if (JString::strlen($this->catidsOut)>0) {
 			$cat = "&catids=$this->catidsOut";
 		} else {
 			$cat="";
@@ -717,7 +717,7 @@ class JEventsDataModel {
 		$num_row = count($row);
 
 		// No matching rows - use uid as alternative
-		if ($num_row==0 && strlen($uid)>0){
+		if ($num_row==0 && JString::strlen($uid)>0){
 			$rpid = $this->queryModel->findMatchingRepeat($uid, $year, $month, $day);
 			if (isset($rpid) && $rpid>0){
 				$row = $this->queryModel->listEventsById ($rpid, 1, $jevtype);  // include unpublished events for publishers and above
@@ -835,7 +835,7 @@ class JEventsDataModel {
 		else {
 			// Do we have to be logged in to see this event?
 			// If we set the access user for ical export (as an example) then use this user id for access checks!
-			$user = JEVHelper::getUser(isset($this->accessuser)?$this->accessuser:null);
+			$user = isset($this->accessuser)? JEVHelper::getUser($this->accessuser) : JFactory::getUser();
 			if ($user->id==0)
 			{
 				$db=JFactory::getDBO();

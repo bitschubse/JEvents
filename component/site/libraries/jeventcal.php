@@ -4,7 +4,7 @@
  *
  * @version     $Id: jeventcal.php 3549 2012-04-20 09:26:21Z geraintedwards $
  * @package     JEvents
- * @copyright   Copyright (C) 2008-2009 GWE Systems Ltd, 2006-2008 JEvents Project Group
+ * @copyright   Copyright (C) 2008-2015 GWE Systems Ltd, 2006-2008 JEvents Project Group
  * @license     GNU/GPLv2, see http://www.gnu.org/licenses/gpl-2.0.html
  * @link        http://www.jevents.net
  */
@@ -95,7 +95,7 @@ class jEventCal {
 
 	// workaround for php 4 - much easier in php 5!!!
 	function getOrSet($field, $val=""){
-		if (strlen($val)==0) return $this->get($field);
+		if (JString::strlen($val)==0) return $this->get($field);
 		else $this->set($field,$val);
 	}
 	function get($field){
@@ -249,15 +249,21 @@ class jEventCal {
 	}
 
 	function contactLink($val="", $admin=false){
-		if (strlen($val)==0) {
+		if (JString::strlen($val)==0) {
 			if (!isset($this->_contactLink) || $this->_contactLink=="") $this->_contactLink = JEventsHTML::getUserMailtoLink( $this->id(), $this->created_by(),$admin, $this);
 		}
 		else $this->_contactLink=$val;
-		return $this->_contactLink;
+
+		// New Joomla code for mail cloak only works once on a page !!!
+		// Random number
+		$rand = rand(1, 100000);
+
+		return preg_replace("/cloak[0-9]*/i", "cloak".$rand, $this->_contactLink);
+		//return $this->_contactLink;
 	}
 
 	function catname($val=""){
-		if (strlen($val)==0) {
+		if (JString::strlen($val)==0) {
 			if (!isset($this->_catname)) $this->_catname = $this->getCategoryName();
 			return $this->_catname;
 		}
@@ -265,7 +271,7 @@ class jEventCal {
 	}
 
 	function allcategories($val=""){
-		if (strlen($val)==0) {
+		if (JString::strlen($val)==0) {
 			if (!isset($this->_catname)) $this->_catname = $this->getCategoryName();
 			return $this->_catname;
 		}
@@ -273,7 +279,7 @@ class jEventCal {
 	}
 
 	function bgcolor($val=""){
-		if (strlen($val)==0) {
+		if (JString::strlen($val)==0) {
 			if (!isset($this->_bgcolor)) $this->_bgcolor = JEV_CommonFunctions::setColor($this);
 			return $this->_bgcolor;
 		}
@@ -281,7 +287,7 @@ class jEventCal {
 	}
 
 	function fgcolor($val=""){
-		if (strlen($val)==0) {
+		if (JString::strlen($val)==0) {
 			include_once(JPATH_ADMINISTRATOR."/components/".JEV_COM_COMPONENT."/libraries/colorMap.php");
 			if (!isset($this->_fgcolor)) $this->_fgcolor = JevMapColor($this->bgcolor());
 			return $this->_fgcolor;
@@ -402,12 +408,12 @@ class jEventCal {
 		if (is_array($data)){
 			$res = array();
 			foreach ($data  as $cat){
-				$res[] = $cat->name;
+				$res[] = strpos($cat->name,"JEV_")===0 ? JText::_($cat->name) : $cat->name;
 			}
 			return implode(", ", $res);
 		}
 		if ($data) {
-			return $data->name;
+			return strpos($data->name,"JEV_")===0 ? JText::_($data->name) : $data->name;
 		}
 		return "";
 	}
@@ -744,7 +750,7 @@ class jEventCal {
 
 	function viewDetailLink($year,$month,$day,$sef=true, $Itemid=0){
 		$Itemid	= $Itemid>0?$Itemid:JEVHelper::getItemid($this);
-		$title = JFilterOutput::stringURLSafe($this->title());
+		$title = JApplication::stringURLSafe($this->title());
 		$link = "index.php?option=".JEV_COM_COMPONENT."&task=".$this->detailTask()."&evid=".$this->id() .'&Itemid='.$Itemid
 		."&year=$year&month=$month&day=$day" ;
 		if (JRequest::getCmd("tmpl","")=="component" && JRequest::getCmd('task', 'selectfunction')!='icalevent.select'  && JRequest::getCmd("option","")!="com_acymailing" && JRequest::getCmd("option","")!="com_jnews" && JRequest::getCmd("jevtask","")!="crawler.listevents"){
@@ -840,7 +846,7 @@ class jEventCal {
 						$each = strtolower($each);
 					}
 					$daystring="";
-					if (strlen($this->reccurweeks())==0){
+					if (JString::strlen($this->reccurweeks())==0){
 						$days = explode("|",$this->reccurweekdays());
 						for ($d=0;$d<count($days);$d++){
 							$daystring .= JEventsHTML::getDayName( $days[$d] );

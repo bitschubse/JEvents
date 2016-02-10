@@ -5,7 +5,7 @@
  *
  * @version     $Id: jevinfo.php 1331 2010-10-19 12:35:49Z geraintedwards $
  * @package     JEvents
- * @copyright   Copyright (C) 2008-2009 GWE Systems Ltd
+ * @copyright   Copyright (C) 2008-2015 GWE Systems Ltd
  * @license     GNU/GPLv2, see http://www.gnu.org/licenses/gpl-2.0.html
  * @link        http://www.jevents.net
  */
@@ -25,9 +25,9 @@ $lang->load("com_jevents", JPATH_ADMINISTRATOR);
 /**
  * JEVMenu Field class for the JEvents Component
  *
- * @package		JEvents.fields
- * @subpackage	com_banners
- * @since		1.6
+ * @package        JEvents.fields
+ * @subpackage    com_banners
+ * @since        1.6
  */
 class JFormFieldJEVInfo extends JFormFieldSpacer
 {
@@ -35,19 +35,25 @@ class JFormFieldJEVInfo extends JFormFieldSpacer
 	/**
 	 * The form field type.s
 	 *
-	 * @var		string
-	 * @since	1.6
+	 * @var        string
+	 * @since    1.6
 	 */
-	protected $type = 'JEVInfo';
+	protected
+			$type = 'JEVInfo';
 
 	/**
 	 * Method to get the field options.
 	 *
-	 * @return	array	The field option objects.
-	 * @since	1.6
+	 * @return    array    The field option objects.
+	 * @since    1.6
 	 */
-	public function getInput()
+	public
+			function getInput()
 	{
+		// load core and extra mootools
+		JHTML::_('behavior.framework');
+		JHtmlBehavior::framework();
+		JHtmlBehavior::framework(true);
 
 		// Must load admin language files
 		$lang = JFactory::getLanguage();
@@ -64,7 +70,7 @@ class JFormFieldJEVInfo extends JFormFieldSpacer
 		{
 			if (is_object($help))
 				$help = (string) $help;
-			$help = ( (isset($help)) && (strlen($help) <= 0)) ? null : $help;
+			$help = ((isset($help)) && (JString::strlen($help) <= 0)) ? null : $help;
 		}
 		if (!is_null($help))
 		{
@@ -84,15 +90,19 @@ class JFormFieldJEVInfo extends JFormFieldSpacer
 				{
 					$jeventHelpPopup = JPATH_COMPONENT_ADMINISTRATOR . '/help/en-GB/' . $helpfile;
 				}
+				if (!file_exists($jeventHelpPopup))
+				{
+					return "";
+				}
 				include($jeventHelpPopup);
 				$help = $this->help($$varname, $part);
 				$parts[$key] = JText::_($valuepart) . $help;
 			}
 			$value = implode(", ", $parts);
 		}
-		
-		JLoader::register('JEVHelper',JPATH_SITE."/components/com_jevents/libraries/helper.php");
-		JEVHelper::ConditionalFields( $this->element,$this->form->getName());
+
+		JLoader::register('JEVHelper', JPATH_SITE . "/components/com_jevents/libraries/helper.php");
+		JEVHelper::ConditionalFields($this->element, $this->form->getName());
 
 		return "<strong style='color:#993300'>" . JText::_($value) . "</strong>";
 
@@ -105,11 +115,12 @@ class JFormFieldJEVInfo extends JFormFieldSpacer
 	 * if $help is text, text is shown in a sticky overlib window with close button
 	 *
 	 * @static
-	 * @param	$help		string	help text (html text or url to target)
-	 * @param	$caption	string	caption of overlib window
-	 * @return				string	html sting
+	 * @param    $help        string    help text (html text or url to target)
+	 * @param    $caption    string    caption of overlib window
+	 * @return                string    html sting
 	 */
-	public function help($help = 'help text', $caption = '')
+	public
+			function help($help = 'help text', $caption = '')
 	{
 
 		$compath = JURI::root() . 'administrator/components/' . JEV_COM_COMPONENT;
@@ -120,8 +131,8 @@ class JFormFieldJEVInfo extends JFormFieldSpacer
 
 		static $counthelps = 0;
 		$counthelps++;
-		
-		if (substr($help, 0, 7) == 'http://' || substr($help, 0, 8) == 'https://')
+
+		if (JString::substr($help, 0, 7) == 'http://' || JString::substr($help, 0, 8) == 'https://')
 		{
 			//help text is url, open new window
 			$onclick_cmd = "window.open(\"$help\", \"help\", \"height=700,width=800,resizable=yes,scrollbars\");return false";
@@ -135,8 +146,7 @@ class JFormFieldJEVInfo extends JFormFieldSpacer
 			//$help = str_replace('&quot;', '\&quot;', $help);
 			$help = addslashes(str_replace("\n", " ", $help));
 
-			$onclick_cmd = "SqueezeBox.initialize({});SqueezeBox.setOptions(SqueezeBox.presets,{'handler': 'iframe','size': {'x': 400, 'y': 500},'closeWithOverlay': 0});SqueezeBox.setContent('clone', $('helpdiv".$counthelps."'));";
-
+			$onclick_cmd = "SqueezeBox.initialize({});SqueezeBox.setOptions(SqueezeBox.presets,{'handler': 'iframe','size': {'x': 400, 'y': 500},'closeWithOverlay': 0, 'onOpen' : function(){SqueezeBox.overlay['removeEvent']('click', SqueezeBox.bound.close)}});SqueezeBox.setContent('clone', $('helpdiv" . $counthelps . "'));";
 		}
 
 		// RSH 10/11/10 - Added float:none for 1.6 compatiblity - The default template was floating images to the left
@@ -145,11 +155,10 @@ class JFormFieldJEVInfo extends JFormFieldSpacer
 				. ' src="' . $imgpath . '/help_ques_inact.gif"'
 				//. ' onmouseover="this.src="' . $imgpath . '/help_ques.gif'.'" '
 				//. ' onmouseout="this.src="' . $imgpath . '/help_ques_inact.gif'.'" '
-				. ' onclick="' . $onclick_cmd . '" /><div class="jev_none"><div id="helpdiv'.$counthelps.'" >'.$help.'</div></div>';
+				. ' onclick="' . $onclick_cmd . '" /><div class="jev_none"><div id="helpdiv' . $counthelps . '" >' . $help . '</div></div>';
 
 		return $str;
 
 	}
 
 }
-

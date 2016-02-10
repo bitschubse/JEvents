@@ -4,7 +4,7 @@
  *
  * @version     $Id: iCalEventDetail.php 1742 2011-03-08 10:53:09Z geraintedwards $
  * @package     JEvents
- * @copyright   Copyright (C) 2008-2009 GWE Systems Ltd, 2006-2008 JEvents Project Group
+ * @copyright   Copyright (C) 2008-2015 GWE Systems Ltd, 2006-2008 JEvents Project Group
  * @license     GNU/GPLv2, see http://www.gnu.org/licenses/gpl-2.0.html
  * @link        http://www.jevents.net
  */
@@ -139,7 +139,7 @@ class iCalEventDetail extends JTable  {
 		}
 		foreach ($this->_data as $key=>$value) {
 			if (strpos($key,"custom_")===0){
-				$field = substr($key,7);
+				$field = JString::substr($key,7);
 				$this->_customFields[$field]=$value;
 			}
 		}
@@ -163,7 +163,7 @@ class iCalEventDetail extends JTable  {
 		$this->processField("categories","");
 		$this->processField("description","");
 		if (strpos($this->description,"##migration##")===0 ){
-			$this->description = substr($this->description,strlen("##migration##"));
+			$this->description = JString::substr($this->description,JString::strlen("##migration##"));
 			$this->description = base64_decode($this->description);
 		}
 		else {
@@ -214,15 +214,16 @@ class iCalEventDetail extends JTable  {
 		else if ($this->dtend==0){
 			// if no dtend or duration (e.g. from imported iCal) - set no end time
 			$this->noendtime = 1;
-			$this->dtend = iCalImport::unixTime($this->dtstartraw);
+			$icimport = new iCalImport();
+			$this->dtend = $icimport->unixTime($this->dtstartraw);
 			// an all day event
-			if ($this->dtend==$this->dtstart && strlen($this->dtstartraw)==8){
+			if ($this->dtend==$this->dtstart && JString::strlen($this->dtstartraw)==8){
 				// convert to JEvents all day event mode!
 				//$this->allday = 1;				
 				$this->dtend += 86399; 
 			}
 		}
-		if ($this->dtend<$this->dtstart && strlen($this->dtstartraw)==8){
+		if ($this->dtend<$this->dtstart && JString::strlen($this->dtstartraw)==8){
 			// convert to JEvents all day event mode!
 			$this->noendtime = 1;
 			//$this->allday = 1;				

@@ -4,7 +4,7 @@
  *
  * @version     $Id: calendar_cell.php 2679 2011-10-03 08:52:57Z geraintedwards $
  * @package     JEvents
- * @copyright   Copyright (C) 2008-2009 GWE Systems Ltd, 2006-2008 JEvents Project Group
+ * @copyright   Copyright (C) 2008-2015 GWE Systems Ltd, 2006-2008 JEvents Project Group
  * @license     GNU/GPLv2, see http://www.gnu.org/licenses/gpl-2.0.html
  * @link        http://www.jevents.net
  */
@@ -138,7 +138,7 @@ class EventCalendarCell_ext extends EventCalendarCell_default{
 		}
 
 		if( $cfg->get("com_enableToolTip",1)) {
-			if ($cfg->get("tooltiptype",'overlib')=='overlib'){
+			if ($cfg->get("tooltiptype",'joomla')=='overlib'){
 				$tooltip = $this->loadOverride("overlib");
 				// allow fallback to old method
 				if ($tooltip==""){
@@ -158,8 +158,9 @@ class EventCalendarCell_ext extends EventCalendarCell_default{
 
 				}
 
-				$toolTipArray = array('className'=>'jevtip');
-				JHTML::_('behavior.tooltip', '.hasjevtip', $toolTipArray);
+				JevHtmlBootstrap::popover('.hasjevtip' , array("trigger"=>"hover focus", "placement"=>"top", "container"=>"#jevents_body", "delay"=> array( "hide"=> 150 )));
+				//$toolTipArray = array('className' => 'jevtip');
+				//JHTML::_('behavior.tooltip', '.hasjevtip', $toolTipArray);
 
 				$tooltip = $this->loadOverride("tooltip");
 				// allow fallback to old method
@@ -168,7 +169,7 @@ class EventCalendarCell_ext extends EventCalendarCell_default{
 				}
 
 				if (strpos($tooltip,"templated")===0 ) {
-					$title = substr($tooltip,9);
+					$title = JString::substr($tooltip,9);
 					$cellString = "";
 				}
 				else {
@@ -178,12 +179,14 @@ class EventCalendarCell_ext extends EventCalendarCell_default{
 
 				if ($templatedcell){
 					$templatedcell = str_replace("[[TOOLTIP]]", htmlspecialchars($title.$cellString,ENT_QUOTES), $templatedcell);
+					$templatedcell = str_replace("[[TOOLTIPTITLE]]", htmlspecialchars($title,ENT_QUOTES), $templatedcell);
+					$templatedcell = str_replace("[[TOOLTIPCONTENT]]", htmlspecialchars($cellString,ENT_QUOTES), $templatedcell);
 					$time = $cfg->get('com_calDisplayStarttime')?$tmp_start_time:"";
 					$templatedcell = str_replace("[[EVTTIME]]", $time, $templatedcell);
 					return  $templatedcell;
 				}
 				
-				$html =  $cellStart . ' style="' . $cellStyle . '">' . $this->tooltip( $title.$cellString, $title_event_link) . $cellEnd;
+				$html =  $cellStart . ' style="' . $cellStyle . '">' . $this->tooltip( $title , $cellString, $title_event_link) . $cellEnd;
 
 				return $html;
 			}
@@ -191,7 +194,9 @@ class EventCalendarCell_ext extends EventCalendarCell_default{
 		}
 		if ($templatedcell)
 		{
-			$templatedcell = str_replace("[[TOOLTIP]]", htmlspecialchars($title . $cellString, ENT_QUOTES), $templatedcell);
+			$templatedcell = str_replace("[[TOOLTIP]]", htmlspecialchars($title.$cellString,ENT_QUOTES), $templatedcell);
+			$templatedcell = str_replace("[[TOOLTIPTITLE]]", htmlspecialchars($title,ENT_QUOTES), $templatedcell);
+			$templatedcell = str_replace("[[TOOLTIPCONTENT]]", htmlspecialchars($cellString,ENT_QUOTES), $templatedcell);
 			$time = $cfg->get('com_calDisplayStarttime') ? $tmp_start_time : "";
 			$templatedcell = str_replace("[[EVTTIME]]", $time, $templatedcell);
 			return $templatedcell;
