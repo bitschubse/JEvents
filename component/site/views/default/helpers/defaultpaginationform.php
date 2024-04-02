@@ -1,64 +1,84 @@
-<?php 
+<?php
 defined('_JEXEC') or die('Restricted access');
 
-function DefaultPaginationForm($total, $limitstart, $limit, $keyword=""){
+use Joomla\CMS\Language\Text;
+use Joomla\CMS\Layout\LayoutHelper;
+use Joomla\CMS\Factory;
+use Joomla\CMS\Router\Route;
+use Joomla\Utilities\ArrayHelper;
+
+function DefaultPaginationForm($total, $limitstart, $limit, $keyword = "")
+{
+
 	jimport('joomla.html.pagination');
-	$pageNav = new JPagination($total, $limitstart, $limit);
-	if ($keyword !="" && method_exists($pageNav,"setAdditionalUrlParam")){		
+
+	$input = Factory::getApplication()->input;
+
+	$pageNav = new \Joomla\CMS\Pagination\Pagination($total, $limitstart, $limit);
+	if ($keyword != "" && method_exists($pageNav, "setAdditionalUrlParam"))
+	{
 		$pageNav->setAdditionalUrlParam("keyword", urlencode($keyword));
-		$pageNav->setAdditionalUrlParam("showpast",JRequest::getInt("showpast",0));
+		$pageNav->setAdditionalUrlParam("showpast", $input->getInt("showpast", 0));
 	}
-	$Itemid = JRequest::getInt("Itemid");
-	$task = JRequest::getVar("jevtask");
+	$Itemid = $input->getInt("Itemid");
+	$task   = $input->get("jevtask", null, null);
 	// include catids to make sure not lost when category is pre-selected
-	$catids = JRequest::getString("catids",JRequest::getString("category_fv",""));
-	if (JString::strlen($catids)>0){
-		$catids = explode("|",$catids);
-		JArrayHelper::toInteger($catids);
-		$catids = "&catids=".implode("|",$catids);
+	$catids = $input->getString("catids", $input->getString("category_fv", ""));
+	if (\Joomla\String\StringHelper::strlen($catids) > 0)
+	{
+		$catids = explode("|", $catids);
+		$catids = ArrayHelper::toInteger($catids);
+		$catids = "&catids=" . implode("|", $catids);
 	}
 	$year = "";
-	if (JRequest::getInt("year",0)>0){
-		$year = "&year=".JRequest::getInt("year",0);
+	if ($input->getInt("year", 0) > 0)
+	{
+		$year = "&year=" . $input->getInt("year", 0);
 	}
 	$month = "";
-	if (JRequest::getInt("month",0)>0){
-		$month = "&month=".JRequest::getInt("month",0);
+	if ($input->getInt("month", 0) > 0)
+	{
+		$month = "&month=" . $input->getInt("month", 0);
 	}
-	if ($keyword !=""){
-		$keyword = "&keyword=".urlencode($keyword)."&showpast=".JRequest::getInt("showpast",0);
+	if ($keyword != "")
+	{
+		$keyword = "&keyword=" . urlencode($keyword) . "&showpast=" . $input->getInt("showpast", 0);
 	}
-	$link = JRoute::_("index.php?option=".JEV_COM_COMPONENT."&Itemid=$Itemid&task=$task$catids$year$month$keyword");
+	$link = Route::_("index.php?option=" . JEV_COM_COMPONENT . "&Itemid=$Itemid&task=$task$catids$year$month$keyword");
 	?>
 	<div class="jev_pagination">
-	<form action="<?php echo $link;?>" method="post" name="adminForm" id="adminForm">
-	<?php
-	if ($task!="crawler.listevents" || version_compare(JVERSION, "3.0.0", 'lt') ){
-	echo $pageNav->getListFooter();
-	}
-	else {
-		// Allow to receive a null layout
-		$layoutId =  'pagination.crawlerlinks' ;
+		<form action="<?php echo $link; ?>" method="post" name="adminForm" id="adminForm">
+			<?php
+			if ($task !== "crawler.listevents")
+			{
+				echo '<label class="sr-only" for="limit">' . Text::_("JEV_PAGINATION_LIMIT_LBL") . '</label>';
 
-		$app = JFactory::getApplication();
+				echo $pageNav->getPaginationLinks('joomla.pagination.links', array('showLimitBox' => true, 'showPagesLinks'=> true, 'showLimitStart' => true));
+			}
+			else
+			{
+				// Allow to receive a null layout
+				$layoutId = 'pagination.crawlerlinks';
 
-		$list = array(
-			'prefix'       => $pageNav->prefix,
-			'limit'        => $pageNav->limit,
-			'limitstart'   => $pageNav->limitstart,
-			'total'        => $pageNav->total,
-			'limitfield'   => $pageNav->getLimitBox(),
-			'pagescounter' => $pageNav->getPagesCounter(),
-			'pages'        => $pageNav->getPaginationPages() 
-		);
+				$app = Factory::getApplication();
 
-		$options = array();
-		
-		echo  JLayoutHelper::render($layoutId, array('list' => $list, 'options' => $options));
+				$list = array(
+					'prefix'       => $pageNav->prefix,
+					'limit'        => $pageNav->limit,
+					'limitstart'   => $pageNav->limitstart,
+					'total'        => $pageNav->total,
+					'limitfield'   => $pageNav->getLimitBox(),
+					'pagescounter' => $pageNav->getPagesCounter(),
+					'pages'        => $pageNav->getPaginationPages()
+				);
 
-	}
-	?>
-	</form>
+				$options = array();
+
+				echo LayoutHelper::render($layoutId, array('list' => $list, 'options' => $options));
+
+			}
+			?>
+		</form>
 	</div>
 	<?php
 }

@@ -1,6 +1,6 @@
 <?php
 /**
- * JEvents Component for Joomla 1.5.x
+ * JEvents Component for Joomla! 3.x
  *
  */
 
@@ -8,16 +8,21 @@
 defined('_JEXEC') or die();
 
 
-include_once(JPATH_SITE."/libraries/joomla/form/fields/radio.php");
+use Joomla\CMS\Form\Field\RadioField;
+
+if(file_exists(JPATH_SITE . "/libraries/joomla/form/fields/radio.php")) {
+    include_once(JPATH_SITE . "/libraries/joomla/form/fields/radio.php");
+}
 
 class JFormFieldJevradio extends JFormFieldRadio
 {
 	protected function getInput()
 	{
-		JLoader::register('JEVHelper',JPATH_SITE."/components/com_jevents/libraries/helper.php");
-		JEVHelper::ConditionalFields( $this->element,$this->form->getName());
+
+		JLoader::register('JEVHelper', JPATH_SITE . "/components/com_jevents/libraries/helper.php");
+		JEVHelper::ConditionalFields($this->element, $this->form->getName());
 
 		return parent::getInput();
 	}
-	
+
 }

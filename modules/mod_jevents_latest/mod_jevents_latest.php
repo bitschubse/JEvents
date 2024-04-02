@@ -1,6 +1,6 @@
 <?php
 /**
- * JEvents Component for Joomla 1.5.x
+ * JEvents Component for Joomla! 3.x
  *
  * @version     $Id: mod_jevents_latest.php 3309 2012-03-01 10:07:50Z geraintedwards $
  * @package     JEvents
@@ -10,47 +10,76 @@
  * @link        http://joomlacode.org/gf/project/jevents
  */
 
-defined( '_JEXEC' ) or die( 'Restricted access' );
+defined('_JEXEC') or die('Restricted access');
 
-require_once (dirname(__FILE__).'/'.'helper.php');
+use Joomla\CMS\Factory;
+use Joomla\CMS\Plugin\PluginHelper;
+use Joomla\CMS\Component\ComponentHelper;
+
+require_once(dirname(__FILE__) . '/' . 'helper.php');
 
 $jevhelper = new modJeventsLatestHelper();
-$theme = JEV_CommonFunctions::getJEventsViewName();
-$modtheme = $params->get("com_calViewName", $theme);
-if ($modtheme=="" || $modtheme=="global"){
-	$modtheme=$theme;
+$theme     = JEV_CommonFunctions::getJEventsViewName();
+$modtheme  = $params->get("com_calViewName", $theme);
+if ($modtheme == "" || $modtheme == "global")
+{
+	$modtheme = $theme;
 }
-$theme=$modtheme;
+$theme = $modtheme;
 
-JPluginHelper::importPlugin("jevents");
+PluginHelper::importPlugin("jevents");
+
+// Module specific parameters
+$componentparams = ComponentHelper::getParams(JEV_COM_COMPONENT);
+$paramsArray = $params->toArray();
+$keys = array_keys($paramsArray);
+$mispecifics = preg_grep("/^mispecific_/", $keys);
+if ($mispecifics)
+{
+    foreach ($mispecifics as $mispecific)
+    {
+        $pattern = str_replace("mispecific_", "", $mispecific);
+        $mispecifics2 = preg_grep("/^mi" . $pattern . "_/", $keys);
+        // If this group of menu item specific parameters are enabled then use them
+        if ($mispecifics2 && $params->get($mispecific, 0))
+        {
+            foreach ($mispecifics2 as $mispecific2)
+            {
+                $key = str_replace("mi" . $pattern . "_", "", $mispecific2);
+                $componentparams->set($key, $params->get($mispecific2));
+            }
+        }
+    }
+}
 
 // record what is running - used by the filters
-$registry	= JRegistry::getInstance("jevents");
-$registry->set("jevents.activeprocess","mod_jevents_latest");
+$registry = JevRegistry::getInstance("jevents");
+$registry->set("jevents.activeprocess", "mod_jevents_latest");
 $registry->set("jevents.moduleid", $module->id);
 $registry->set("jevents.moduleparams", $params);
 
-$viewclass = $jevhelper->getViewClass($theme, 'mod_jevents_latest',$theme.'/'."latest", $params);
+$viewclass = $jevhelper->getViewClass($theme, 'mod_jevents_latest', $theme . '/' . "latest", $params);
 
-$registry	= JRegistry::getInstance("jevents");
+$registry = JevRegistry::getInstance("jevents");
 // See http://www.php.net/manual/en/timezones.php
-$compparams = JComponentHelper::getParams(JEV_COM_COMPONENT);
-$tz=$compparams->get("icaltimezonelive","");
-if ($tz!="" && is_callable("date_default_timezone_set")){
-	$timezone= date_default_timezone_get();
+$compparams = ComponentHelper::getParams(JEV_COM_COMPONENT);
+$tz         = $compparams->get("icaltimezonelive", "");
+if ($tz != "" && is_callable("date_default_timezone_set"))
+{
+	$timezone = date_default_timezone_get();
 	//echo "timezone is ".$timezone."<br/>";
 	date_default_timezone_set($tz);
-	$registry->set("jevents.timezone",$timezone);
+	$registry->set("jevents.timezone", $timezone);
 }
 
-$modview = new $viewclass($params, $module->id);
+$modview            = new $viewclass($params, $module->id);
 $modview->jevlayout = $theme;
 echo $modview->displayLatestEvents();
 
 // Must reset the timezone back!!
-if ($tz && is_callable("date_default_timezone_set")){
+if ($tz && is_callable("date_default_timezone_set"))
+{
 	date_default_timezone_set($timezone);
 }
 
-$dispatcher	= JDispatcher::getInstance();
-$dispatcher->trigger( 'onJEventsLatestFooter');
+Factory::getApplication()->triggerEvent('onJEventsLatestFooter');

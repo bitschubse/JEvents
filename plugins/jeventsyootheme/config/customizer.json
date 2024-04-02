@@ -1,0 +1,131 @@
+{
+    "sections": {
+        "my-section": {
+            "title": "My Section",
+            "width": 400,
+            "priority": 100,
+            "fields": {
+                "jevents.option_a": {
+                    "label": "Option A",
+                    "description": "A description text."
+                },
+                "jevents.maxwidth": {
+                    "label": "Max Width",
+                    "description": "Set the maximum content width.",
+                    "type": "select",
+                    "options": {
+                        "None": "",
+                        "Small": "small",
+                        "Medium": "medium",
+                        "Large": "large",
+                        "X-Large": "xlarge",
+                        "2X-Large": "2xlarge"
+                    }
+                },
+                "jevents.option_a2": {
+                    "label": "Option A 2",
+                    "description": "A description text."
+                },
+                "jevents.contact": {
+                    "label": "Contact",
+                    "description": "A contact description text.",
+                    "type": "contact"
+                },
+                "jevents.icon": {
+                    "label": "Icon",
+                    "description": "Set the maximum content width.",
+                    "type": "icon"
+                },
+                "jevents.minwidth": {
+                    "label": "Min Width",
+                    "description": "Set the maximum content width.",
+                    "type": "select",
+                    "options": {
+                        "None": "",
+                        "Small": "small",
+                        "Medium": "medium",
+                        "Large": "large",
+                        "X-Large": "xlarge",
+                        "2X-Large": "2xlarge"
+                    }
+                },
+
+                "jevents.radio": {
+                    "label": "Radio",
+                    "type": "radio",
+                    "name": "radio_group",
+                    "default": 0,
+                    "options": {
+                        "Option 1": 0,
+                        "Option 2": 1,
+                        "Option 3": 2
+                    }
+                },
+                "jevents.image": {
+                    "label": "Image",
+                    "type": "image"
+                },
+                "jevents.width": {
+                    "label": "Width"
+                },
+                "jevents.height": {
+                    "label": "Height"
+                }
+            },
+            "fieldset": {
+                "default": {
+                    "type": "tabs",
+                    "fields": [
+                        {
+                            "title": "Content",
+                            "fields": [
+                                "jevents.option_a",
+                                "jevents.contact",
+                                "jevents.icon",
+                                "jevents.maxwidth",
+                                "jevents.image",
+                                {
+                                    "description": "A description text below the grid.",
+                                    "type": "grid",
+                                    "name": "_image_dimension",
+                                    "width": "1-2",
+                                    "fields": [
+                                        "jevents.width",
+                                        "jevents.height"
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "title": "Settings",
+                            "fields": [
+                                "jevents.option_a2",
+                                "jevents.radio",
+                                "jevents.minwidth"
+                            ]
+                        }
+                    ]
+                }
+            }
+        },
+        "styler": {
+            "components": {
+                "jevents": {
+                    "name": "JEvents Yootheme",
+                    "groups": {
+                        "navbar": "@jevents-navbar-*",
+                        "title": "@jevents-title-*",
+                        "card": "@jevents-card-*"
+                    },
+                    "hover": "[class*='jevents-']",
+                    "inspect": "[class*='jevents'], [class*='jevents'] > *"
+                },
+                "inverse": {
+                    "groups": {
+                        "jevents-navbar": "@inverse-jevents-navbar-*"
+                    }
+                }
+            }
+        }
+    }
+}

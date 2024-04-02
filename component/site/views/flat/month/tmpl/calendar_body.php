@@ -1,13 +1,16 @@
 <?php 
 defined('_JEXEC') or die('Restricted access');
 
+use Joomla\CMS\Language\Text;
+
+
 $cfg	 = JEVConfig::getInstance();
 
 if ($cfg->get("tooltiptype",'joomla')=='overlib'){
 	JEVHelper::loadOverlib();
 }
 
-$view =  $this->getViewName();
+$view = $this->getViewName();
 echo $this->loadTemplate('cell' );
 $eventCellClass = "EventCalendarCell_".$view;
 
@@ -19,13 +22,21 @@ $precedingMonth = $this->datamodel->getPrecedingMonth($this->data);
 	<div class="jev_toprow jev_monthv">
 	    <div class="jev_header2">
 			<div class="previousmonth" >
-		      	<?php echo "<a href='".$precedingMonth["link"]."' title='".$precedingMonth['name']."' style='text-decoration:none;'>".$precedingMonth['name']."</a>";?>
+		      	<?php
+		      	if (is_array($precedingMonth)) {
+		      	     echo "<a href='".$precedingMonth["link"]."' title='".$precedingMonth['name']."' style='text-decoration:none;'>".$precedingMonth['name']."</a>";
+		      	}
+		      	?>
 			</div>
 			<div class="currentmonth">
 				<?php echo $this->data['fieldsetText']; ?>
 			</div>
 			<div class="nextmonth">
-		      	<?php echo "<a href='".$followingMonth["link"]."' title='".$followingMonth['name']."' style='text-decoration:none;'>".$followingMonth['name']."</a>";?>
+		      	<?php
+		      	if (is_array($followingMonth)) {
+		      	    echo "<a href='".$followingMonth["link"]."' title='".$followingMonth['name']."' style='text-decoration:none;'>".$followingMonth['name']."</a>";
+		      	}
+		      	?>
 			</div>
 			
 		</div>
@@ -38,7 +49,7 @@ $precedingMonth = $this->datamodel->getPrecedingMonth($this->data);
 					$cleaned_day = strip_tags($dayname, '');?>
 					<td class="cal_daysnames">
 						<span class="<?php echo strtolower($cleaned_day); ?>">
-                            <?php echo JString::substr($cleaned_day, 0, 3);?>
+                            <?php echo Joomla\String\StringHelper::substr($cleaned_day, 0, 3);?>
                         </span>
 					</td>
                     <?php
@@ -69,7 +80,19 @@ $precedingMonth = $this->datamodel->getPrecedingMonth($this->data);
 						?>
                     <td <?php echo $cellclass;?>>
                      <?php   $this->_datecellAddEvent($this->year, $this->month, $currentDay["d"]);?>
-                    	<a class="cal_daylink" href="<?php echo $currentDay["link"]; ?>" title="<?php echo JText::_('JEV_CLICK_TOSWITCH_DAY'); ?>"><?php echo $currentDay['d']; ?></a>
+                    	<a class="cal_daylink" href="<?php echo $currentDay["link"]; ?>" title="<?php echo Text::_('JEV_CLICK_TOSWITCH_DAY'); ?>">
+			    <span class="calview"><?php echo $currentDay['d']; ?></span>
+			    <span class="listview">				
+				<?php 
+					$format = Text::_("DATE_FORMAT_0");
+					if (strtoupper(substr(PHP_OS, 0, 3)) !== 'WIN') {
+						$format = str_replace("%d", "%e",$format);
+					}
+					echo JevDate::strftime($format, $currentDay["cellDate"]);
+
+				?>
+			    </span>
+			</a>
                         <?php
 
                         if (count($currentDay["events"])>0){

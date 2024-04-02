@@ -48,7 +48,7 @@ class JevTypeahead
 		// Load jQuery
 		JHtml::_('jquery.framework');
 		JHtml::stylesheet('com_jevents/lib_jevtypeahead/jevtypeahead.css',array(),true);
-		JHtml::script('com_jevents/lib_jevtypeahead/typeahead.bundle.min.js',false,true,false,false,true);
+		JHtml::script('com_jevents/lib_jevtypeahead/typeahead.bundle.min.js',array("framework"=>false,"relative"=>true));
 
 		// If no debugging value is set, use the configuration setting
 		if ($debug === null)
@@ -94,6 +94,8 @@ class JevTypeahead
 			$opt['prefetch']	= isset($params['prefetch']) ? $params['prefetch'] : '';
 			$opt['remote']		= isset($params['remote']) ? $params['remote'] : '';
 			$opt['data_value']	= isset($params['data_value']) ? $params['data_value'] : 'value';
+			$opt['menu']	= isset($params['menu']) ? $params['menu'] : 'tt-menu';
+
 			$opt['data_id']    = isset($params['data_id']) ? $params['data_id'] : 'id';
 			$opt['field_selector']    = isset($params['field_selector']) ? $params['field_selector'] : '';
 			$opt['highlight']	= isset($params['highlight']) ? $params['highlight'] : 'true';
@@ -106,7 +108,7 @@ class JevTypeahead
 			$opt['json']	= isset($params['json']) ?  $params['json'] : '';
 
 			if ($opt['scrollable']){
-				JFactory::getDocument()->addStyleDeclaration( "#scrollable-dropdown-menu .tt-menu {max-height: 150px; overflow-y: auto; }");
+				JFactory::getDocument()->addStyleDeclaration( ".scrollable-dropdown-menu .tt-menu, .scrollable-dropdown-menu .tt-dropdown-menu, #scrollable-dropdown-menu .tt-menu, #scrollable-dropdown-menu .tt-dropdown-menu{max-height: 150px; overflow-y: auto; background-color: #fff;}");
 			}
 
 			$options = json_encode($opt);
@@ -154,8 +156,8 @@ class JevTypeahead
 				if($opt['remote'])
 				{
 					$typeaheadLoad .= "remote: {
-										url: '".$opt['remote']."&token=".JSession::getFormToken()."&typeahead=%QUERY',
-										wildcard: '%QUERY'
+										url: '".$opt['remote']."&token=".JSession::getFormToken()."&typeahead=PQRZYX',
+										wildcard: 'PQRZYX'
 										$callback
 										$prepare
 									},";
@@ -165,11 +167,13 @@ class JevTypeahead
 			// clear local cache!
 		//	$typeaheadLoad .= "$jsname.clear();$jsname.clearPrefetchCache();";
 
-				$typeaheadLoad .= "jQuery('".$selector."').typeahead
+				$typeaheadLoad .= "jQuery(document).ready(function() {"
+						. "jQuery('".$selector."').typeahead
 									(
 										{
 											highlight: ".$opt['highlight'].",
 											minLength: ".$opt['minLength'].",
+											classNames : { menu: '" . $opt['menu'] . "'},
 										},
 										{
 											name: '$jsname',
@@ -177,7 +181,8 @@ class JevTypeahead
 											limit:  ".$opt['limit'].",
 											source: $jsname
 										}
-									);\n";
+									);
+							})\n";
 				if($opt['field_selector'])
 				{
 					$typeaheadLoad .= "jQuery('".$selector."').on

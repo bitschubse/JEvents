@@ -1,17 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <extension type="component" version="2.5" method="upgrade">
-	<name>JEvents</name>
-	<creationDate>September 2015</creationDate>
-	<author>GWE Systems Ltd </author>
-	<copyright>(C) 2009-2015 GWE Systems Ltd, 2006-2008 JEvents Project Group</copyright>
+	<name>COM_JEVENTS</name>
+	<creationDate>JEVENTS_DATE</creationDate>
+	<author>GWE Systems Ltd</author>
+	<copyright>(C) 2009-JEVENTS_COPYRIGHT GWESystems Ltd, 2006-2008 JEvents Project Group</copyright>
 	<license>http://www.gnu.org/copyleft/gpl.html GNU/GPL</license>
-	<authorEmail></authorEmail>
+	<authorEmail>contact via website</authorEmail>
 	<authorUrl>http://www.jevents.net</authorUrl>
-	<version>3.4.0</version>
-	<description>Events, meetings and more</description>
-
+	<description>COM_JEVENTS_DESC</description>
+	<version>JEVENTS_VERSION</version>
 	<scriptfile>install.php</scriptfile>
-	
 	<files folder="site">
 		<folder>assets</folder>
 		<folder>controllers</folder>
@@ -47,22 +45,38 @@
 		<filename>mod.defines.php</filename>
 		<filename>router.php</filename>
 	</files>
-    <languages folder="site/language">
-        <language tag="en-GB">en-GB.com_jevents.ini</language>
-    </languages>
-    <media folder="media" destination="com_jevents">
+	<languages folder="site/language">
+		<language tag="en-GB">en-GB.com_jevents.ini</language>
+	</languages>
+	<media folder="media" destination="com_jevents">
 		<folder>css</folder>
-        <folder>images</folder>
+		<folder>images</folder>
 		<folder>js</folder>
 	</media>
 	<administration>
-		<menu>com_jevents</menu>
-
+		<menu>COM_JEVENTS_MENU</menu>
+		<submenu>
+			<menu link="option=com_jevents&amp;view=cpanel" view="cpanel"  img="" alt="JEvents Dashboard">JEVENTS_DASHBOARD</menu>
+			<menu link="option=com_jevents&amp;task=icalevent.list" view="icalevent"  img="" alt="Manage Events">JEV_INSTAL_MANAGE</menu>
+			<menu link="option=com_jevents&amp;task=icalevent.edit" view="icalevent"  img="" alt="Add Event">JEV_ADD_EVENT</menu>
+			<menu link="option=com_jevents&amp;task=redirect.com_categories"   img="" alt="Manage Categories">JEV_INSTAL_CATS</menu>
+			<menu link="option=com_jevents&amp;task=icals.list"  img="" alt="JEV_ADMIN_ICAL_SUBSCRIPTIONS">JEV_ADMIN_ICAL_SUBSCRIPTIONS</menu>
+			<menu link="option=com_jevents&amp;task=defaults.list"  img="" alt="JEV_LAYOUT_DEFAULTS">JEV_LAYOUT_DEFAULTS</menu>
+			<menu link="option=com_jevents&amp;task=params.edit"  img="" alt="COM_JEVENTS_CONFIGURATION">COM_JEVENTS_CONFIGURATION</menu>
+			<!--
+			<menu link="option=com_jevents&amp;task=plugin.jev_customfields.overview"  img="" alt="JEV_FIELD_CUSTOMFIELDS">JEV_FIELD_CUSTOMFIELDS</menu>
+			-->
+			<menu link="option=com_jevents&amp;task=redirect.com_jevlocations"  img="" alt="COM_JEVENTS_LOCATIONS">COM_JEVENTS_LOCATIONS</menu>
+			<menu link="option=com_jevents&amp;task=redirect.com_jevpeople"  img="" alt="COM_JEVENTS_PEOPLE">COM_JEVENTS_PEOPLE</menu>
+			<menu link="option=com_jevents&amp;task=redirect.com_rsvppro"  img="" alt="COM_JEVENTS_RSVPPRO">COM_JEVENTS_RSVPPRO</menu>
+			<menu link="option=com_jevents&amp;task=redirect.com_jeventstags"  img="" alt="COM_JEVENTS_TAGS">COM_JEVENTS_TAGS</menu>
+		</submenu>
 		<files folder="admin">
 			<folder>assets</folder>
 			<folder>controllers</folder>
 			<folder>fields</folder>
 			<folder>helpers</folder>
+			<folder>layouts</folder>
 			<folder>libraries</folder>
 			<folder>models</folder>
 			<folder>tables</folder>
@@ -82,12 +96,12 @@
 			<language tag="en-GB">en-GB.com_jevents.sys.ini</language>
 		</languages>
 	</administration>
-	
+
 	<!-- UPDATESERVER DEFINITION -->
 	<!--	<updateservers> //-->
-		<!-- Note: No spaces or linebreaks allowed between the server tags -->
-		<!--<server type="extension" priority="1" name="JEventsUpdate Site">http://www.jevents.net/updates/jevents-update.xml</server>//-->
-		<!--<server type="extension" priority="1" name="JEventsUpdate Site">http://ubu.jev20j16.com/updates/jevents-update.xml</server>//-->
+	<!-- Note: No spaces or linebreaks allowed between the server tags -->
+	<!--<server type="extension" priority="1" name="JEventsUpdate Site">http://www.jevents.net/updates/jevents-update.xml</server>//-->
+	<!--<server type="extension" priority="1" name="JEventsUpdate Site">http://ubu.jev20j16.com/updates/jevents-update.xml</server>//-->
 	<!--	</updateservers> //-->
- 
+
 </extension>

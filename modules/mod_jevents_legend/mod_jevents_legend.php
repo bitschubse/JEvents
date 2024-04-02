@@ -1,6 +1,6 @@
 <?php
 /**
- * JEvents Component for Joomla 1.5.x
+ * JEvents Component for Joomla! 3.x
  *
  * @version     $Id: mod_jevents_legend.php 3141 2011-12-29 10:13:17Z geraintedwards $
  * @package     JEvents
@@ -11,26 +11,28 @@
  */
 
 
-defined( '_JEXEC' ) or die( 'Restricted access' );
+defined('_JEXEC') or die('Restricted access');
 
 // record what is running - used by the filters
-$registry	= JRegistry::getInstance("jevents");
-$registry->set("jevents.activeprocess","mod_jevents_legend");
+JLoader::register('JevRegistry', JPATH_SITE . "/components/com_jevents/libraries/registry.php");
+$registry = JevRegistry::getInstance("jevents");
+$registry->set("jevents.activeprocess", "mod_jevents_legend");
 $registry->set("jevents.moduleid", $module->id);
 $registry->set("jevents.moduleparams", $params);
 
-require_once (dirname(__FILE__).'/'.'helper.php');
+require_once(dirname(__FILE__) . '/' . 'helper.php');
 
 $jevhelper = new modJeventsLegendHelper();
 
-$theme = JEV_CommonFunctions::getJEventsViewName();
+$theme    = JEV_CommonFunctions::getJEventsViewName();
 $modtheme = $params->get("com_calViewName", $theme);
-if ($modtheme=="" || $modtheme=="global"){
-	$modtheme=$theme;
+if ($modtheme == "" || $modtheme == "global")
+{
+	$modtheme = $theme;
 }
-$theme=$modtheme;
+$theme = $modtheme;
 
-$viewclass = $jevhelper->getViewClass($theme, 'mod_jevents_legend',$theme.'/'."legend", $params);
-$modview = new $viewclass($params, $module->id);
+$viewclass          = $jevhelper->getViewClass($theme, 'mod_jevents_legend', $theme . '/' . "legend", $params);
+$modview            = new $viewclass($params, $module->id);
 $modview->jevlayout = $theme;
 echo $modview->displayCalendarLegend();

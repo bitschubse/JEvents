@@ -1,6 +1,6 @@
 <?php
 /**
- * copyright (C) 2008-2015 GWE Systems Ltd - All rights reserved
+ * copyright (C) 2008-JEVENTS_COPYRIGHT GWESystems Ltd - All rights reserved
  */
 
 // Check to ensure this file is included in Joomla!
@@ -11,10 +11,11 @@ defined('_JEXEC') or die();
  *
  * @static
  */
-include_once(JPATH_SITE."/modules/mod_jevents_cal/tmpl/default/calendar.php");
+include_once(JPATH_SITE . "/modules/mod_jevents_cal/tmpl/default/calendar.php");
 
 
-class AlternativeModCalView extends DefaultModCalView 
+#[\AllowDynamicProperties]
+class AlternativeModCalView extends DefaultModCalView
 {
-	
+
 }

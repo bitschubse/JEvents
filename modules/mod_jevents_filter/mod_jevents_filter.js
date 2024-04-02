@@ -1,34 +1,101 @@
 var JeventsFilters = {
-	filters: new Array(),
-	reset:function (form){
-		// native array
-		JeventsFilters.filters.each(function (item,i) {
-			if (item.action){
-				eval(item.action);
-			}
-			else {
-				var elem = jQuery("#"+item.id);
-				if (!elem.length && form[item.id]){
-					elem = jQuery(form[item.id]);
-				}
-				if (elem) {
-					var tag = elem.prop('tagName');
-					if (tag.toLowerCase() == 'select'  ){
-						elem.find('option').each(
-							function(idx, selitem){
-								selitem.selected=(selitem.value==item.value)?true:false;
-							}
-						);
-					}
-					else {
-						elem.val( item.value);
-					}
-				}
-			}
-		});
-		if (form.filter_reset){
-			form.filter_reset.value = 1;
-		}
-		form.submit();
-	}
-}
+    filters: [],
+    reset: function (form) {
+        // native array
+        JeventsFilters.filters.forEach(function (item) {
+            if (item.action) {
+                eval(item.action);
+            }
+            else {
+                var elem = jQuery("#" + item.id);
+                if (!elem.length && form[item.id]) {
+                    elem = jQuery(form[item.id]);
+                }
+                if (elem.length) {
+                    var tag = elem.prop('tagName');
+                    if (tag.toLowerCase() == 'select') {
+                        elem.find('option').each(
+                            function (idx, selitem) {
+                                selitem.selected = (selitem.value == item.value) ? true : false;
+                            }
+                        );
+                    }
+                    else {
+                        elem.val(item.value);
+                    }
+                }
+            }
+        });
+        if (form.filter_reset) {
+            form.filter_reset.value = 1;
+        }
+        form.submit();
+    }
+};
+document.addEventListener('DOMContentLoaded', function ()
+{
+    if (typeof autoSubmitFilter !== "undefined" && autoSubmitFilter)
+    {
+
+        var filters = document.querySelectorAll('.jevfilterinput input, .jevfilterinput select')
+        filters.forEach(function(filter, index)
+        {
+            if (
+                filter.getAttribute('type') == 'hidden'
+                || filter.getAttribute('type') == 'submit'
+                || filter.getAttribute('type') == 'reset'
+            )
+            {
+                return;
+            }
+            ['change'].forEach( evt =>
+                filter.addEventListener(evt, function() {
+                    if (filter.getAttribute('data-changing'))
+                    {
+                        return;
+                    }
+
+                    filter.setAttribute('data-changing', 1)
+                    if (filter.onchange)
+                    {
+                        let event = new Event('change');
+                        filter.dispatchEvent(event);
+                    }
+                    filter.removeAttribute('data-changing')
+                    document.querySelector('form.jevfiltermodule').submit()
+                })
+            );
+
+        });
+
+    }
+
+    var filters = document.querySelectorAll('.jevfilterinput input, .jevfilterinput select')
+    filters.forEach(function(filter, index) {
+        if (
+            filter.getAttribute('type') == 'submit'
+            || filter.getAttribute('type') == 'reset'
+        )
+        {
+            return;
+        }
+        if (typeof UIkit !== 'undefined')
+        {
+            if (filter.nodeName == 'SELECT' && !filter.classList.contains('uk-select'))
+            {
+                filter.classList.add('uk-select');
+            }
+
+        }
+        else
+        {
+            if (filter.nodeName == 'SELECT' && !filter.classList.contains('form-select'))
+            {
+                filter.classList.add('form-select');
+            }
+
+        }
+
+    });
+
+});
